@@ -37,8 +37,8 @@
 ### Web — development
 
 ```bash
-git clone https://github.com/LIN4CRE/CUSHCLOUD.git
-cd CUSHCLOUD
+git clone https://github.com/LIN4CRE/KushCloud.git
+cd KushCloud
 npm install
 npm run dev        # → http://localhost:5000
 ```
@@ -80,7 +80,7 @@ cd android && ./gradlew assembleDebug
 ## 📁 Project Structure
 
 ```
-CUSHCLOUD/
+KushCloud/
 ├── src/
 │   ├── game/
 │   │   ├── engine.ts        # Core game loop, physics, collision
@@ -129,7 +129,7 @@ CUSHCLOUD/
 | Push to `main` | Builds Vite bundle, deploys to GitHub Pages |
 | `workflow_dispatch` | Manual run |
 
-Live demo: **https://lin4cre.github.io/CUSHCLOUD/**
+Live demo: **https://lin4cre.github.io/KushCloud/**
 
 ---
 

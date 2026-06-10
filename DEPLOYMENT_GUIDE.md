@@ -561,7 +561,7 @@ const config: CapacitorConfig = {
     path: 'index.html',
   },
   server: {
-    url: 'https://lin4cre.github.io/CUSHCLOUD/',
+    url: 'https://lin4cre.github.io/KushCloud/',
     cleartext: false,
   },
   android: {
@@ -691,5 +691,5 @@ componentDidCatch(error, errorInfo) {
 ## 🆘 Support & Contact
 
 ### Support Channels
-- **GitHub Issues**: https://github.com/LIN4CRE/CUSHCLOUD/issues
+- **GitHub Issues**: https://github.com/LIN4CRE/KushCloud/issues
 - **GitHub Discussions**: https)
