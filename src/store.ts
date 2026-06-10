@@ -6,7 +6,6 @@ export function useSave() {
   const ref = useRef(save);
   ref.current = save;
 
-  // Periodic midnight rollover check — also fires on tab resume
   useEffect(() => {
     const tick = () => {
       const today = Math.floor(Date.now() / 86400000);
@@ -38,7 +37,6 @@ export function useSave() {
     });
   }, []);
 
-  // persist on unload (cloud-sync placeholder)
   useEffect(() => {
     const onHide = () => writeSave(ref.current);
     window.addEventListener("visibilitychange", onHide);

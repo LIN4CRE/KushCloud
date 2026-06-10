@@ -35,7 +35,69 @@ html, body, #root {
   50% { box-shadow: 0 0 16px 4px rgba(251, 191, 36, 0.55); }
 }
 
+@keyframes scale-in {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes confetti {
+  0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateY(120px) rotate(720deg) scale(0.5); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes crate-shake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes slide-down {
+  0% { opacity: 0; transform: translateY(-20px) scaleY(0.8); }
+  100% { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+@keyframes burst {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+@keyframes spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes reveal {
+  0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+  60% { transform: scale(1.1) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes rarity-flash {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5); }
+}
+
+::selection { background: rgba(52, 211, 153, 0.3); }
+
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+/* Rarity animation delays */
+.rarity-glow-common { animation: glow-pulse 3s ease-in-out infinite; }
+.rarity-glow-uncommon { animation: glow-pulse 2.5s ease-in-out infinite; }
+.rarity-glow-rare { animation: glow-pulse 2s ease-in-out infinite; }
+.rarity-glow-epic { animation: glow-pulse 1.8s ease-in-out infinite, rarity-flash 2.5s ease-in-out infinite; }
+.rarity-glow-legendary { animation: glow-pulse 1.5s ease-in-out infinite, rarity-flash 1.8s ease-in-out infinite; }
+.rarity-glow-mythic { animation: glow-pulse 1.2s ease-in-out infinite, rarity-flash 1.2s ease-in-out infinite, spin-slow 4s linear infinite; }

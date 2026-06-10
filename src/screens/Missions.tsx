@@ -1,6 +1,5 @@
-import { SaveData } from "../game/storage";
-import { currentMissions } from "../game/storage";
-import { LOGIN_REWARDS } from "../game/data";
+import { SaveData, currentMissions } from "../game/storage";
+import { LOGIN_REWARDS, WEEKLY_EVENTS, currentWeekIndex } from "../game/data";
 import { ScreenShell, Button, ProgressBar, cx } from "../ui";
 
 interface Props {
@@ -14,14 +13,7 @@ interface Props {
 export default function Missions({ save, onBack, onClaimMission, onClaimLogin, loginAvailable }: Props) {
   const missions = currentMissions();
   const streakIdx = Math.min(save.loginStreak, LOGIN_REWARDS.length) - 1;
-
-  const week = Math.floor(Date.now() / (86400000 * 7));
-  const events = [
-    { name: "Frosty Friday Fest", desc: "Coins from runs are worth +50% all week!", icon: "❄️" },
-    { name: "Double XP Daze", desc: "Earn bonus XP on every flap through the week.", icon: "✨" },
-    { name: "Combo Carnival", desc: "Near-misses give extra combo this week.", icon: "🎪" },
-  ];
-  const ev = events[week % events.length];
+  const ev = WEEKLY_EVENTS[currentWeekIndex() % WEEKLY_EVENTS.length];
 
   return (
     <ScreenShell title="Daily Hub" onBack={onBack}>
@@ -45,9 +37,7 @@ export default function Missions({ save, onBack, onClaimMission, onClaimLogin, l
               key={i}
               className={cx(
                 "flex-1 rounded-xl border py-2 text-center transition-all",
-                i < save.loginStreak
-                  ? "bg-amber-400/20 border-amber-300/30"
-                  : "bg-black/20 border-white/[0.08]",
+                i < save.loginStreak ? "bg-amber-400/20 border-amber-300/30" : "bg-black/20 border-white/[0.08]",
                 i === streakIdx && loginAvailable && "ring-1 ring-amber-300 ring-offset-1 ring-offset-transparent",
               )}
             >
@@ -96,11 +86,7 @@ export default function Missions({ save, onBack, onClaimMission, onClaimLogin, l
                 key={m.id}
                 className={cx(
                   "rounded-2xl border p-3.5 transition-all",
-                  claimed
-                    ? "bg-white/[0.04] border-white/[0.06]"
-                    : complete
-                    ? "bg-emerald-500/10 border-emerald-400/25"
-                    : "bg-white/[0.06] border-white/[0.08]",
+                  claimed ? "bg-white/[0.04] border-white/[0.06]" : complete ? "bg-emerald-500/10 border-emerald-400/25" : "bg-white/[0.06] border-white/[0.08]",
                 )}
               >
                 <div className="flex items-center justify-between gap-3">

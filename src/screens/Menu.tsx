@@ -1,5 +1,5 @@
 import { SaveData } from "../game/storage";
-import { SKINS, TRAILS, levelFromXp } from "../game/data";
+import { SKINS, TRAILS, TITLES, levelFromXp } from "../game/data";
 import { Button, ProgressBar, CoinPill, cx } from "../ui";
 import { Screen } from "../App";
 import { audio } from "../game/audio";
@@ -27,7 +27,7 @@ function MiniBird({ skinId, trailId }: { skinId: string; trailId: string }) {
               style={{
                 width: 9 - i * 1.5,
                 height: 9 - i * 1.5,
-                background: trail.kind === "rainbow" ? `hsl(${i * 80},90%,65%)` : trail.glow,
+                background: trail.kind === "rainbow" || trail.kind === "aurora" ? `hsl(${i * 80},90%,65%)` : trail.glow,
                 opacity: 0.8 - i * 0.18,
               }}
             />
@@ -50,6 +50,8 @@ function MiniBird({ skinId, trailId }: { skinId: string; trailId: string }) {
 
 export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal, loginAvailable }: Props) {
   const lvl = levelFromXp(save.xp);
+  const title = TITLES.find((t) => t.id === save.equippedTitle);
+  const badge = BADGES.find((b) => b.id === save.equippedBadge);
 
   return (
     <div className="flex h-full flex-col px-5 pb-5 pt-6">
@@ -64,11 +66,19 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
           </div>
           <span className="max-w-[100px] truncate text-sm font-bold text-white/90">{save.playerName}</span>
         </button>
-        <CoinPill coins={save.coins} />
+        <div className="flex items-center gap-2">
+          {save.dust > 0 && (
+            <span className="text-xs font-bold text-violet-300 tabular-nums">💎{save.dust}</span>
+          )}
+          <CoinPill coins={save.coins} />
+        </div>
       </div>
 
       {/* Title */}
       <div className="mt-5 text-center">
+        {title && (
+          <div className="text-[10px] font-semibold text-white/40 mb-1">{title.name}</div>
+        )}
         <h1 className="text-5xl font-black tracking-tight text-white leading-none">
           KUSH<span className="text-lime-300 drop-shadow-[0_0_12px_rgba(163,230,53,0.5)]">CLOUD</span>
         </h1>
@@ -127,8 +137,6 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
       <div className="mt-2 grid grid-cols-2 gap-2">
         <NavBtn icon="📊" label="Stats" onClick={() => onNav("statistics")} wide />
         <NavBtn icon="⚙️" label="Settings" onClick={() => onNav("settings")} wide />
-      </div>
-      <div className="mt-1.5 grid grid-cols-1">
         <NavBtn icon="❓" label="How to Play" onClick={() => onNav("tutorial")} wide />
       </div>
     </div>
@@ -136,17 +144,9 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
 }
 
 function NavBtn({
-  icon,
-  label,
-  onClick,
-  badge,
-  wide,
+  icon, label, onClick, badge, wide,
 }: {
-  icon: string;
-  label: string;
-  onClick: () => void;
-  badge?: string;
-  wide?: boolean;
+  icon: string; label: string; onClick: () => void; badge?: string; wide?: boolean;
 }) {
   return (
     <button

@@ -3,7 +3,9 @@ import { useSave } from "./store";
 import { audio } from "./game/audio";
 import { RunResult } from "./game/engine";
 import {
-  SKINS, TRAILS, ACHIEVEMENTS, levelFromXp, LOGIN_REWARDS, getDailyMissions,
+  SKINS, TRAILS, TITLES, BADGES, EFFECTS, POWERUPS, LOOT_CRATES,
+  ACHIEVEMENTS, levelFromXp, LOGIN_REWARDS, getDailyMissions, rollLootCrate,
+  currentWeekIndex, WEEKLY_EVENTS, type LootCrate,
 } from "./game/data";
 import {
   validateRun, dayNumber, randomName, DEFAULT_STATS, getRank,
@@ -27,6 +29,7 @@ export default function App() {
   const { save, update } = useSave();
   const [screen, setScreen] = useState<Screen>(save.seenTutorial ? "menu" : "tutorial");
   const [toast, setToast] = useState<string | null>(null);
+  const [lootCrateOpen, setLootCrateOpen] = useState<LootCrate | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -34,7 +37,6 @@ export default function App() {
     window.setTimeout(() => setToast(null), 2400);
   };
 
-  // Error handling
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,7 +44,6 @@ export default function App() {
       console.error("Application error:", event.error);
       setError(event.error?.message || "An unknown error occurred");
     };
-
     window.addEventListener("error", handleError);
     return () => window.removeEventListener("error", handleError);
   }, []);
@@ -79,7 +80,6 @@ export default function App() {
       window.removeEventListener("pointerdown", start);
       window.removeEventListener("keydown", start);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -92,9 +92,10 @@ export default function App() {
   const processRun = async (r: RunResult): Promise<RunSummary> => {
     try {
       const check = validateRun(r.score, r.durationMs, r.flaps, r.coins);
-      const week = Math.floor(Date.now() / (86400000 * 7));
-      const coinBoost = week % 3 === 0 ? 1.5 : 1;
-      const xpBoost = week % 3 === 1 ? 1.3 : 1;
+      const week = currentWeekIndex();
+      const ev = WEEKLY_EVENTS[week % WEEKLY_EVENTS.length];
+      const coinBoost = ev.coinBoost;
+      const xpBoost = ev.xpBoost;
 
       const beforeLevel = levelFromXp(save.xp).level;
       let coinsGained = 0;
@@ -158,7 +159,14 @@ export default function App() {
 
           for (const a of ACHIEVEMENTS) {
             if (s.unlockedAchievements.includes(a.id)) continue;
-            const val = a.stat === "score" ? s.stats.bestScore : (s.stats as any)[a.stat] ?? 0;
+            let val = 0;
+            if (a.stat === "score") val = s.stats.bestScore;
+            else if (a.stat === "ownedSkins") val = s.ownedSkins.length;
+            else if (a.stat === "ownedTrails") val = s.ownedTrails.length;
+            else if (a.stat === "ownedEffects") val = s.ownedEffects.length;
+            else if (a.stat === "ownedBadges") val = s.ownedBadges.length;
+            else if (a.stat === "ownedTitles") val = s.ownedTitles.length;
+            else val = (s.stats as any)[a.stat] ?? 0;
             if (val >= a.goal) {
               s.unlockedAchievements.push(a.id);
               newAch.push(a.name);
@@ -171,15 +179,8 @@ export default function App() {
       const rank = await getRank("daily", Math.max(r.score, save.stats.bestScore));
 
       return {
-        xpGained,
-        coinsGained,
-        levelUpCoins,
-        newBest,
-        leveledUp,
-        achievements: newAch,
-        missions: newMissions,
-        valid: check.valid,
-        rank,
+        xpGained, coinsGained, levelUpCoins, newBest, leveledUp,
+        achievements: newAch, missions: newMissions, valid: check.valid, rank,
       };
     } catch (error) {
       console.error("Error processing run:", error);
@@ -190,6 +191,7 @@ export default function App() {
   const buySkin = (id: string) => {
     const skin = SKINS.find((s) => s.id === id);
     if (!skin || save.coins < skin.cost || save.ownedSkins.includes(id)) return;
+    audio.purchase();
     update((s) => {
       s.coins -= skin.cost;
       s.ownedSkins.push(id);
@@ -197,15 +199,62 @@ export default function App() {
     });
     showToast(`Unlocked ${skin.name}! 🎉`);
   };
+
   const buyTrail = (id: string) => {
     const tr = TRAILS.find((t) => t.id === id);
     if (!tr || save.coins < tr.cost || save.ownedTrails.includes(id)) return;
+    audio.purchase();
     update((s) => {
       s.coins -= tr.cost;
       s.ownedTrails.push(id);
       s.equippedTrail = id;
     });
     showToast(`Unlocked ${tr.name}! 🎉`);
+  };
+
+  const buyCrate = (crate: LootCrate) => {
+    if (save.coins < crate.cost) return;
+    audio.purchase();
+    update((s) => {
+      s.coins -= crate.cost;
+      s.cratesOpened += 1;
+    });
+    setLootCrateOpen(crate);
+  };
+
+  const claimCrateDrops = (itemIds: string[], dust: number) => {
+    update((s) => {
+      for (const id of itemIds) {
+        const skin = SKINS.find(x => x.id === id);
+        if (skin && !s.ownedSkins.includes(id)) { s.ownedSkins.push(id); continue; }
+        const trail = TRAILS.find(x => x.id === id);
+        if (trail && !s.ownedTrails.includes(id)) { s.ownedTrails.push(id); continue; }
+        const title = TITLES.find(x => x.id === id);
+        if (title && !s.ownedTitles.includes(id)) { s.ownedTitles.push(id); continue; }
+        const badge = BADGES.find(x => x.id === id);
+        if (badge && !s.ownedBadges.includes(id)) { s.ownedBadges.push(id); continue; }
+        const effect = EFFECTS.find(x => x.id === id);
+        if (effect && !s.ownedEffects.includes(id)) { s.ownedEffects.push(id); continue; }
+        s.dust += dust;
+      }
+      s.dust += dust;
+    });
+    const names = itemIds.map(id => {
+      return [...SKINS, ...TRAILS, ...TITLES, ...BADGES, ...EFFECTS].find(x => x.id === id)?.name || id;
+    });
+    showToast(`Got: ${names.join(", ")}${dust > 0 ? ` +${dust} dust` : ""}`);
+    setLootCrateOpen(null);
+  };
+
+  const buyPowerUp = (id: string) => {
+    const p = POWERUPS.find(x => x.id === id);
+    if (!p || save.coins < p.cost || save.ownedPowerUps.includes(id)) return;
+    audio.purchase();
+    update((s) => {
+      s.coins -= p.cost;
+      s.ownedPowerUps.push(id);
+    });
+    showToast(`Got ${p.name}! Use it in-game!`);
   };
 
   const claimAchievement = (id: string) => {
@@ -245,21 +294,17 @@ export default function App() {
   const resetProgress = () => {
     if (!confirm("Reset ALL progress? This cannot be undone.")) return;
     update((s) => {
-      s.coins = 0;
-      s.xp = 0;
+      s.coins = 0; s.xp = 0; s.dust = 0;
       s.stats = { ...DEFAULT_STATS };
-      s.ownedSkins = ["bud"];
-      s.ownedTrails = ["none"];
-      s.equippedSkin = "bud";
-      s.equippedTrail = "none";
-      s.unlockedAchievements = [];
-      s.claimedAchievements = [];
-      s.scoreHistory = [];
-      s.missions = [];
-      s.loginStreak = 0;
-      s.loginClaimedToday = false;
-      s.playerName = randomName();
-      s.seenTutorial = true;
+      s.ownedSkins = ["bud"]; s.ownedTrails = ["none"]; s.ownedEffects = ["e_none"];
+      s.ownedTitles = []; s.ownedBadges = []; s.ownedPowerUps = [];
+      s.equippedSkin = "bud"; s.equippedTrail = "none"; s.equippedEffect = "e_none";
+      s.equippedTitle = null; s.equippedBadge = null;
+      s.unlockedAchievements = []; s.claimedAchievements = [];
+      s.scoreHistory = []; s.missions = [];
+      s.loginStreak = 0; s.loginClaimedToday = false;
+      s.cratesOpened = 0; s.seenItems = {};
+      s.playerName = randomName(); s.seenTutorial = true;
     });
     showToast("Progress reset.");
     setScreen("menu");
@@ -270,13 +315,11 @@ export default function App() {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-slate-950 overflow-hidden">
-      {/* Subtle ambient glow behind the card */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="h-[600px] w-[420px] rounded-full bg-emerald-900/30 blur-[80px]" />
       </div>
 
       <div className="relative mx-auto h-full w-full max-w-md overflow-hidden bg-gradient-to-b from-slate-900 via-emerald-950/60 to-slate-950 shadow-[0_0_80px_rgba(0,0,0,0.8)]">
-        {/* Subtle top gradient shine */}
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
 
         {screen === "menu" && (
@@ -290,7 +333,11 @@ export default function App() {
           />
         )}
         {screen === "play" && (
-          <Play save={save} onExit={() => setScreen("menu")} processRun={processRun} />
+          <Play
+            save={save}
+            onExit={() => setScreen("menu")}
+            processRun={processRun}
+          />
         )}
         {screen === "shop" && (
           <Shop
@@ -298,8 +345,13 @@ export default function App() {
             onBack={() => setScreen("menu")}
             onBuySkin={buySkin}
             onBuyTrail={buyTrail}
-            onEquipSkin={(id) => update((s) => { s.equippedSkin = id; })}
-            onEquipTrail={(id) => update((s) => { s.equippedTrail = id; })}
+            onBuyCrate={buyCrate}
+            onEquipSkin={(id) => { audio.equip(); update((s) => { s.equippedSkin = id; }); }}
+            onEquipTrail={(id) => { audio.equip(); update((s) => { s.equippedTrail = id; }); }}
+            onEquipTitle={(id) => { audio.equip(); update((s) => { s.equippedTitle = id; }); }}
+            onEquipBadge={(id) => { audio.equip(); update((s) => { s.equippedBadge = id; }); }}
+            onEquipEffect={(id) => { audio.equip(); update((s) => { s.equippedEffect = id; }); }}
+            onBuyPowerUp={buyPowerUp}
           />
         )}
         {screen === "leaderboard" && <Leaderboard save={save} onBack={() => setScreen("menu")} />}
@@ -343,6 +395,21 @@ export default function App() {
           />
         )}
 
+        {/* Loot crate modal */}
+        {lootCrateOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+            <div className="relative w-full max-w-sm animate-[scale-in_0.3s_ease-out]">
+              <div className="rounded-3xl bg-gradient-to-b from-slate-800 to-slate-900 border border-white/[0.1] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+                <CrateReveal
+                  crate={lootCrateOpen}
+                  onClaim={(itemIds, dust) => claimCrateDrops(itemIds, dust)}
+                  onClose={() => setLootCrateOpen(null)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Toast */}
         {toast && (
           <div className="pointer-events-none absolute left-1/2 top-16 z-50 -translate-x-1/2 animate-[slide-up_0.3s_ease-out]">
@@ -352,6 +419,97 @@ export default function App() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function CrateReveal({ crate, onClaim, onClose }: {
+  crate: LootCrate;
+  onClaim: (itemIds: string[], dust: number) => void;
+  onClose: () => void;
+}) {
+  const [phase, setPhase] = useState<"shake" | "reveal" | "done">("shake");
+  const [drops, setDrops] = useState<Array<{ drop: any; type: string; icon: string }>>([]);
+  const [dust, setDust] = useState(0);
+
+  useEffect(() => {
+    const result = rollLootCrate(crate);
+    if (result.drops.length === 0) {
+      onClaim([], 0);
+      return;
+    }
+    const mapped = result.drops.map(drop => {
+      let type = "Skin", icon = "🐦";
+      if (TRAILS.find(t => t.id === drop.id)) { type = "Trail"; icon = "✨"; }
+      else if (TITLES.find(t => t.id === drop.id)) { type = "Title"; icon = "📛"; }
+      else if (BADGES.find(t => t.id === drop.id)) { type = "Badge"; icon = (drop as any).icon || "🏅"; }
+      else if (EFFECTS.find(t => t.id === drop.id)) { type = "Effect"; icon = "🌈"; }
+      else if (SKINS.find(t => t.id === drop.id)) { icon = (drop as any).emoji || "🐦"; }
+      return { drop, type, icon };
+    });
+    setDrops(mapped);
+    setDust(result.dust);
+  }, [crate]);
+
+  useEffect(() => {
+    if (phase !== "shake") return;
+    const t1 = setTimeout(() => audio.crateOpen(), 100);
+    const t2 = setTimeout(() => {
+      audio.rareDrop();
+      setPhase("reveal");
+    }, 1200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [phase]);
+
+  if (phase === "shake") {
+    return (
+      <div className="flex flex-col items-center gap-4 py-8">
+        <div className="text-7xl animate-[crate-shake_0.4s_ease-in-out_infinite]">{crate.icon}</div>
+        <div className="text-white/60 text-sm font-semibold animate-pulse">Opening {crate.name}...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <h2 className="text-xl font-black text-white">🎉 You Got!</h2>
+      <div className="grid gap-3 w-full" style={{ gridTemplateColumns: drops.length > 1 ? "1fr 1fr" : "1fr" }}>
+        {drops.map((d, i) => {
+          const rarity = (d.drop as any).rarity as Rarity;
+          const r = RARITY[rarity];
+          return (
+            <div
+              key={i}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-2xl animate-[reveal_0.5s_ease-out_forwards]"
+              style={{
+                background: r.bg,
+                border: `1px solid ${r.border}`,
+                boxShadow: `0 0 20px ${r.glow}`,
+                animationDelay: `${i * 200}ms`,
+                opacity: 0,
+              }}
+            >
+              <div className={`text-3xl rarity-glow-${rarity}`}>{d.icon}</div>
+              <div className="text-sm font-black text-white text-center">{(d.drop as any).name}</div>
+              <span
+                className="text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full"
+                style={{ background: r.bg, border: `1px solid ${r.border}`, color: r.color }}
+              >
+                {r.label}
+              </span>
+              <div className="text-[9px] font-medium text-white/40">{d.type}</div>
+            </div>
+          );
+        })}
+      </div>
+      {dust > 0 && <div className="text-sm text-white/60">+{dust} 💎 Dust</div>}
+      <Button
+        variant="gold"
+        className="w-full mt-2"
+        onClick={() => { audio.reward(); onClaim(drops.map(d => d.drop.id), dust); onClose(); }}
+      >
+        Claim & Continue
+      </Button>
     </div>
   );
 }

@@ -3,9 +3,11 @@ import { PlayerStats, getDailyMissions, Mission, LOGIN_REWARDS } from "./data";
 const KEY = "kushcloud_save_v1";
 
 export interface MissionProgress {
-  id: string;
-  progress: number;
-  claimed: boolean;
+  id: string; progress: number; claimed: boolean;
+}
+
+export interface OwnedItem {
+  id: string; obtained: number; // timestamp
 }
 
 export interface SaveData {
@@ -13,42 +15,42 @@ export interface SaveData {
   playerName: string;
   coins: number;
   xp: number;
+  dust: number;
   stats: PlayerStats;
   ownedSkins: string[];
   ownedTrails: string[];
+  ownedTitles: string[];
+  ownedBadges: string[];
+  ownedEffects: string[];
+  ownedPowerUps: string[];
   equippedSkin: string;
   equippedTrail: string;
+  equippedTitle: string | null;
+  equippedBadge: string | null;
+  equippedEffect: string;
   unlockedAchievements: string[];
   claimedAchievements: string[];
-  // daily
+  cratesOpened: number;
   lastDay: number;
   missions: MissionProgress[];
   dailyPlays: number;
   dailyCoins: number;
-  // login streak
   lastLoginDay: number;
   loginStreak: number;
   loginClaimedToday: boolean;
-  // settings
   musicVol: number;
   sfxVol: number;
   reducedMotion: boolean;
   highContrast: boolean;
-  // tutorial
   seenTutorial: boolean;
-  // best score history for graph
   scoreHistory: number[];
   lastSync: number;
+  seenItems: Record<string, boolean>;
 }
 
 export const DEFAULT_STATS: PlayerStats = {
-  totalGames: 0,
-  totalScore: 0,
-  totalCoins: 0,
-  totalNearMiss: 0,
-  bestCombo: 0,
-  totalFlaps: 0,
-  bestScore: 0,
+  totalGames: 0, totalScore: 0, totalCoins: 0, totalNearMiss: 0,
+  bestCombo: 0, totalFlaps: 0, bestScore: 0,
 };
 
 export function dayNumber(): number {
@@ -57,17 +59,26 @@ export function dayNumber(): number {
 
 function defaultSave(): SaveData {
   return {
-    version: 1,
+    version: 2,
     playerName: randomName(),
     coins: 0,
     xp: 0,
+    dust: 0,
     stats: { ...DEFAULT_STATS },
     ownedSkins: ["bud"],
     ownedTrails: ["none"],
+    ownedTitles: [],
+    ownedBadges: [],
+    ownedEffects: ["e_none"],
+    ownedPowerUps: [],
     equippedSkin: "bud",
     equippedTrail: "none",
+    equippedTitle: null,
+    equippedBadge: null,
+    equippedEffect: "e_none",
     unlockedAchievements: [],
     claimedAchievements: [],
+    cratesOpened: 0,
     lastDay: dayNumber(),
     missions: [],
     dailyPlays: 0,
@@ -82,6 +93,7 @@ function defaultSave(): SaveData {
     seenTutorial: false,
     scoreHistory: [],
     lastSync: Date.now(),
+    seenItems: {},
   };
 }
 
@@ -91,12 +103,31 @@ export function randomName(): string {
   return ADJ[Math.floor(Math.random() * ADJ.length)] + NOUN[Math.floor(Math.random() * NOUN.length)] + Math.floor(Math.random() * 90 + 10);
 }
 
+export function migrateSave(data: Record<string, any>): SaveData {
+  const def = defaultSave();
+  if (!data.version || data.version < 2) {
+    data.dust ??= 0;
+    data.ownedTitles ??= [];
+    data.ownedBadges ??= [];
+    data.ownedEffects ??= ["e_none"];
+    data.ownedPowerUps ??= [];
+    data.equippedTitle ??= null;
+    data.equippedBadge ??= null;
+    data.equippedEffect ??= "e_none";
+    data.cratesOpened ??= 0;
+    data.seenItems ??= {};
+    data.version = 2;
+  }
+  return { ...def, ...data, stats: { ...DEFAULT_STATS, ...data.stats } };
+}
+
 export function loadSave(): SaveData {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultSave();
-    const data = JSON.parse(raw) as SaveData;
-    return { ...defaultSave(), ...data, stats: { ...DEFAULT_STATS, ...data.stats } };
+    const data = JSON.parse(raw);
+    if (typeof data === "object" && data !== null) return migrateSave(data);
+    return defaultSave();
   } catch {
     return defaultSave();
   }
@@ -106,12 +137,9 @@ export function writeSave(data: SaveData) {
   try {
     data.lastSync = Date.now();
     localStorage.setItem(KEY, JSON.stringify(data));
-  } catch {
-    /* storage full / unavailable - offline still playable in-memory */
-  }
+  } catch { /* offline fine */ }
 }
 
-// Roll daily content if a new day has begun
 export function rollDaily(data: SaveData): SaveData {
   const today = dayNumber();
   if (data.lastDay !== today || data.missions.length === 0) {
@@ -121,7 +149,6 @@ export function rollDaily(data: SaveData): SaveData {
     data.dailyCoins = 0;
     data.lastDay = today;
   }
-  // login streak handling
   if (data.lastLoginDay !== today) {
     if (data.lastLoginDay === today - 1) {
       data.loginStreak = Math.min(data.loginStreak + 1, LOGIN_REWARDS.length);
@@ -138,9 +165,6 @@ export function currentMissions(): Mission[] {
   return getDailyMissions(dayNumber());
 }
 
-// ===== Anti-cheat / score validation =====
-// A run is valid if the score is achievable given elapsed time and flap count.
-// Each pipe takes a minimum traversal time; impossible scores are rejected.
 export function validateRun(score: number, durationMs: number, flaps: number, coins: number): { valid: boolean; reason?: string } {
   if (score < 0 || coins < 0 || flaps < 0) return { valid: false, reason: "Negative values" };
   if (score > 0 && durationMs < score * 250) return { valid: false, reason: "Score/time mismatch" };
@@ -150,14 +174,7 @@ export function validateRun(score: number, durationMs: number, flaps: number, co
   return { valid: true };
 }
 
-// ===== Simulated secure global leaderboard =====
-// Persistent seeded "online" opponents + the local player; rankings split by period.
-export interface LeaderEntry {
-  name: string;
-  score: number;
-  you?: boolean;
-  friend?: boolean;
-}
+export interface LeaderEntry { name: string; score: number; you?: boolean; friend?: boolean; }
 
 const BOT_NAMES = [
   "GanjaGuru", "BluntForce", "MissMary", "HighKing", "PuffDaddy420", "ChronicChris", "DabQueen",
@@ -192,27 +209,20 @@ export async function getLeaderboard(
       const timeout = setTimeout(() => {
         resolve(getLocalLeaderboard(period, playerName, playerScore, friendsOnly));
       }, 2000);
-      
       subscribeToLeaderboard(period, playerName, playerScore, friendsOnly, (list) => {
         clearTimeout(timeout);
         resolve(list);
       });
     });
-  } catch (error) {
-    console.warn("Firebase leaderboard unavailable, using local simulation:", error);
+  } catch {
     const list = seededScores(period);
     const all = [...list, { name: playerName, score: playerScore, you: true }]
       .sort((a, b) => b.score - a.score);
-    return friendsOnly
-      ? all.filter((e) => e.name === playerName || FRIEND_NAMES.includes(e.name))
-      : all;
+    return friendsOnly ? all.filter((e) => e.name === playerName || FRIEND_NAMES.includes(e.name)) : all;
   }
 }
 
-export async function getRank(
-  period: "daily" | "weekly" | "all",
-  playerScore: number
-): Promise<number> {
+export async function getRank(period: "daily" | "weekly" | "all", playerScore: number): Promise<number> {
   try {
     const { subscribeToLeaderboard } = await import("./leaderboard");
     return new Promise((resolve) => {
@@ -220,8 +230,7 @@ export async function getRank(
         resolve(list.findIndex((e) => e.score === playerScore) + 1 || 1);
       });
     });
-  } catch (error) {
-    console.warn("Firebase rank unavailable, using local simulation:", error);
+  } catch {
     const list = seededScores(period);
     const all = [...list.map((e) => e.score), playerScore].sort((a, b) => b - a);
     return all.indexOf(playerScore) + 1;
