@@ -253,9 +253,17 @@ export class GameEngine {
       this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -50, vy: (Math.random() - 0.5) * 30, life: 0.5, maxLife: 0.5, size: 2.5 * this.sc, color: this.trail.glow, kind: "spark", rot: 0, vr: 0 });
     } else if (k === "leaf") {
       this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -40, vy: (Math.random() - 0.5) * 20, life: 0.9, maxLife: 0.9, size: 5 * this.sc, color: this.trail.color, kind: "leaf", rot: Math.random() * 6, vr: (Math.random() - 0.5) * 6 });
-    } else if (k === "rainbow") {
+    } else if (k === "rainbow" || k === "aurora") {
       const hue = (performance.now() / 6) % 360;
       this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -40, vy: (Math.random() - 0.5) * 20, life: 0.6, maxLife: 0.6, size: 4 * this.sc, color: `hsl(${hue},90%,65%)`, kind: "spark", rot: 0, vr: 0 });
+    } else if (k === "star") {
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -30, vy: (Math.random() - 0.5) * 15, life: 0.7, maxLife: 0.7, size: 3 * this.sc, color: this.trail.color, kind: "spark", rot: 0, vr: 0 });
+    } else if (k === "flame") {
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -20, vy: -50 - Math.random() * 30, life: 0.4, maxLife: 0.4, size: 3 * this.sc, color: this.trail.color, kind: "spark", rot: 0, vr: 0 });
+    } else if (k === "crystal") {
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -30 + Math.random() * 10, vy: (Math.random() - 0.5) * 20, life: 0.5, maxLife: 0.5, size: 2 * this.sc, color: this.trail.color, kind: "puff", rot: 0, vr: 0 });
+    } else if (k === "ghost") {
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -25, vy: (Math.random() - 0.5) * 10, life: 0.8, maxLife: 0.8, size: 4 * this.sc, color: this.trail.color + "60", kind: "puff", rot: 0, vr: 0 });
     }
   }
 

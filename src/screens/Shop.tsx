@@ -19,11 +19,12 @@ interface Props {
   onEquipBadge: (id: string | null) => void;
   onEquipEffect: (id: string) => void;
   onBuyPowerUp: (id: string) => void;
+  onBuyDustItem: (rarity: Rarity) => void;
 }
 
 type Tab = "skins" | "trails" | "titles" | "badges" | "effects" | "crates" | "powerups";
 
-export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, onEquipSkin, onEquipTrail, onEquipTitle, onEquipBadge, onEquipEffect, onBuyPowerUp }: Props) {
+export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, onEquipSkin, onEquipTrail, onEquipTitle, onEquipBadge, onEquipEffect, onBuyPowerUp, onBuyDustItem }: Props) {
   const [tab, setTab] = useState<Tab>("skins");
   const lvl = levelFromXp(save.xp).level;
   const tabs: { key: Tab; label: string; icon: string }[] = [
@@ -203,7 +204,8 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
         )}
 
         {tab === "crates" && (
-          <div className="space-y-3">
+          <>
+            <div className="space-y-3">
             <p className="text-xs font-medium text-white/35">Crates contain random cosmetics — skins, trails, titles, badges, and effects. Higher-tier crates = better loot!</p>
             {LOOT_CRATES.map((c) => {
               const affordable = save.coins >= c.cost;
@@ -250,6 +252,38 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
               );
             })}
           </div>
+
+          {save.dust > 0 && (
+            <div className="mt-4 rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-900/20 via-slate-900 to-fuchsia-900/20 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">💎</span>
+                <span className="font-black text-white text-sm">Dust Exchange</span>
+                <span className="ml-auto text-xs font-bold text-violet-300">{save.dust} dust</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {(["common", "uncommon", "rare", "epic", "legendary", "mythic"] as Rarity[]).map((r) => {
+                  const cost = { common: 15, uncommon: 30, rare: 60, epic: 120, legendary: 300, mythic: 800 }[r];
+                  const canAfford = save.dust >= cost;
+                  const rr = RARITY[r];
+                  return (
+                    <Button
+                      key={r}
+                      size="sm"
+                      variant="dark"
+                      disabled={!canAfford}
+                      onClick={() => onBuyDustItem(r)}
+                      className="flex-col gap-0.5 py-2"
+                      style={canAfford ? { borderColor: rr.border } : undefined}
+                    >
+                      <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: rr.color }}>{r}</span>
+                      <span className="text-[10px] text-white/50">{cost}💎</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
         )}
 
         {tab === "powerups" && (

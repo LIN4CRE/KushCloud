@@ -275,7 +275,7 @@ export function currentWeekIndex(): number {
 }
 
 // Loot box opening logic
-export function rollLootCrate(crate: LootCrate): { drops: LootDrop[]; dust: number } {
+export function rollLootCrate(crate: LootCrate, ownedIds: Set<string> = new Set()): { drops: LootDrop[]; dust: number } {
   const rolls = crate.minRolls + Math.floor(Math.random() * (crate.maxRolls - crate.minRolls + 1));
   const drops: LootDrop[] = [];
   let dust = 0;
@@ -283,7 +283,8 @@ export function rollLootCrate(crate: LootCrate): { drops: LootDrop[]; dust: numb
 
   for (let i = 0; i < rolls; i++) {
     const rarity = rollRarity(crate);
-    const eligible = allItems.filter(item => item.rarity === rarity);
+    let eligible = allItems.filter(item => item.rarity === rarity && !ownedIds.has(item.id));
+    if (eligible.length === 0) eligible = allItems.filter(item => item.rarity === rarity);
     if (eligible.length > 0) {
       drops.push(eligible[Math.floor(Math.random() * eligible.length)]);
     } else {
@@ -291,8 +292,11 @@ export function rollLootCrate(crate: LootCrate): { drops: LootDrop[]; dust: numb
     }
   }
 
-  const dustEligible = allItems.filter(item => item.rarity === "common");
-  if (drops.length === 0 && dustEligible.length > 0) {
+  const dustEligible = allItems.filter(item => item.rarity === "common" && !ownedIds.has(item.id));
+  if (drops.length === 0 && dustEligible.length === 0) {
+    const fallback = allItems.filter(item => item.rarity === "common");
+    if (fallback.length > 0) drops.push(fallback[Math.floor(Math.random() * fallback.length)]);
+  } else if (drops.length === 0 && dustEligible.length > 0) {
     drops.push(dustEligible[Math.floor(Math.random() * dustEligible.length)]);
   }
 

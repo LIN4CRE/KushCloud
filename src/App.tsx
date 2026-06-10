@@ -5,11 +5,12 @@ import { RunResult } from "./game/engine";
 import {
   SKINS, TRAILS, TITLES, BADGES, EFFECTS, POWERUPS, LOOT_CRATES,
   ACHIEVEMENTS, levelFromXp, LOGIN_REWARDS, getDailyMissions, rollLootCrate,
-  currentWeekIndex, WEEKLY_EVENTS, type LootCrate,
+  currentWeekIndex, WEEKLY_EVENTS, RARITY, type LootCrate, type Rarity,
 } from "./game/data";
 import {
-  validateRun, dayNumber, randomName, DEFAULT_STATS, getRank,
+  validateRun, dayNumber, randomName, DEFAULT_STATS, getRank, type SaveData,
 } from "./game/storage";
+import { submitPlayerScore } from "./game/leaderboard";
 import Menu from "./screens/Menu";
 import Play, { RunSummary } from "./screens/Play";
 import Shop from "./screens/Shop";
@@ -176,6 +177,12 @@ export default function App() {
         resolve();
       });
 
+      if (check.valid && r.score > 0) {
+        submitPlayerScore(save.playerName, Math.max(r.score, save.stats.bestScore), "daily").catch(() => {});
+        submitPlayerScore(save.playerName, Math.max(r.score, save.stats.bestScore), "weekly").catch(() => {});
+        submitPlayerScore(save.playerName, Math.max(r.score, save.stats.bestScore), "all").catch(() => {});
+      }
+
       const rank = await getRank("daily", Math.max(r.score, save.stats.bestScore));
 
       return {
@@ -226,16 +233,16 @@ export default function App() {
     update((s) => {
       for (const id of itemIds) {
         const skin = SKINS.find(x => x.id === id);
-        if (skin && !s.ownedSkins.includes(id)) { s.ownedSkins.push(id); continue; }
+        if (skin) { if (!s.ownedSkins.includes(id)) { s.ownedSkins.push(id); } else { s.dust += RARITY[skin.rarity].dustValue; } continue; }
         const trail = TRAILS.find(x => x.id === id);
-        if (trail && !s.ownedTrails.includes(id)) { s.ownedTrails.push(id); continue; }
+        if (trail) { if (!s.ownedTrails.includes(id)) { s.ownedTrails.push(id); } else { s.dust += RARITY[trail.rarity].dustValue; } continue; }
         const title = TITLES.find(x => x.id === id);
-        if (title && !s.ownedTitles.includes(id)) { s.ownedTitles.push(id); continue; }
+        if (title) { if (!s.ownedTitles.includes(id)) { s.ownedTitles.push(id); } else { s.dust += RARITY[title.rarity].dustValue; } continue; }
         const badge = BADGES.find(x => x.id === id);
-        if (badge && !s.ownedBadges.includes(id)) { s.ownedBadges.push(id); continue; }
+        if (badge) { if (!s.ownedBadges.includes(id)) { s.ownedBadges.push(id); } else { s.dust += RARITY[badge.rarity].dustValue; } continue; }
         const effect = EFFECTS.find(x => x.id === id);
-        if (effect && !s.ownedEffects.includes(id)) { s.ownedEffects.push(id); continue; }
-        s.dust += dust;
+        if (effect) { if (!s.ownedEffects.includes(id)) { s.ownedEffects.push(id); } else { s.dust += RARITY[effect.rarity].dustValue; } continue; }
+        s.dust += RARITY.common.dustValue;
       }
       s.dust += dust;
     });
@@ -289,6 +296,27 @@ export default function App() {
       s.coins += reward;
     });
     showToast(`Daily reward: +${reward} 🪙`);
+  };
+
+  const DUST_COST: Record<Rarity, number> = { common: 15, uncommon: 30, rare: 60, epic: 120, legendary: 300, mythic: 800 };
+
+  const buyDustItem = (rarity: Rarity) => {
+    const cost = DUST_COST[rarity];
+    if (save.dust < cost) return;
+    update((s) => {
+      const owned = new Set([...s.ownedSkins, ...s.ownedTrails, ...s.ownedTitles, ...s.ownedBadges, ...s.ownedEffects]);
+      const pool = [...SKINS.filter(x => x.id !== "bud"), ...TRAILS.filter(x => x.id !== "none"), ...TITLES, ...BADGES, ...EFFECTS.filter(x => x.id !== "e_none")].filter(x => x.rarity === rarity && !owned.has(x.id));
+      if (pool.length === 0) { showToast("All items of this rarity owned!"); return; }
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      s.dust -= cost;
+      if (SKINS.find(x => x.id === pick.id)) s.ownedSkins.push(pick.id);
+      else if (TRAILS.find(x => x.id === pick.id)) s.ownedTrails.push(pick.id);
+      else if (TITLES.find(x => x.id === pick.id)) s.ownedTitles.push(pick.id);
+      else if (BADGES.find(x => x.id === pick.id)) s.ownedBadges.push(pick.id);
+      else if (EFFECTS.find(x => x.id === pick.id)) s.ownedEffects.push(pick.id);
+      showToast(`Crafted ${pick.name}! (${RARITY[rarity].label})`);
+      audio.purchase();
+    });
   };
 
   const resetProgress = () => {
@@ -352,6 +380,7 @@ export default function App() {
             onEquipBadge={(id) => { audio.equip(); update((s) => { s.equippedBadge = id; }); }}
             onEquipEffect={(id) => { audio.equip(); update((s) => { s.equippedEffect = id; }); }}
             onBuyPowerUp={buyPowerUp}
+            onBuyDustItem={buyDustItem}
           />
         )}
         {screen === "leaderboard" && <Leaderboard save={save} onBack={() => setScreen("menu")} />}
@@ -402,6 +431,7 @@ export default function App() {
               <div className="rounded-3xl bg-gradient-to-b from-slate-800 to-slate-900 border border-white/[0.1] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
                 <CrateReveal
                   crate={lootCrateOpen}
+                  save={save}
                   onClaim={(itemIds, dust) => claimCrateDrops(itemIds, dust)}
                   onClose={() => setLootCrateOpen(null)}
                 />
@@ -423,8 +453,9 @@ export default function App() {
   );
 }
 
-function CrateReveal({ crate, onClaim, onClose }: {
+function CrateReveal({ crate, save, onClaim, onClose }: {
   crate: LootCrate;
+  save: SaveData;
   onClaim: (itemIds: string[], dust: number) => void;
   onClose: () => void;
 }) {
@@ -433,7 +464,8 @@ function CrateReveal({ crate, onClaim, onClose }: {
   const [dust, setDust] = useState(0);
 
   useEffect(() => {
-    const result = rollLootCrate(crate);
+    const owned = new Set([...save.ownedSkins, ...save.ownedTrails, ...save.ownedTitles, ...save.ownedBadges, ...save.ownedEffects]);
+    const result = rollLootCrate(crate, owned);
     if (result.drops.length === 0) {
       onClaim([], 0);
       return;

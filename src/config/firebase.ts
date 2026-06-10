@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, push, onValue, off, query, orderByChild, limitToLast, get } from "firebase/database";
+import { getDatabase, ref, set, push, onValue, query, orderByChild, limitToLast, get } from "firebase/database";
 
 // Firebase configuration - replace with your own Firebase project credentials
 const firebaseConfig = {
@@ -85,14 +85,14 @@ export function subscribeLeaderboard(
   const unsubscribe = onValue(q, (snapshot) => {
     const entries: LeaderboardEntry[] = [];
     snapshot.forEach((child) => {
-      entries.push({ ...child.val(), uid: child.key || "" });
+      entries.push(child.val() as LeaderboardEntry);
     });
     // Sort descending by score
     entries.sort((a, b) => b.score - a.score);
     callback(entries.slice(0, 50));
   });
   
-  return () => off(q, "value", unsubscribe);
+  return unsubscribe;
 }
 
 export function subscribeUserProfile(uid: string, callback: (profile: UserProfile | null) => void): () => void {
@@ -103,7 +103,7 @@ export function subscribeUserProfile(uid: string, callback: (profile: UserProfil
     callback(profile);
   });
   
-  return () => off(profileRef, "value", unsubscribe);
+  return unsubscribe;
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
