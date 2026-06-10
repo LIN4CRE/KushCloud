@@ -1,40 +1,81 @@
-# 🌿 KushCloud
+# KushCloud
 
-> A Flappy Bird-style arcade game with a chill aesthetic — tap to fly, dodge the jars, grab the leaves.
+[![Release](https://img.shields.io/github/v/release/LIN4CRE/KushCloud?style=flat-square&logo=github&label=Download%20APK)](https://github.com/LIN4CRE/KushCloud/releases/latest)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
+[![Capacitor](https://img.shields.io/badge/Capacitor-8-119EFF?style=flat-square&logo=capacitor&logoColor=white)](https://capacitorjs.com)
+[![Firebase](https://img.shields.io/badge/Firebase-FFA320?style=flat-square&logo=firebase&logoColor=white)](https://firebase.google.com)
+[![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/LIN4CRE/KushCloud/build-apk.yml?style=flat-square&logo=githubactions&label=Build)](https://github.com/LIN4CRE/KushCloud/actions/workflows/build-apk.yml)
 
-![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite&logoColor=white)
-![Capacitor](https://img.shields.io/badge/Capacitor-8-119EFF?style=flat-square&logo=capacitor&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-Realtime-FFA320?style=flat-square&logo=firebase&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)
+A **Flappy Bird-style arcade game** with a chill aesthetic — tap to fly, dodge the jars, grab the leaves. Featuring a custom canvas game engine, synthesised audio, real-time Firebase leaderboards, unlockable cosmetics, and daily missions. Available as an Android APK and playable in any browser.
 
----
-
-## ✨ Features
-
-- **Custom game engine** — canvas-based physics, procedural worlds, near-miss detection
-- **Synthesised audio** — music and SFX generated entirely via Web Audio API (zero audio files)
-- **Full progression system** — XP, levelling, coins, daily login streaks, weekly events
-- **Shop** — unlockable skins and particle trails (cosmetic only, never pay-to-win)
-- **Daily missions & achievements** — server-validated scores, combo system
-- **✅ NEW: Real-Time Leaderboards** — Firebase-powered global, daily, weekly leaderboards with anti-cheat validation
-- **✅ NEW: Statistics Dashboard** — Player analytics, progress tracking, and server sync status
-- **✅ NEW: Power User Tools** — Replay system, practice mode, advanced customization
-- **✅ NEW: Enhanced UX** — Haptic feedback, improved animations, better loading states
-- **Accessibility** — reduced motion mode, high contrast mode
-- **Android APK** — packaged via Capacitor, auto-built in CI on every push to `main`
+**[Play in Browser](https://lin4cre.github.io/KushCloud/)** · **[Download APK](https://github.com/LIN4CRE/KushCloud/releases/latest)**
 
 ---
 
-## 🚀 Quick Start
+## Install
 
-### Prerequisites
+### Android APK (free, no Play Store)
 
-- **Node.js** 20 or higher
-- **npm** 9 or higher
+1. Go to **[releases](https://github.com/LIN4CRE/KushCloud/releases/latest)**
+2. Download `app-debug.apk`
+3. Open it on your phone → tap "Install anyway" if prompted about unknown sources
+4. Play offline or online — leaderboard works with internet
 
-### Web — development
+No ads, no tracking, no permissions beyond storage.
+
+### Web (any device)
+
+Open **https://lin4cre.github.io/KushCloud/** in Chrome, Safari, or Firefox. Full game, same features.
+
+---
+
+## Features
+
+| Feature | Details |
+|---|---|
+| **Custom game engine** | Canvas-based physics, procedural level generation, near-miss detection, particle systems |
+| **Synthesised audio** | Music and sound effects generated in real-time via Web Audio API — zero audio files, tiny bundle |
+| **Real-time leaderboards** | Global, daily, and weekly scoreboards powered by Firebase Realtime Database with anti-cheat validation |
+| **Progression system** | XP, levelling, coins, daily login streaks, weekly events, achievements |
+| **Shop** | Unlockable bird skins and particle trails — cosmetic only, never pay-to-win |
+| **Daily missions** | Rotating challenges with rewards, server-validated scores |
+| **Statistics dashboard** | Player analytics, progress tracking, server sync status |
+| **Practice mode** | Replay system, advanced customization, power user tools |
+| **Accessibility** | Reduced motion mode, high contrast mode |
+| **APK builds** | Auto-built via GitHub Actions on every release tag — downloadable instantly |
+
+---
+
+## Controls
+
+| Action | Input |
+|---|---|
+| Flap | Tap · Click · Space · ↑ |
+| Pause | Top-left pause button (in-game) |
+
+**Scoring:** Fly through jar gaps for points, collect leaves for coins, skim jar edges for near-miss combo multipliers.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| UI | React 19 + TypeScript 5 |
+| Build | Vite 7 + vite-plugin-singlefile |
+| Styling | Tailwind CSS v4 |
+| Game | Custom HTML5 Canvas engine |
+| Audio | Web Audio API (fully synthesised) |
+| Backend | Firebase Realtime Database |
+| Native | Capacitor 8 (Android) |
+| CI/CD | GitHub Actions |
+
+---
+
+## Development
 
 ```bash
 git clone https://github.com/LIN4CRE/KushCloud.git
@@ -43,16 +84,9 @@ npm install
 npm run dev        # → http://localhost:5000
 ```
 
-### Web — production build
+### Android build (local)
 
-```bash
-npm run build      # outputs to dist/
-npm run preview    # preview the production bundle locally
-```
-
-### Android APK — local
-
-> Requires Android Studio with SDK 34 and JDK 17+.
+Requires Android Studio, Android SDK 34, and JDK 21+.
 
 ```bash
 npm run build
@@ -61,106 +95,44 @@ cd android && ./gradlew assembleDebug
 # APK → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
----
+### CI / CD
 
-## 🏗️ Tech Stack
-
-| Layer | Technology |
+| Trigger | Action |
 |---|---|
-| UI framework | React 19 + TypeScript 5 |
-| Build tool | Vite 7 + `vite-plugin-singlefile` |
-| Styling | Tailwind CSS v4 |
-| Game engine | Custom HTML5 Canvas |
-| Audio | Web Audio API (fully synthesised) |
-| Native wrapper | Capacitor 8 (Android) |
-| State / storage | React state + `localStorage` |
+| Push to `main` | Builds debug APK (artifact) + deploys web to GitHub Pages |
+| Tag push `v*` | Builds debug + unsigned release APK, creates GitHub Release with assets |
+| `workflow_dispatch` | Manual trigger |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-KushCloud/
-├── src/
-│   ├── game/
-│   │   ├── engine.ts        # Core game loop, physics, collision
-│   │   ├── audio.ts         # Procedural music & SFX synthesis
-│   │   ├── data.ts          # Skins, trails, achievements, worlds
-│   │   ├── storage.ts       # Save data, validation, leaderboard helpers
-│   │   └── GameCanvas.tsx   # React wrapper for the canvas
-│   ├── screens/
-│   │   ├── Menu.tsx
-│   │   ├── Play.tsx         # HUD, pause, game-over summary
-│   │   ├── Shop.tsx
-│   │   ├── Missions.tsx     # Daily hub, login streak, weekly event
-│   │   ├── Profile.tsx
-│   │   ├── Leaderboard.tsx
-│   │   ├── Achievements.tsx
-│   │   ├── Settings.tsx
-│   │   └── Tutorial.tsx
-│   ├── ui.tsx               # Shared design-system components
-│   ├── store.ts             # Persistent save-data hook
-│   └── App.tsx              # Navigation, run processing, reward logic
-├── android/                 # Capacitor Android project
-├── .github/workflows/
-│   ├── build-apk.yml        # CI: build & publish Android APK
-│   └── deploy-web.yml       # CI: build & deploy to GitHub Pages
-├── capacitor.config.ts
-├── vite.config.ts
-└── package.json
+src/
+├── game/           # Core engine, audio, physics, collision, storage
+│   ├── engine.ts   # Game loop, bird physics, pipe generation, particles
+│   ├── audio.ts    # Procedural music & SFX synthesis
+│   ├── data.ts     # Skins, trails, achievements, world config
+│   ├── storage.ts  # Save/load, validation, leaderboard helpers
+│   └── GameCanvas.tsx
+├── screens/        # Menu, Play, Shop, Missions, Profile, Leaderboard, etc.
+├── ui.tsx          # Shared design system components
+├── store.ts        # Persistent save-data hook (localStorage)
+└── App.tsx         # Navigation, run processing, reward logic
 ```
 
 ---
 
-## ⚙️ CI / CD
+## Security & Privacy
 
-### Android APK (`build-apk.yml`)
-
-| Trigger | What happens |
-|---|---|
-| Push to `main` | Builds debug APK, uploads as workflow artifact |
-| Version tag `v*` | Builds debug + unsigned release APK, creates a GitHub Release |
-| `workflow_dispatch` | Manual run |
-
-### Web Deploy (`deploy-web.yml`)
-
-| Trigger | What happens |
-|---|---|
-| Push to `main` | Builds Vite bundle, deploys to GitHub Pages |
-| `workflow_dispatch` | Manual run |
-
-Live demo: **https://lin4cre.github.io/KushCloud/**
+- Firebase Realtime Database uses security rules to validate scores server-side
+- Impossible or tampered scores are rejected before submission
+- No user accounts required — anonymous player IDs generated locally
+- No analytics, no tracking, no data collection beyond scores you choose to submit
+- The debug APK is self-signed; treat it like any sideloaded app
 
 ---
 
-## 🎮 Controls
-
-| Action | Input |
-|---|---|
-| Flap up | Tap · Click · Space · ↑ |
-| Pause | Pause button (top-left, in-game) |
-
-**How to score big:**
-
-1. Fly through jar gaps for points
-2. Collect floating 🍁 leaves for coins
-3. Skim jar edges for near-miss combo multipliers
-4. Spend coins in the Shop on skins and trails
-
----
-
-## 🔒 Score Validation
-
-All runs pass through a client-side validator that checks score consistency against elapsed time, flap count, and coin pickups. Impossible or hacked values are rejected before saving or submitting to the leaderboard.
-
----
-
-## 🤝 Contributing
-
-Pull requests are welcome. For major changes, open an issue first to discuss what you'd like to change.
-
----
-
-## 📄 License
+## License
 
 MIT © [Linacre](https://github.com/LIN4CRE)
