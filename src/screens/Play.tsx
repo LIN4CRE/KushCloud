@@ -1,0 +1,251 @@
+import { useEffect, useRef, useState } from "react";
+import GameCanvas from "../game/GameCanvas";
+import { RunResult } from "../game/engine";
+import { SaveData } from "../game/storage";
+import { SKINS, TRAILS, World, worldForScore, levelFromXp } from "../game/data";
+import { Button, CoinPill } from "../ui";
+import { audio } from "../game/audio";
+
+export interface RunSummary {
+  xpGained: number;
+  coinsGained: number;
+  newBest: boolean;
+  leveledUp: number[];
+  achievements: string[];
+  missions: string[];
+  valid: boolean;
+  rank: number;
+}
+
+interface Props {
+  save: SaveData;
+  onExit: () => void;
+  processRun: (r: RunResult) => Promise<RunSummary>;
+}
+
+export default function Play({ save, onExit, processRun }: Props) {
+  const skin = SKINS.find((s) => s.id === save.equippedSkin) || SKINS[0];
+  const trail = TRAILS.find((t) => t.id === save.equippedTrail) || TRAILS[0];
+
+  const [runId, setRunId] = useState(0);
+  const [score, setScore] = useState(0);
+  const [coins, setCoins] = useState(0);
+  const [combo, setCombo] = useState(1);
+  const [world, setWorld] = useState<World>(worldForScore(0));
+  const [phase, setPhase] = useState<"ready" | "playing" | "dead">("ready");
+  const [paused, setPaused] = useState(false);
+  const [summary, setSummary] = useState<RunSummary | null>(null);
+  const [comboPulse, setComboPulse] = useState(0);
+  const deadTimer = useRef<number>(0);
+  const isDead = phase === "dead" || !!summary;
+
+  useEffect(() => {
+    audio.resume();
+    return () => window.clearTimeout(deadTimer.current);
+  }, []);
+
+  const handleDeath = async (r: RunResult) => {
+    window.clearTimeout(deadTimer.current);
+    deadTimer.current = window.setTimeout(async () => {
+      const s = await processRun(r);
+      setSummary(s);
+      if (s.leveledUp.length) setTimeout(() => audio.levelUp(), 250);
+    }, 850);
+  };
+
+  const restart = () => {
+    setSummary(null);
+    setScore(0);
+    setCoins(0);
+    setCombo(1);
+    setPhase("ready");
+    setPaused(false);
+    setWorld(worldForScore(0));
+    setRunId((n) => n + 1);
+  };
+
+  const lvl = levelFromXp(save.xp);
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      <GameCanvas
+        skin={skin}
+        trail={trail}
+        reducedMotion={save.reducedMotion}
+        highContrast={save.highContrast}
+        paused={paused || !!summary}
+        runId={runId}
+        onScore={setScore}
+        onCoin={setCoins}
+        onCombo={(m) => {
+          setCombo(m);
+          setComboPulse((p) => p + 1);
+        }}
+        onWorld={setWorld}
+        onStateChange={(s) => setPhase(s as any)}
+        onDeath={handleDeath}
+      />
+
+      {/* Top HUD */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3 gap-2">
+        <button
+          onClick={() => {
+            audio.click();
+            if (!isDead) setPaused(true);
+          }}
+          disabled={isDead}
+          className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-xl bg-black/40 text-white text-lg border border-white/15 backdrop-blur-sm active:scale-95 transition-all disabled:opacity-30"
+          aria-label="Pause"
+        >
+          ⏸
+        </button>
+
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="pointer-events-auto">
+            <CoinPill coins={save.coins + coins} />
+          </div>
+          <div className="rounded-lg bg-black/35 px-2.5 py-1 text-[11px] font-semibold text-white/80 border border-white/10 backdrop-blur-sm">
+            {world.name}
+          </div>
+        </div>
+      </div>
+
+      {/* Live coins this run */}
+      {phase !== "ready" && coins > 0 && (
+        <div className="pointer-events-none absolute left-1/2 top-[108px] -translate-x-1/2 text-center">
+          <div className="text-sm font-bold text-amber-200/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            🍁 {coins} collected
+          </div>
+        </div>
+      )}
+
+      {/* Combo pulse */}
+      {combo > 1 && phase === "playing" && (
+        <div
+          key={comboPulse}
+          className="pointer-events-none absolute left-1/2 top-[128px] -translate-x-1/2 animate-[pop_0.4s_ease-out]"
+        >
+          <span className="text-xl font-black text-lime-300 drop-shadow-lg">🔥 x{combo}</span>
+        </div>
+      )}
+
+      {/* Ready overlay */}
+      {phase === "ready" && !summary && (
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
+          <div className="animate-bounce text-5xl">👆</div>
+          <div className="rounded-2xl bg-black/50 px-6 py-3 border border-white/10 backdrop-blur-sm">
+            <p className="text-base font-black text-white">Tap, click or press Space!</p>
+            <p className="mt-1 text-xs font-medium text-white/60">Fly through the jars. Grab leaves. Don't crash.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Pause overlay */}
+      {paused && !summary && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-black/65 backdrop-blur-md">
+          <div className="text-center mb-2">
+            <h2 className="text-3xl font-black text-white">Paused</h2>
+            <p className="mt-1 text-sm font-semibold text-white/50">
+              Score: <span className="text-white font-black">{score}</span>
+              <span className="mx-2 text-white/20">·</span>
+              🍁 <span className="text-amber-200 font-black">{coins}</span>
+            </p>
+          </div>
+          <div className="flex flex-col gap-2.5 w-52">
+            <Button size="lg" onClick={() => setPaused(false)}>▶ Resume</Button>
+            <Button variant="dark" onClick={restart}>↻ Restart</Button>
+            <Button variant="dark" onClick={onExit}>⌂ Main Menu</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Game Over modal */}
+      {summary && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-3xl bg-slate-900/95 border border-white/10 p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)] animate-[pop_0.35s_ease-out]">
+            {/* Header */}
+            <div className="text-center mb-4">
+              <h2 className="text-2xl font-black text-white">
+                {summary.newBest ? "🏆 New Best!" : "Game Over"}
+              </h2>
+              {!summary.valid && (
+                <p className="mt-1 text-xs font-semibold text-rose-400">
+                  ⚠ Run not counted (validation failed)
+                </p>
+              )}
+            </div>
+
+            {/* Score row */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="rounded-2xl bg-white/[0.07] border border-white/[0.08] p-3 text-center">
+                <div className="text-3xl font-black text-white tabular-nums leading-none">{score}</div>
+                <div className="mt-1 text-[10px] uppercase font-semibold tracking-wider text-white/40">Score</div>
+              </div>
+              <div className="rounded-2xl bg-amber-400/10 border border-amber-300/20 p-3 text-center">
+                <div className="text-3xl font-black text-amber-300 tabular-nums leading-none">{save.stats.bestScore}</div>
+                <div className="mt-1 text-[10px] uppercase font-semibold tracking-wider text-white/40">Best</div>
+              </div>
+            </div>
+
+            {/* Rewards row */}
+            <div className="mt-2.5 flex items-center justify-around rounded-2xl bg-white/[0.05] border border-white/[0.07] py-3">
+              <div className="text-center">
+                <div className="font-black text-amber-300 tabular-nums">+{summary.coinsGained}</div>
+                <div className="text-[10px] text-white/40 font-semibold mt-0.5">🪙 Coins</div>
+              </div>
+              <div className="w-px h-6 bg-white/10" />
+              <div className="text-center">
+                <div className="font-black text-sky-300 tabular-nums">+{summary.xpGained}</div>
+                <div className="text-[10px] text-white/40 font-semibold mt-0.5">XP</div>
+              </div>
+              <div className="w-px h-6 bg-white/10" />
+              <div className="text-center">
+                <div className="font-black text-lime-300">#{summary.rank}</div>
+                <div className="text-[10px] text-white/40 font-semibold mt-0.5">Daily Rank</div>
+              </div>
+            </div>
+
+            {/* Level up */}
+            {summary.leveledUp.length > 0 && (
+              <div className="mt-2.5 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-lime-500/20 border border-lime-400/25 p-3 text-center">
+                <p className="font-black text-lime-300 text-sm">⬆ Level Up! Now Level {Math.max(...summary.leveledUp)}</p>
+              </div>
+            )}
+
+            {/* Achievements */}
+            {summary.achievements.length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {summary.achievements.map((a) => (
+                  <div key={a} className="rounded-xl bg-amber-400/10 border border-amber-300/20 px-3 py-2 text-sm font-semibold text-amber-100">
+                    🏅 Achievement: {a}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Missions */}
+            {summary.missions.length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {summary.missions.map((m) => (
+                  <div key={m} className="rounded-xl bg-sky-500/10 border border-sky-300/20 px-3 py-2 text-sm font-semibold text-sky-100">
+                    ✅ Mission: {m}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="mt-4 flex flex-col gap-2">
+              <Button size="lg" className="w-full" onClick={restart}>↻ One More Try</Button>
+              <Button variant="dark" className="w-full" onClick={onExit}>⌂ Main Menu</Button>
+            </div>
+
+            <p className="mt-3 text-center text-[10px] font-semibold text-white/25">
+              Level {lvl.level} · {save.coins.toLocaleString()} coins banked
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
