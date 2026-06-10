@@ -79,6 +79,7 @@ export class GameEngine {
   private cb: EngineCallbacks;
   private reducedMotion = false;
   private highContrast = false;
+  private practiceMode = false;
   private shake = 0;
   private flashAlpha = 0;
 
@@ -97,6 +98,10 @@ export class GameEngine {
   setAccessibility(reducedMotion: boolean, highContrast: boolean) {
     this.reducedMotion = reducedMotion;
     this.highContrast = highContrast;
+  }
+
+  setPracticeMode(on: boolean) {
+    this.practiceMode = on;
   }
 
   resize(w: number, h: number) {
@@ -298,10 +303,12 @@ export class GameEngine {
 
     this.emitTrail(dt);
 
-    // spawn pipes by spacing
-    const spacing = Math.max(180 * this.sc, this.w * 0.52);
-    const last = this.pipes[this.pipes.length - 1];
-    if (!last || last.x < this.w - spacing) this.spawnPipe();
+    // spawn pipes by spacing (skip in practice mode)
+    if (!this.practiceMode) {
+      const spacing = Math.max(180 * this.sc, this.w * 0.52);
+      const last = this.pipes[this.pipes.length - 1];
+      if (!last || last.x < this.w - spacing) this.spawnPipe();
+    }
 
     const floorY = this.h - this.groundH - this.radius;
     const ceil = this.radius;
@@ -369,16 +376,17 @@ export class GameEngine {
     // collisions
     let dead = false;
     if (this.by >= floorY) { dead = true; this.by = floorY; }
-    if (this.by <= ceil) { this.by = ceil; this.vy = 0; }
-    for (const p of this.pipes) {
-      if (p.x > this.bx + this.radius || p.x + p.w < this.bx - this.radius) continue;
-      const topEdge = p.gapY - p.gap / 2;
-      const botEdge = p.gapY + p.gap / 2;
-      // circle vs the two rects (approx via clamping)
-      if (this.circleRect(this.bx, this.by, this.radius, p.x, 0, p.w, topEdge) ||
-          this.circleRect(this.bx, this.by, this.radius, p.x, botEdge, p.w, this.h - this.groundH - botEdge)) {
-        dead = true;
-        break;
+    if (!this.practiceMode) {
+      if (this.by <= ceil) { this.by = ceil; this.vy = 0; }
+      for (const p of this.pipes) {
+        if (p.x > this.bx + this.radius || p.x + p.w < this.bx - this.radius) continue;
+        const topEdge = p.gapY - p.gap / 2;
+        const botEdge = p.gapY + p.gap / 2;
+        if (this.circleRect(this.bx, this.by, this.radius, p.x, 0, p.w, topEdge) ||
+            this.circleRect(this.bx, this.by, this.radius, p.x, botEdge, p.w, this.h - this.groundH - botEdge)) {
+          dead = true;
+          break;
+        }
       }
     }
 

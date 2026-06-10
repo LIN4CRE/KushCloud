@@ -8,6 +8,7 @@ interface Props {
   trail: Trail;
   reducedMotion: boolean;
   highContrast: boolean;
+  practiceMode?: boolean;
   paused: boolean;
   runId: number;
   onScore?: (s: number) => void;
@@ -62,6 +63,7 @@ export default function GameCanvas(props: Props) {
     };
     resize();
     eng.setAccessibility(props.reducedMotion, props.highContrast);
+    eng.setPracticeMode(!!props.practiceMode);
     eng.reset();
 
     const ro = new ResizeObserver(resize);
@@ -89,11 +91,12 @@ export default function GameCanvas(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-  // update cosmetics / accessibility when props change
+  // update cosmetics / accessibility / practice when props change
   useEffect(() => {
     engineRef.current?.setCosmetics(props.skin, props.trail);
     engineRef.current?.setAccessibility(props.reducedMotion, props.highContrast);
-  }, [props.skin, props.trail, props.reducedMotion, props.highContrast]);
+    engineRef.current?.setPracticeMode(!!props.practiceMode);
+  }, [props.skin, props.trail, props.reducedMotion, props.highContrast, props.practiceMode]);
 
   // reset on new run
   useEffect(() => {

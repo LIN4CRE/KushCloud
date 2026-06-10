@@ -3,12 +3,13 @@ import GameCanvas from "../game/GameCanvas";
 import { RunResult } from "../game/engine";
 import { SaveData } from "../game/storage";
 import { SKINS, TRAILS, World, worldForScore, levelFromXp } from "../game/data";
-import { Button, CoinPill } from "../ui";
+import { Button, CoinPill, cx } from "../ui";
 import { audio } from "../game/audio";
 
 export interface RunSummary {
   xpGained: number;
   coinsGained: number;
+  levelUpCoins: number;
   newBest: boolean;
   leveledUp: number[];
   achievements: string[];
@@ -34,15 +35,18 @@ export default function Play({ save, onExit, processRun }: Props) {
   const [world, setWorld] = useState<World>(worldForScore(0));
   const [phase, setPhase] = useState<"ready" | "playing" | "dead">("ready");
   const [paused, setPaused] = useState(false);
+  const [practice, setPractice] = useState(false);
   const [summary, setSummary] = useState<RunSummary | null>(null);
   const [comboPulse, setComboPulse] = useState(0);
   const deadTimer = useRef<number>(0);
   const isDead = phase === "dead" || !!summary;
+  const prevBestRef = useRef(save.stats.bestScore);
 
   useEffect(() => {
     audio.resume();
+    prevBestRef.current = save.stats.bestScore;
     return () => window.clearTimeout(deadTimer.current);
-  }, []);
+  }, [save.stats.bestScore]);
 
   const handleDeath = async (r: RunResult) => {
     window.clearTimeout(deadTimer.current);
@@ -54,6 +58,7 @@ export default function Play({ save, onExit, processRun }: Props) {
   };
 
   const restart = () => {
+    prevBestRef.current = save.stats.bestScore;
     setSummary(null);
     setScore(0);
     setCoins(0);
@@ -73,6 +78,7 @@ export default function Play({ save, onExit, processRun }: Props) {
         trail={trail}
         reducedMotion={save.reducedMotion}
         highContrast={save.highContrast}
+        practiceMode={practice}
         paused={paused || !!summary}
         runId={runId}
         onScore={setScore}
@@ -88,17 +94,35 @@ export default function Play({ save, onExit, processRun }: Props) {
 
       {/* Top HUD */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3 gap-2">
-        <button
-          onClick={() => {
-            audio.click();
-            if (!isDead) setPaused(true);
-          }}
-          disabled={isDead}
-          className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-xl bg-black/40 text-white text-lg border border-white/15 backdrop-blur-sm active:scale-95 transition-all disabled:opacity-30"
-          aria-label="Pause"
-        >
-          ⏸
-        </button>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => {
+              audio.click();
+              if (!isDead) setPaused(true);
+            }}
+            disabled={isDead}
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-xl bg-black/40 text-white text-lg border border-white/15 backdrop-blur-sm active:scale-95 transition-all disabled:opacity-30"
+            aria-label="Pause"
+          >
+            ⏸
+          </button>
+          <button
+            onClick={() => {
+              audio.click();
+              if (phase === "ready") setPractice((p) => !p);
+            }}
+            disabled={phase !== "ready"}
+            className={cx(
+              "pointer-events-auto flex h-10 items-center justify-center rounded-xl border px-2.5 text-xs font-bold backdrop-blur-sm active:scale-95 transition-all disabled:opacity-30",
+              practice
+                ? "bg-lime-500/20 border-lime-400/30 text-lime-300"
+                : "bg-black/40 text-white/70 border-white/15",
+            )}
+            aria-label="Practice mode"
+          >
+            ✨ {practice ? "Practice" : "Learn"}
+          </button>
+        </div>
 
         <div className="flex flex-col items-end gap-1.5">
           <div className="pointer-events-auto">
@@ -110,22 +134,22 @@ export default function Play({ save, onExit, processRun }: Props) {
         </div>
       </div>
 
-      {/* Live coins this run */}
-      {phase !== "ready" && coins > 0 && (
-        <div className="pointer-events-none absolute left-1/2 top-[108px] -translate-x-1/2 text-center">
-          <div className="text-sm font-bold text-amber-200/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-            🍁 {coins} collected
-          </div>
-        </div>
-      )}
-
-      {/* Combo pulse */}
-      {combo > 1 && phase === "playing" && (
-        <div
-          key={comboPulse}
-          className="pointer-events-none absolute left-1/2 top-[128px] -translate-x-1/2 animate-[pop_0.4s_ease-out]"
-        >
-          <span className="text-xl font-black text-lime-300 drop-shadow-lg">🔥 x{combo}</span>
+      {/* Live coins & combo this run */}
+      {phase !== "ready" && (
+        <div className="pointer-events-none absolute left-1/2 top-[104px] -translate-x-1/2 flex items-center gap-3">
+          {coins > 0 && (
+            <div className="text-sm font-bold text-amber-200/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              🍁 {coins}
+            </div>
+          )}
+          {combo > 1 && (
+            <div
+              key={comboPulse}
+              className="animate-[pop_0.4s_ease-out] text-lg font-black text-lime-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+            >
+              🔥 x{combo}
+            </div>
+          )}
         </div>
       )}
 
@@ -135,7 +159,11 @@ export default function Play({ save, onExit, processRun }: Props) {
           <div className="animate-bounce text-5xl">👆</div>
           <div className="rounded-2xl bg-black/50 px-6 py-3 border border-white/10 backdrop-blur-sm">
             <p className="text-base font-black text-white">Tap, click or press Space!</p>
-            <p className="mt-1 text-xs font-medium text-white/60">Fly through the jars. Grab leaves. Don't crash.</p>
+            <p className="mt-1 text-xs font-medium text-white/60">
+              {practice
+                ? "Free flight — no pipes, no scoring. Just vibe! 🌿"
+                : "Fly through the jars. Grab leaves. Don't crash."}
+            </p>
           </div>
         </div>
       )}
@@ -159,8 +187,24 @@ export default function Play({ save, onExit, processRun }: Props) {
         </div>
       )}
 
+      {/* Practice mode exit */}
+      {practice && summary && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-3xl bg-slate-900/95 border border-white/10 p-6 text-center animate-[pop_0.35s_ease-out]">
+            <div className="text-5xl mb-3">🌿</div>
+            <h2 className="text-xl font-black text-white mb-2">Practice Complete</h2>
+            <p className="text-sm text-white/60 mb-5">No score counted — just warming up!</p>
+            <div className="flex flex-col gap-2">
+              <Button size="lg" className="w-full" onClick={restart}>↻ Practice Again</Button>
+              <Button variant="dark" className="w-full" onClick={() => { setPractice(false); restart(); }}>▶ Play for Real</Button>
+              <Button variant="dark" className="w-full" onClick={onExit}>⌂ Main Menu</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Game Over modal */}
-      {summary && (
+      {summary && !practice && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
           <div className="w-full max-w-sm rounded-3xl bg-slate-900/95 border border-white/10 p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)] animate-[pop_0.35s_ease-out]">
             {/* Header */}
@@ -180,6 +224,11 @@ export default function Play({ save, onExit, processRun }: Props) {
               <div className="rounded-2xl bg-white/[0.07] border border-white/[0.08] p-3 text-center">
                 <div className="text-3xl font-black text-white tabular-nums leading-none">{score}</div>
                 <div className="mt-1 text-[10px] uppercase font-semibold tracking-wider text-white/40">Score</div>
+                {score > 0 && prevBestRef.current > 0 && (
+                  <div className="mt-1 text-[9px] font-semibold text-white/30">
+                    {score > prevBestRef.current ? "+" : ""}{score - prevBestRef.current} vs best
+                  </div>
+                )}
               </div>
               <div className="rounded-2xl bg-amber-400/10 border border-amber-300/20 p-3 text-center">
                 <div className="text-3xl font-black text-amber-300 tabular-nums leading-none">{save.stats.bestScore}</div>
@@ -209,6 +258,9 @@ export default function Play({ save, onExit, processRun }: Props) {
             {summary.leveledUp.length > 0 && (
               <div className="mt-2.5 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-lime-500/20 border border-lime-400/25 p-3 text-center">
                 <p className="font-black text-lime-300 text-sm">⬆ Level Up! Now Level {Math.max(...summary.leveledUp)}</p>
+                {summary.levelUpCoins > 0 && (
+                  <p className="text-[10px] font-semibold text-lime-200/70 mt-0.5">+{summary.levelUpCoins} bonus coins!</p>
+                )}
               </div>
             )}
 

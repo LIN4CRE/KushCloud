@@ -49,7 +49,8 @@ export default function Profile({ save, onBack, onRename }: Props) {
       <div className="mt-4 grid grid-cols-3 gap-2">
         <Stat icon="🏆" label="Best Score" value={save.stats.bestScore} />
         <Stat icon="🎮" label="Games" value={save.stats.totalGames} />
-        <Stat icon="🪙" label="Coins" value={save.stats.totalCoins.toLocaleString()} />
+        <Stat icon="🪙" label="Total Coins" value={save.stats.totalCoins.toLocaleString()} />
+        <Stat icon="📊" label="Total Score" value={save.stats.totalScore.toLocaleString()} />
         <Stat icon="🎯" label="Near Misses" value={save.stats.totalNearMiss} />
         <Stat icon="🔥" label="Best Combo" value={`x${save.stats.bestCombo}`} />
         <Stat icon="🪽" label="Flaps" value={save.stats.totalFlaps.toLocaleString()} />

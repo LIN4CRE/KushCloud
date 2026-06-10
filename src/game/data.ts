@@ -92,13 +92,20 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "score10", name: "Getting Lifted", desc: "Reach a score of 10.", reward: 50, goal: 10, stat: "bestScore" },
   { id: "score25", name: "Cloud Surfer", desc: "Reach a score of 25.", reward: 120, goal: 25, stat: "bestScore" },
   { id: "score50", name: "Sky High", desc: "Reach a score of 50.", reward: 300, goal: 50, stat: "bestScore" },
+  { id: "score100", name: "Legendary Toker", desc: "Reach a score of 100.", reward: 800, goal: 100, stat: "bestScore" },
+  { id: "score200", name: "Kush Cloud God", desc: "Reach a score of 200.", reward: 2000, goal: 200, stat: "bestScore" },
   { id: "games10", name: "Regular Customer", desc: "Play 10 games.", reward: 40, goal: 10, stat: "totalGames" },
   { id: "games50", name: "Frequent Flyer", desc: "Play 50 games.", reward: 150, goal: 50, stat: "totalGames" },
+  { id: "games100", name: "Dedicated Stoner", desc: "Play 100 games.", reward: 500, goal: 100, stat: "totalGames" },
   { id: "coins100", name: "Coin Collector", desc: "Collect 100 kush coins total.", reward: 80, goal: 100, stat: "totalCoins" },
   { id: "coins1000", name: "Dank Banker", desc: "Collect 1000 kush coins total.", reward: 400, goal: 1000, stat: "totalCoins" },
+  { id: "coins5000", name: "Crypto Kush Whale", desc: "Collect 5000 kush coins total.", reward: 1500, goal: 5000, stat: "totalCoins" },
   { id: "near50", name: "Daredevil", desc: "Pull off 50 near-misses.", reward: 200, goal: 50, stat: "totalNearMiss" },
+  { id: "near200", name: "Edge Lord", desc: "Pull off 200 near-misses.", reward: 600, goal: 200, stat: "totalNearMiss" },
   { id: "combo10", name: "Combo King", desc: "Reach a x10 combo.", reward: 250, goal: 10, stat: "bestCombo" },
+  { id: "combo20", name: "Combo God", desc: "Reach a x20 combo.", reward: 800, goal: 20, stat: "bestCombo" },
   { id: "flaps1000", name: "Wing It", desc: "Flap 1000 times.", reward: 100, goal: 1000, stat: "totalFlaps" },
+  { id: "flaps5000", name: "Hummingbird Mode", desc: "Flap 5000 times.", reward: 400, goal: 5000, stat: "totalFlaps" },
 ];
 
 const MISSION_POOL: Omit<Mission, "id">[] = [

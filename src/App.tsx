@@ -111,7 +111,11 @@ export default function App() {
       const projectedXp = save.xp + xpGained;
       const targetLevel = levelFromXp(projectedXp).level;
       const leveledUp: number[] = [];
-      for (let l = beforeLevel + 1; l <= targetLevel; l++) leveledUp.push(l);
+      let levelUpCoins = 0;
+      for (let l = beforeLevel + 1; l <= targetLevel; l++) {
+        leveledUp.push(l);
+        levelUpCoins += l * 5;
+      }
 
       await new Promise<void>((resolve) => {
         update((s) => {
@@ -126,7 +130,7 @@ export default function App() {
               s.stats.bestScore = r.score;
               newBest = true;
             }
-            s.coins += coinsGained;
+            s.coins += coinsGained + levelUpCoins;
             s.xp += xpGained;
             s.scoreHistory.push(r.score);
             if (s.scoreHistory.length > 100) s.scoreHistory = s.scoreHistory.slice(-100);
@@ -169,6 +173,7 @@ export default function App() {
       return {
         xpGained,
         coinsGained,
+        levelUpCoins,
         newBest,
         leveledUp,
         achievements: newAch,

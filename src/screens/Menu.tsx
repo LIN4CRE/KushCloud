@@ -88,16 +88,21 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
           <ProgressBar value={lvl.into} max={lvl.need} />
         </div>
 
-        {/* Best score / games */}
-        <div className="flex items-center gap-6 rounded-2xl bg-white/[0.06] border border-white/[0.08] px-8 py-3">
-          <div className="text-center">
+        {/* Best score / games / total score */}
+        <div className="flex items-center gap-4 rounded-2xl bg-white/[0.06] border border-white/[0.08] px-6 py-3">
+          <div className="text-center flex-1">
             <div className="text-2xl font-black text-amber-300 leading-none tabular-nums">{save.stats.bestScore}</div>
             <div className="mt-0.5 text-[10px] uppercase font-semibold tracking-wider text-white/40">Best</div>
           </div>
           <div className="h-8 w-px bg-white/[0.12]" />
-          <div className="text-center">
+          <div className="text-center flex-1">
             <div className="text-2xl font-black text-white leading-none tabular-nums">{save.stats.totalGames}</div>
             <div className="mt-0.5 text-[10px] uppercase font-semibold tracking-wider text-white/40">Games</div>
+          </div>
+          <div className="h-8 w-px bg-white/[0.12]" />
+          <div className="text-center flex-1">
+            <div className="text-xl font-black text-sky-300 leading-none tabular-nums">{save.stats.totalScore.toLocaleString()}</div>
+            <div className="mt-0.5 text-[10px] uppercase font-semibold tracking-wider text-white/40">Total</div>
           </div>
         </div>
       </div>

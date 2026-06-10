@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -37,17 +37,8 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Capacitor CLI
-        run: npm install -g @capacitor/cli
-
-      - name: Add Android platform (if not present)
-        run: |
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
-
       - name: Sync Capacitor
-        run: npx cap sync android
+        run: npx cap sync android --no-telemetry
 
       - name: Make Gradle wrapper executable
         run: chmod +x android/gradlew
