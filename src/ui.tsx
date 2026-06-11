@@ -301,7 +301,8 @@ export function Shimmer({ className }: { className?: string }) {
 /* Floating leaf decorative animation (cannabis-style) */
 export function FloatingLeaf({ className }: { className?: string }) {
   const [style] = useState(() => ({
-    left: `${Math.random() * 100}%`,
+    left: `${5 + Math.random() * 90}%`,
+    top: `${Math.random() * 100}%`,
     animationDelay: `${Math.random() * 3}s`,
     animationDuration: `${3 + Math.random() * 2}s`,
   }));
