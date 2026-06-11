@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { SaveData } from "../game/storage";
-import { ScreenShell, Button } from "../ui";
-import { subscribeChat, sendMessage, ChatMessage, getUID } from "../config/firebase";
+import { ScreenShell } from "../ui";
+import { subscribeChat, sendMessage, ChatMessage } from "../config/firebase";
+import { getUID } from "../game/leaderboard";
 import { audio } from "../game/audio";
 
 interface Props {

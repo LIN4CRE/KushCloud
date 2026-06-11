@@ -50,9 +50,12 @@ export default function Play({ save, onExit, processRun }: Props) {
   }, [save.stats.bestScore]);
 
   const handleDeath = async (r: RunResult) => {
+    // Start processing immediately so the score is saved even if the user restarts or leaves
+    const summaryPromise = processRun(r);
+
     window.clearTimeout(deadTimer.current);
     deadTimer.current = window.setTimeout(async () => {
-      const s = await processRun(r);
+      const s = await summaryPromise;
       setSummary(s);
       if (s.leveledUp.length) setTimeout(() => audio.levelUp(), 250);
     }, 850);

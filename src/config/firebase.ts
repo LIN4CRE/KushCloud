@@ -65,9 +65,13 @@ export async function submitScore(
     period,
   };
   
-  const leaderboardRef = ref(db, `leaderboards/${period}`);
-  const newEntryRef = push(leaderboardRef);
-  await set(newEntryRef, entry);
+  // Use UID as key to ensure one entry per player per period
+  const leaderboardRef = ref(db, `leaderboards/${period}/${uid}`);
+
+  // Only update if the new score is better, or if it's a reset period
+  // For simplicity in this implementation, we'll assume the caller (App.tsx)
+  // only submits improved or relevant scores.
+  await set(leaderboardRef, entry);
   
   // Also update user profile
   const profileRef = ref(db, `users/${uid}`);
@@ -94,6 +98,7 @@ export function subscribeLeaderboard(
   callback: (entries: LeaderboardEntry[]) => void
 ): () => void {
   const leaderboardRef = ref(db, `leaderboards/${period}`);
+  // Since we use UID keys now, we can just query the top scores
   const q = query(leaderboardRef, orderByChild("score"), limitToLast(100));
   
   const unsubscribe = onValue(q, (snapshot) => {
@@ -103,7 +108,7 @@ export function subscribeLeaderboard(
     });
     // Sort descending by score
     entries.sort((a, b) => b.score - a.score);
-    callback(entries.slice(0, 50));
+    callback(entries);
   });
   
   return unsubscribe;

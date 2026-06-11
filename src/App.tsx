@@ -120,6 +120,8 @@ export default function App() {
         levelUpCoins += l * 5;
       }
 
+      const currentBest = Math.max(r.score, save.stats.bestScore);
+
       await new Promise<void>((resolve) => {
         update((s) => {
           s.stats.totalGames += 1;
@@ -208,12 +210,12 @@ export default function App() {
       });
 
       if (check.valid && r.score > 0) {
-        submitPlayerScore(save.playerName, Math.max(r.score, save.stats.bestScore), "daily").catch(() => {});
-        submitPlayerScore(save.playerName, Math.max(r.score, save.stats.bestScore), "weekly").catch(() => {});
-        submitPlayerScore(save.playerName, Math.max(r.score, save.stats.bestScore), "all").catch(() => {});
+        submitPlayerScore(save.playerName, currentBest, "daily").catch(() => {});
+        submitPlayerScore(save.playerName, currentBest, "weekly").catch(() => {});
+        submitPlayerScore(save.playerName, currentBest, "all").catch(() => {});
       }
 
-      const rank = await getRank("daily", Math.max(r.score, save.stats.bestScore));
+      const rank = await getRank("daily", currentBest);
 
       return {
         xpGained, coinsGained, levelUpCoins, newBest, leveledUp,

@@ -1,5 +1,23 @@
 # KushCloud Changelog
 
+## v1.6.1 — 2025-06-11
+
+### ✅ Critical Fixes
+- **Persistent Leaderboards**: Fixed an issue where scores weren't saved if the player restarted a run quickly. Processing now starts immediately upon death.
+- **Deduplicated Rankings**: Updated Firebase logic to use UID-based keys, ensuring each player has exactly one entry on the leaderboard.
+- **Robust Sync**: Refactored run processing to ensure high scores are accurately calculated and submitted even during fast session transitions.
+
+---
+
+## v1.6.0 — 2025-06-11
+
+### ✅ The Competitive Update
+- **Seasonal Progression (Season 1: High Times)**: Added Seasonal XP and a rewards track accessible from the main menu.
+- **Global Chat**: Real-time Global Lounge is now live for all authenticated players.
+- **Friend System**: Add Buds via UID to compare scores and track progress.
+
+---
+
 ## v1.5.0 — 2025-06-11
 
 ### ✅ The Social Update (Part 1)
