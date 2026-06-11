@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSave } from "./store";
+import { useSave, type Screen } from "./store";
 import { audio } from "./game/audio";
 import { RunResult } from "./game/engine";
 import {
@@ -8,9 +8,9 @@ import {
   currentWeekIndex, WEEKLY_EVENTS, RARITY, getActiveEvents, type LootCrate, type Rarity,
 } from "./game/data";
 import {
-  validateRun, dayNumber, randomName, DEFAULT_STATS, getRank, type SaveData,
+  validateRun, dayNumber, randomName, DEFAULT_STATS, type SaveData,
 } from "./game/storage";
-import { submitPlayerScore } from "./game/leaderboard";
+import { submitPlayerScore, getRank } from "./game/leaderboard";
 import Menu from "./screens/Menu";
 import Play, { RunSummary } from "./screens/Play";
 import Shop from "./screens/Shop";
@@ -22,10 +22,6 @@ import Statistics from "./screens/Statistics";
 import Settings from "./screens/Settings";
 import Tutorial from "./screens/Tutorial";
 import { Button } from "./ui";
-
-export type Screen =
-  | "menu" | "play" | "shop" | "leaderboard"
-  | "achievements" | "missions" | "profile" | "statistics" | "settings" | "tutorial";
 
 export default function App() {
   const { save, update } = useSave();

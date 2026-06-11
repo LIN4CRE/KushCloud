@@ -1,7 +1,7 @@
 import { SaveData } from "../game/storage";
 import { SKINS, TRAILS, TITLES, levelFromXp } from "../game/data";
 import { Button, ProgressBar, CoinPill, cx } from "../ui";
-import { Screen } from "../App";
+import { type Screen } from "../store";
 import { audio } from "../game/audio";
 
 interface Props {

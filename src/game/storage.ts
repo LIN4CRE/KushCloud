@@ -214,7 +214,7 @@ const BOT_NAMES = [
   "FrostyFinn", "MellowMia",
 ];
 
-function seededScores(period: "daily" | "weekly" | "all"): LeaderEntry[] {
+export function seededScores(period: "daily" | "weekly" | "all"): LeaderEntry[] {
   const seedBase = period === "daily" ? dayNumber() : period === "weekly" ? Math.floor(dayNumber() / 7) : 777;
   let s = seedBase * 7919 + 13;
   const rnd = () => ((s = (s * 1103515245 + 12345) % 2147483648) / 2147483648);
@@ -225,7 +225,7 @@ function seededScores(period: "daily" | "weekly" | "all"): LeaderEntry[] {
   });
 }
 
-const FRIEND_NAMES = ["GanjaGuru", "DabQueen", "MellowMia", "ZenZara", "FrostyFinn"];
+export const FRIEND_NAMES = ["GanjaGuru", "DabQueen", "MellowMia", "ZenZara", "FrostyFinn"];
 
 export function trackEventMetric(
   metric: EventMetric,
@@ -253,44 +253,4 @@ export function trackEventMetric(
       }
     }
   });
-}
-
-export async function getLeaderboard(
-  period: "daily" | "weekly" | "all",
-  playerName: string,
-  playerScore: number,
-  friendsOnly: boolean
-): Promise<LeaderEntry[]> {
-  try {
-    const { subscribeToLeaderboard, getLocalLeaderboard } = await import("./leaderboard");
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        resolve(getLocalLeaderboard(period, playerName, playerScore, friendsOnly));
-      }, 2000);
-      subscribeToLeaderboard(period, playerName, playerScore, friendsOnly, (list) => {
-        clearTimeout(timeout);
-        resolve(list);
-      });
-    });
-  } catch {
-    const list = seededScores(period);
-    const all = [...list, { name: playerName, score: playerScore, you: true }]
-      .sort((a, b) => b.score - a.score);
-    return friendsOnly ? all.filter((e) => e.name === playerName || FRIEND_NAMES.includes(e.name)) : all;
-  }
-}
-
-export async function getRank(period: "daily" | "weekly" | "all", playerScore: number): Promise<number> {
-  try {
-    const { subscribeToLeaderboard } = await import("./leaderboard");
-    return new Promise((resolve) => {
-      subscribeToLeaderboard(period, "Temp", playerScore, false, (list) => {
-        resolve(list.findIndex((e) => e.score === playerScore) + 1 || 1);
-      });
-    });
-  } catch {
-    const list = seededScores(period);
-    const all = [...list.map((e) => e.score), playerScore].sort((a, b) => b - a);
-    return all.indexOf(playerScore) + 1;
-  }
 }

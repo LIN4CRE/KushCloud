@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadSave, writeSave, rollDaily, SaveData } from "./game/storage";
 
+export type Screen =
+  | "menu" | "play" | "shop" | "leaderboard"
+  | "achievements" | "missions" | "profile" | "statistics" | "settings" | "tutorial";
+
 export function useSave() {
   const [save, setSave] = useState<SaveData>(() => rollDaily(loadSave()));
   const ref = useRef(save);

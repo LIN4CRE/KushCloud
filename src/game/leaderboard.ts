@@ -1,4 +1,5 @@
 import { LeaderboardPeriod, subscribeLeaderboard, submitScore, generateUID, getUserProfile, updateUserProfile, UserProfile } from "../config/firebase";
+import { seededScores, FRIEND_NAMES } from "./storage";
 
 let currentUID: string | null = null;
 let unsubscribers: (() => void)[] = [];
@@ -86,13 +87,57 @@ export async function updateUserProfileData(updates: Partial<UserProfile>): Prom
   await updateUserProfile(uid, updates);
 }
 
-export async function getLocalLeaderboard(
+export async function getLeaderboard(
   period: LeaderboardPeriod,
   playerName: string,
   playerScore: number,
   friendsOnly: boolean
 ): Promise<LeaderboardServiceEntry[]> {
-  // Fallback to local simulated leaderboard
-  const { getLeaderboard: localLb } = await import("./storage");
-  return localLb(period, playerName, playerScore, friendsOnly);
+  try {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        resolve(getLocalLeaderboard(period, playerName, playerScore, friendsOnly));
+      }, 2000);
+
+      const unsub = subscribeToLeaderboard(period, playerName, playerScore, friendsOnly, (list) => {
+        clearTimeout(timeout);
+        resolve(list);
+        unsub(); // One-time get for this function
+      });
+    });
+  } catch {
+    return getLocalLeaderboard(period, playerName, playerScore, friendsOnly);
+  }
+}
+
+export async function getRank(period: LeaderboardPeriod, playerScore: number): Promise<number> {
+  try {
+    return new Promise((resolve) => {
+      const unsub = subscribeLeaderboard(period, (entries) => {
+        resolve(entries.findIndex((e) => e.score === playerScore) + 1 || 1);
+        unsub();
+      });
+      setTimeout(() => resolve(getLocalRank(period, playerScore)), 1500);
+    });
+  } catch {
+    return getLocalRank(period, playerScore);
+  }
+}
+
+export function getLocalLeaderboard(
+  period: LeaderboardPeriod,
+  playerName: string,
+  playerScore: number,
+  friendsOnly: boolean
+): LeaderboardServiceEntry[] {
+  const list = seededScores(period);
+  const all = [...list, { name: playerName, score: playerScore, you: true }]
+    .sort((a, b) => b.score - a.score);
+  return friendsOnly ? all.filter((e) => e.name === playerName || FRIEND_NAMES.includes(e.name)) : all;
+}
+
+function getLocalRank(period: LeaderboardPeriod, playerScore: number): number {
+  const list = seededScores(period);
+  const all = [...list.map((e) => e.score), playerScore].sort((a, b) => b - a);
+  return all.indexOf(playerScore) + 1;
 }
