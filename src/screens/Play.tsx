@@ -3,6 +3,7 @@ import GameCanvas from "../game/GameCanvas";
 import { RunResult } from "../game/engine";
 import { SaveData } from "../game/storage";
 import type { RunSummary } from "../game/runProcessing";
+import { SharedPreferencesHelper } from "../game/persistence/SharedPreferencesHelper";
 import { SKINS, TRAILS, World, worldForScore, levelFromXp } from "../game/data";
 import { Button, CoinPill, cx } from "../ui";
 import { audio } from "../game/audio";
@@ -262,7 +263,9 @@ export default function Play({ save, onExit, processRun }: Props) {
                 )}
               </div>
               <div className="rounded-2xl bg-amber-400/10 border border-amber-300/20 p-3 text-center">
-                <div className="text-3xl font-black text-amber-300 tabular-nums leading-none">{save.stats.bestScore}</div>
+                <div className="text-3xl font-black text-amber-300 tabular-nums leading-none">
+                  {Math.max(save.stats.bestScore, SharedPreferencesHelper.getHighScore())}
+                </div>
                 <div className="mt-1 text-[10px] uppercase font-semibold tracking-wider text-white/40">Best</div>
               </div>
             </div>

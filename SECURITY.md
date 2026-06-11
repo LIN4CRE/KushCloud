@@ -39,3 +39,11 @@ We will:
 - HTTPS enforcement for all resources
 - Content Security Policy headers
 - Regular dependency updates and vulnerability scans
+
+## Automated Security Checks
+
+KushCloud uses GitHub Actions to automatically audit dependencies for known vulnerabilities on every push to the `main` branch. This ensures that any new high-severity vulnerabilities are identified and addressed promptly.
+
+Recent improvements:
+- Upgraded `firebase` to `v12.14.0` to resolve high-severity vulnerabilities in `undici`.
+- Migrated hardcoded Firebase credentials from workflow files to GitHub Secrets.

@@ -143,6 +143,18 @@ src/
 
 ---
 
+## Documentation
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — Guidelines for contributors
+- [SECURITY.md](SECURITY.md) — Security policy and reporting
+- [RELEASE.md](RELEASE.md) — Release process and versioning
+- [GOVERNANCE.md](GOVERNANCE.md) — Project governance model
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Community standards
+- [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) — Technical deep-dive
+- [INSTALL_GUIDE.md](INSTALL_GUIDE.md) — Detailed installation steps
+
+---
+
 ## License
 
 MIT © [Linacre](https://github.com/LIN4CRE)

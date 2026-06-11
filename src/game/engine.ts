@@ -1,6 +1,7 @@
 import { Skin, Trail, World, worldForScore } from "./data";
 import { audio } from "./audio";
 import { PowerUpManager } from "./powerups";
+import { SharedPreferencesHelper } from "./persistence/SharedPreferencesHelper";
 
 export interface RunResult {
   runId: string;
@@ -462,6 +463,10 @@ export class GameEngine {
     this.flashAlpha = 0.7;
     this.burst(this.bx, this.by, "#ff6b6b", 22, 280, "spark");
     this.burst(this.bx, this.by, "#ffd24a", 14, 220, "spark");
+
+    // Save high score using the helper class as requested
+    SharedPreferencesHelper.saveHighScore(this.score);
+
     const result: RunResult = {
       runId: this.runId,
       score: this.score,

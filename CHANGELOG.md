@@ -1,5 +1,14 @@
 # KushCloud Changelog
 
+## v1.6.3 — 2026-06-11
+
+### 🛡 Codebase Hardening & Open Source Standards
+- **Security**: Upgraded `firebase` to `v12.14.0` to resolve high-severity vulnerabilities in `undici`.
+- **Workflow Security**: Migrated hardcoded Firebase credentials from GitHub workflows to GitHub Secrets.
+- **Testing Environment**: Fixed Vitest environment by adding missing `jsdom` and `@testing-library` dependencies.
+- **Documentation**: Added `GOVERNANCE.md` and `RELEASE.md` to meet open-source project standards.
+- **CI Reliability**: Added dummy environment generation to CI workflow to ensure consistent build validation.
+
 ## v1.6.2 — 2026-06-11
 
 ### ✅ Critical Fixes

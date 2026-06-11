@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set, push, onValue, query, orderByChild, limitToLast, get, runTransaction } from "firebase/database";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from "firebase/auth";
+import { env } from "./env";
 import {
   normalizeLeaderboardEntries,
   toLeaderboardEntry,
@@ -8,15 +9,15 @@ import {
   type LeaderboardPeriod,
 } from "../game/leaderboardModel";
 
-// Firebase configuration - replace with your own Firebase project credentials
+// Firebase configuration using validated environment module
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "your-api-key",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "your-project.firebaseapp.com",
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://your-project-default-rtdb.firebaseio.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "your-project-id",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "your-project.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "your-sender-id",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "your-app-id",
+  apiKey: env.firebase.apiKey,
+  authDomain: env.firebase.authDomain,
+  databaseURL: env.firebase.databaseURL,
+  projectId: env.firebase.projectId,
+  storageBucket: env.firebase.storageBucket,
+  messagingSenderId: env.firebase.messagingSenderId,
+  appId: env.firebase.appId,
 };
 
 const app = initializeApp(firebaseConfig);
