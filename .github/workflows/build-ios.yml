@@ -83,14 +83,20 @@ jobs:
             export/*.ipa
           retention-days: 30
 
-      - name: Upload iOS IPA to Release (tagged only)
+      - name: Upload iOS Build to Release (tagged only)
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          ASSET=""
           IPA=$(find export -name "*.ipa" 2>/dev/null | head -1)
           if [ -n "$IPA" ]; then
-            gh release upload "${{ github.ref_name }}" "$IPA" --clobber
+            ASSET="$IPA"
+          elif [ -f KushCloud.xcarchive ]; then
+            ASSET="KushCloud.xcarchive"
+          fi
+          if [ -n "$ASSET" ]; then
+            gh release upload "${{ github.ref_name }}" "$ASSET" --clobber
           else
-            echo "No IPA found to upload to release"
+            echo "No iOS build artifact to upload to release"
           fi
