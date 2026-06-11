@@ -1,5 +1,27 @@
 # KushCloud Changelog
 
+## v2.0.0 — 2026-06-11
+
+### V2 Milestone — Quality, Tooling & Platform Readiness
+- **ESLint**: Added TypeScript + React linting with 0 errors on CI. Suppressed 21 low-priority warnings for existing patterns (`no-explicit-any`, `exhaustive-deps`).
+- **CI Pipeline**: Added `npm run lint` step to quality gate.
+- **Android Security**: Removed unused permissions (`WAKE_LOCK`, `FOREGROUND_SERVICE`, `POST_NOTIFICATIONS`). Only `INTERNET` remains.
+- **Test Coverage**: Expanded from 6 tests across 2 files to 100 tests across 6 files. Added test suites for `sanitize`, `errorHandler`, `data`, and `storage` modules.
+- **Version Bump**: 1.6.4 → 2.0.0 (`package.json`, `env.ts`, `build.gradle` versionCode 3→4).
+- **Verification**: ESLint — 0 errors. TypeScript — 0 errors. Vitest — 100/100 passed. Vite build — succeeds. `npm audit` — 0 vulnerabilities.
+
+## v1.6.4 — 2026-06-11
+
+### 🧹 Repository Audit & Codebase Hardening
+- **Cleanup**: Removed dead `SharedPreferencesHelper` TypeScript class. Its redundant `getHighScore()`/`saveHighScore()` calls replaced with direct `localStorage` usage. Removed entire `src/game/persistence/` directory.
+- **Security**: Stopped tracking `.env` (live Firebase credentials) and `builds/KushCloud-v1.6.3-debug.apk` (~32 MB binary) in git via `git rm --cached`.
+- **Gitignore**: Added `builds/`, `*.apk`, `*.aab`, `*.xcarchive` patterns.
+- **TypeScript**: Removed `ignoreDeprecations: "5.0"` from `tsconfig.json` (no longer needed with TS 5.7+).
+- **iOS Pipeline**: Fixed `build-ios.yml` to auto-generate iOS platform dir via `npx cap add ios` before sync.
+- **Empty Directories**: Added `.gitkeep` to `scripts/` to preserve the directory.
+- **Documentation**: Updated `SECURITY.md` version support table; v1.6.x now current.
+- **Verification**: TypeScript compilation — 0 errors. All 6 unit tests — passing. Production build — succeeds (669 kB / 183 kB gzip). `npm audit` — 0 vulnerabilities.
+
 ## v1.6.3 — 2026-06-11
 
 ### 🛡 Codebase Hardening & Open Source Standards

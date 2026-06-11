@@ -17,8 +17,9 @@ We will:
 
 | Version | Supported |
 |---------|-----------|
-| 1.0.x   | ✅ Yes    |
-| < 1.0   | ❌ No     |
+| 2.0.x   | ✅ Yes    |
+| 1.6.x   | ⚠️ Limited |
+| < 1.6   | ❌ No     |
 
 ## Security Best Practices for Users
 

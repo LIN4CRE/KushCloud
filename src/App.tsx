@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useSave, type Screen } from "./store";
 import { audio } from "./game/audio";
 import { RunResult } from "./game/engine";
+import { checkForUpdate } from "./utils/updateChecker";
+import type { UpdateInfo } from "./utils/updateChecker";
+import { env } from "./config/env";
 import {
   SKINS, TRAILS, TITLES, BADGES, EFFECTS, POWERUPS,
   ACHIEVEMENTS, LOGIN_REWARDS, getDailyMissions, rollLootCrate,
@@ -286,6 +289,11 @@ export default function App() {
   const loginAvailable = !save.loginClaimedToday;
   const claimedMissions = save.missions.filter((m) => m.claimed).length;
 
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  useEffect(() => {
+    checkForUpdate(env.app.version).then(setUpdateInfo);
+  }, []);
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-slate-950 overflow-hidden">
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -392,6 +400,29 @@ export default function App() {
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Update banner */}
+        {updateInfo && (
+          <div className="absolute bottom-4 left-4 right-4 z-40">
+            <a
+              href={updateInfo.downloadUrl || updateInfo.releaseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-400/30 px-4 py-3 backdrop-blur hover:from-amber-500/30 hover:to-orange-500/30 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">📦</span>
+                <div>
+                  <div className="text-sm font-bold text-amber-300">
+                    {updateInfo.latestVersion} available
+                  </div>
+                  <div className="text-[11px] text-amber-400/60">Tap to download</div>
+                </div>
+              </div>
+              <span className="text-white/40 text-lg">↗</span>
+            </a>
           </div>
         )}
 

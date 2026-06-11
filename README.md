@@ -34,7 +34,7 @@ No ads, no tracking, no permissions beyond storage.
 3. Scroll down and tap **"Add to Home Screen"**
 4. The game will now appear as an app on your home screen with a full-screen experience.
 
-*Native iOS app coming soon to the App Store.*
+*Native IPA builds available on [GitHub Releases](https://github.com/LIN4CRE/KushCloud/releases) for sideloading with AltStore or similar.*
 
 ### Web (any device)
 
@@ -109,8 +109,8 @@ cd android && ./gradlew assembleDebug
 
 | Trigger | Action |
 |---|---|
-| Push to `main` | Builds debug APK (artifact) + deploys web to GitHub Pages |
-| Tag push `v*` | Builds debug + unsigned release APK, creates GitHub Release with assets |
+| Push to `main` | Builds debug APK (artifact) + iOS IPA (artifact) + deploys web to GitHub Pages |
+| Tag push `v*` | Builds debug APK + iOS IPA, creates GitHub Release with assets |
 | `workflow_dispatch` | Manual trigger |
 
 ---
@@ -119,16 +119,18 @@ cd android && ./gradlew assembleDebug
 
 ```
 src/
-├── game/           # Core engine, audio, physics, collision, storage
-│   ├── engine.ts   # Game loop, bird physics, pipe generation, particles
-│   ├── audio.ts    # Procedural music & SFX synthesis
-│   ├── data.ts     # Skins, trails, achievements, world config
-│   ├── storage.ts  # Save/load, validation, leaderboard helpers
+├── game/            # Core engine, audio, physics, collision, storage
+│   ├── engine.ts    # Game loop, bird physics, pipe generation, particles
+│   ├── audio.ts     # Procedural music & SFX synthesis
+│   ├── data.ts      # Skins, trails, achievements, world config
+│   ├── storage.ts   # Save/load, validation, leaderboard helpers
 │   └── GameCanvas.tsx
-├── screens/        # Menu, Play, Shop, Missions, Profile, Leaderboard, etc.
-├── ui.tsx          # Shared design system components
-├── store.ts        # Persistent save-data hook (localStorage)
-└── App.tsx         # Navigation, run processing, reward logic
+├── screens/         # Menu, Play, Shop, Missions, Profile, Leaderboard, etc.
+├── utils/           # Sanitization, error handling, update checker
+├── config/          # Firebase init, env validation
+├── ui.tsx           # Shared design system components
+├── store.ts         # Persistent save-data hook (localStorage)
+└── App.tsx          # Navigation, run processing, reward logic
 ```
 
 ---

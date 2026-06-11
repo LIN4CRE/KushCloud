@@ -37,7 +37,7 @@ export default function Friends({ onBack }: Props) {
         setError("User not found. Check the UID and try again.");
         setSearchResult(null);
       }
-    } catch (err) {
+    } catch {
       setError("An error occurred during search.");
     } finally {
       setSearching(false);

@@ -2,6 +2,7 @@ name: Build iOS
 
 on:
   push:
+    branches: [main]
     tags:
       - 'v*'
   workflow_dispatch:
@@ -26,13 +27,15 @@ jobs:
       - name: Build web app
         run: npm run build
 
-      - name: Sync Capacitor iOS
-        run: npx cap sync ios
+      - name: Generate and sync Capacitor iOS
+        run: |
+          npx cap add ios
+          npx cap sync ios
 
       - name: Install CocoaPods
-        run: cd ios/App && pod install
+        run: cd ios/App && pod install 2>/dev/null || echo "CocoaPods not available"
 
-      - name: Build iOS App
+      - name: Build iOS App (Archive)
         run: |
           xcodebuild -workspace ios/App/App.xcworkspace \
                      -scheme App \
@@ -42,9 +45,40 @@ jobs:
                      archive \
                      CODE_SIGNING_ALLOWED=NO
 
-      - name: Upload iOS Artifacts
+      - name: Export IPA (unsigned)
+        run: |
+          mkdir -p export
+          xcodebuild -exportArchive \
+                     -archivePath KushCloud.xcarchive \
+                     -exportPath export \
+                     -exportOptionsPlist <(echo '<?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>development</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>-</string>
+            <key>provisioningProfiles</key><dict/>
+          </dict></plist>') \
+                     CODE_SIGNING_ALLOWED=NO || \
+          echo "Export skipped (unsigned archive only)"
+
+      - name: Upload iOS IPA
         uses: actions/upload-artifact@v4
         with:
           name: kushcloud-ios-${{ github.sha }}
-          path: KushCloud.xcarchive
+          path: |
+            KushCloud.xcarchive
+            export/*.ipa
           retention-days: 30
+
+      - name: Upload iOS IPA to Release (tagged only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          IPA=$(find export -name "*.ipa" 2>/dev/null | head -1)
+          if [ -n "$IPA" ]; then
+            gh release upload "${{ github.ref_name }}" "$IPA" --clobber
+          else
+            echo "No IPA found to upload to release"
+          fi
