@@ -278,14 +278,16 @@ export function AnimatedNumber({ value, duration = 600 }: { value: number; durat
     const diff = value - start;
     if (diff === 0) return;
     const startTime = performance.now();
+    let frameId: number;
     const animate = (now: number) => {
       const elapsed = now - startTime;
       const t = Math.min(elapsed / duration, 1);
       setDisplay(Math.round(start + diff * t * (2 - t)));
-      if (t < 1) requestAnimationFrame(animate);
+      if (t < 1) frameId = requestAnimationFrame(animate);
     };
-    requestAnimationFrame(animate);
-  }, [value, duration]);
+    frameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameId);
+  }, [value, duration]); // eslint-disable-line react-hooks/exhaustive-deps
   return <>{display.toLocaleString()}</>;
 }
 

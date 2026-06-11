@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useSave, type Screen } from "./store";
 import { audio } from "./game/audio";
 import { RunResult } from "./game/engine";
@@ -8,7 +8,7 @@ import { env } from "./config/env";
 import {
   SKINS, TRAILS, TITLES, BADGES, EFFECTS, POWERUPS,
   ACHIEVEMENTS, LOGIN_REWARDS, getDailyMissions, rollLootCrate,
-  RARITY, getActiveEvents, type LootCrate, type Rarity,
+  RARITY, getActiveEvents, type LootCrate, type Rarity, type LootDrop,
 } from "./game/data";
 import {
   dayNumber, randomName, DEFAULT_STATS, type SaveData,
@@ -37,13 +37,13 @@ export default function App() {
   saveRef.current = save;
   const [screen, setScreen] = useState<Screen>(save.seenTutorial ? "menu" : "tutorial");
   const [lootCrateOpen, setLootCrateOpen] = useState<LootCrate | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
 
-  const showToast = (msg: string) => {
+  const showToast = useCallback((msg: string) => {
     audio.reward();
     toastNotify(msg);
-  };
-
-  const [error, setError] = useState<string | null>(null);
+  }, []);
 
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
@@ -52,6 +52,34 @@ export default function App() {
     };
     window.addEventListener("error", handleError);
     return () => window.removeEventListener("error", handleError);
+  }, []);
+
+  useEffect(() => {
+    audio.setMusicVol(save.musicVol);
+    audio.setSfxVol(save.sfxVol);
+    const start = () => {
+      audio.resume();
+      if (save.musicVol > 0) audio.startMusic();
+      window.removeEventListener("pointerdown", start);
+      window.removeEventListener("keydown", start);
+    };
+    window.addEventListener("pointerdown", start);
+    window.addEventListener("keydown", start);
+    return () => {
+      window.removeEventListener("pointerdown", start);
+      window.removeEventListener("keydown", start);
+    };
+  }, [save.musicVol, save.sfxVol]);
+
+  useEffect(() => {
+    audio.setMusicVol(save.musicVol);
+    audio.setSfxVol(save.sfxVol);
+    if (save.musicVol === 0) audio.stopMusic();
+    else if (audio.isStarted) audio.startMusic();
+  }, [save.musicVol, save.sfxVol]);
+
+  useEffect(() => {
+    checkForUpdate(env.app.version).then(setUpdateInfo);
   }, []);
 
   if (error) {
@@ -70,30 +98,6 @@ export default function App() {
       </div>
     );
   }
-
-  useEffect(() => {
-    audio.setMusicVol(save.musicVol);
-    audio.setSfxVol(save.sfxVol);
-    const start = () => {
-      audio.resume();
-      if (save.musicVol > 0) audio.startMusic();
-      window.removeEventListener("pointerdown", start);
-      window.removeEventListener("keydown", start);
-    };
-    window.addEventListener("pointerdown", start);
-    window.addEventListener("keydown", start);
-    return () => {
-      window.removeEventListener("pointerdown", start);
-      window.removeEventListener("keydown", start);
-    };
-  }, []);
-
-  useEffect(() => {
-    audio.setMusicVol(save.musicVol);
-    audio.setSfxVol(save.sfxVol);
-    if (save.musicVol === 0) audio.stopMusic();
-    else if (audio.isStarted) audio.startMusic();
-  }, [save.musicVol, save.sfxVol]);
 
   const processRun = async (r: RunResult): Promise<RunSummary> => {
     try {
@@ -287,11 +291,6 @@ export default function App() {
   const loginAvailable = !save.loginClaimedToday;
   const claimedMissions = save.missions.filter((m) => m.claimed).length;
 
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  useEffect(() => {
-    checkForUpdate(env.app.version).then(setUpdateInfo);
-  }, []);
-
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-slate-950 overflow-hidden">
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -438,7 +437,7 @@ function CrateReveal({ crate, save, onClaim, onClose }: {
   onClose: () => void;
 }) {
   const [phase, setPhase] = useState<"shake" | "reveal" | "done">("shake");
-  const [drops, setDrops] = useState<Array<{ drop: any; type: string; icon: string }>>([]);
+  const [drops, setDrops] = useState<Array<{ drop: LootDrop; type: string; icon: string }>>([]);
   const [dust, setDust] = useState(0);
 
   useEffect(() => {
@@ -452,14 +451,14 @@ function CrateReveal({ crate, save, onClaim, onClose }: {
       let type = "Skin", icon = "🐦";
       if (TRAILS.find(t => t.id === drop.id)) { type = "Trail"; icon = "✨"; }
       else if (TITLES.find(t => t.id === drop.id)) { type = "Title"; icon = "📛"; }
-      else if (BADGES.find(t => t.id === drop.id)) { type = "Badge"; icon = (drop as any).icon || "🏅"; }
+      else if (BADGES.find(t => t.id === drop.id)) { type = "Badge"; icon = (drop as Badge).icon || "🏅"; }
       else if (EFFECTS.find(t => t.id === drop.id)) { type = "Effect"; icon = "🌈"; }
-      else if (SKINS.find(t => t.id === drop.id)) { icon = (drop as any).emoji || "🐦"; }
+      else if (SKINS.find(t => t.id === drop.id)) { icon = (drop as Skin).emoji || "🐦"; }
       return { drop, type, icon };
     });
     setDrops(mapped);
     setDust(result.dust);
-  }, [crate]);
+  }, [crate, onClaim, save.ownedBadges, save.ownedEffects, save.ownedSkins, save.ownedTitles, save.ownedTrails]);
 
   useEffect(() => {
     if (phase !== "shake") return;
@@ -485,7 +484,7 @@ function CrateReveal({ crate, save, onClaim, onClose }: {
       <h2 className="text-xl font-black text-white">🎉 You Got!</h2>
       <div className="grid gap-3 w-full" style={{ gridTemplateColumns: drops.length > 1 ? "1fr 1fr" : "1fr" }}>
         {drops.map((d, i) => {
-          const rarity = (d.drop as any).rarity as Rarity;
+          const rarity = d.drop.rarity as Rarity;
           const r = RARITY[rarity];
           return (
             <div
@@ -500,7 +499,7 @@ function CrateReveal({ crate, save, onClaim, onClose }: {
               }}
             >
               <div className={`text-3xl rarity-glow-${rarity}`}>{d.icon}</div>
-              <div className="text-sm font-black text-white text-center">{(d.drop as any).name}</div>
+              <div className="text-sm font-black text-white text-center">{d.drop.name}</div>
               <span
                 className="text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full"
                 style={{ background: r.bg, border: `1px solid ${r.border}`, color: r.color }}

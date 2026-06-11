@@ -42,7 +42,7 @@ export default function GameCanvas(props: Props) {
       onCombo: (m: number) => propsRef.current.onCombo?.(m),
       onWorld: (w: World) => propsRef.current.onWorld?.(w),
       onDeath: (r: RunResult) => propsRef.current.onDeath?.(r),
-      onStateChange: (st: any) => propsRef.current.onStateChange?.(st),
+      onStateChange: (st: string) => propsRef.current.onStateChange?.(st),
     };
     const eng = new GameEngine(props.skin, props.trail, worldForScore(0), cb);
     engineRef.current = eng;
