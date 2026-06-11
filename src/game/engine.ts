@@ -57,9 +57,9 @@ export class GameEngine {
   private wingPhase = 0;
 
   // world physics
-  private gravity = 1750;
+  private gravity = 1550;
   private flapV = -520;
-  private speed = 165;
+  private speed = 130;
 
   private pipes: Pipe[] = [];
   private particles: Particle[] = [];
@@ -161,7 +161,7 @@ export class GameEngine {
     this.bestCombo = 1;
     this.multiplier = 1;
     this.flaps = 0;
-    this.speed = 165;
+    this.speed = 130;
     this.shake = 0;
     this.flashAlpha = 0;
     this.world = worldForScore(0);
@@ -213,8 +213,8 @@ export class GameEngine {
 
   private spawnPipe() {
     const d = this.difficulty;
-    let gap = (200 - d * 62) * this.sc;
-    gap = Math.max(90 * this.sc, gap);
+    let gap = (200 - d * 50) * this.sc;
+    gap = Math.max(100 * this.sc, gap);
     const margin = 70 * this.sc * 0.5;
     const usable = this.h - this.groundH - gap - margin * 2;
     const top = margin + (usable > 0 ? Math.random() * usable : this.h * 0.25);
@@ -330,7 +330,7 @@ export class GameEngine {
     }
 
     // playing
-    this.speed = (165 + this.difficulty * 120) * this.sc;
+    this.speed = (130 + this.difficulty * 80) * this.sc;
     this.vy += this.gravity * this.sc * dt;
     this.by += this.vy * dt;
     this.rot = Math.max(-0.5, Math.min(1.2, this.vy / (700 * this.sc)));
@@ -339,7 +339,7 @@ export class GameEngine {
 
     // spawn pipes by spacing (skip in practice mode)
     if (!this.practiceMode) {
-      const spacing = Math.max(180 * this.sc, this.w * 0.52);
+      const spacing = Math.max(200 * this.sc, this.w * 0.58);
       const last = this.pipes[this.pipes.length - 1];
       if (!last || last.x < this.w - spacing) this.spawnPipe();
     }

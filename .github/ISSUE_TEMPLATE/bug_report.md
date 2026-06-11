@@ -17,13 +17,28 @@ A clear, concise description of the problem.
 **Expected behaviour**
 What you expected to happen.
 
+**Actual behaviour**
+What actually happened.
+
 **Screenshots / recordings**
 If applicable.
 
 **Environment**
 - Platform: [Web / Android APK]
-- Browser or Android version:
+- Device or browser:
+- OS version:
 - Game version (Settings screen or APK release tag):
 
+**Logs**
+Browser console, Android Logcat, or any relevant error output:
+```
+<Paste logs here>
+```
+
 **Additional context**
-Anything else (console errors, save-data state, network conditions).
+Anything else (save-data state, network conditions, frequency of issue).
+
+**Checklist**
+- [ ] I am using the latest version of KushCloud
+- [ ] I have searched existing issues to avoid duplicates
+- [ ] I can reproduce the issue consistently

@@ -2,7 +2,7 @@
   "name": "kushcloud",
   "version": "2.0.0",
   "private": false,
-  "description": "Flappy bird style stoner game",
+  "description": "Flappy bird style arcade game with canvas physics, real-time Firebase leaderboards, unlockable skins, and daily missions.",
   "license": "MIT",
   "author": "Linacre",
   "type": "module",
@@ -13,17 +13,21 @@
     "preview": "vite preview",
     "serve": "vite preview",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
     "audit": "npm audit",
     "clean": "rm -rf node_modules dist android/app/build",
     "android": "cap sync android && cap open android",
     "ios": "cap sync ios && cap open ios",
-    "cap:build": "npm run build && cap sync"
+    "cap:build": "npm run build && cap sync",
+    "release": "standard-version"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",
@@ -56,5 +60,24 @@
     "vite": "8.0.16",
     "vite-plugin-singlefile": "2.3.3",
     "vitest": "^4.1.8"
+  },
+  "keywords": [
+    "flappy-bird",
+    "game",
+    "arcade",
+    "react",
+    "typescript",
+    "capacitor",
+    "firebase",
+    "canvas",
+    "web-audio"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LIN4CRE/KushCloud.git"
+  },
+  "homepage": "https://lin4cre.github.io/KushCloud/",
+  "bugs": {
+    "url": "https://github.com/LIN4CRE/KushCloud/issues"
   }
 }
