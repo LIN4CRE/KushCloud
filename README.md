@@ -11,9 +11,14 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/LIN4CRE/KushCloud/ci.yml?style=flat-square&logo=githubactions&label=CI)](https://github.com/LIN4CRE/KushCloud/actions/workflows/ci.yml)
 [![Build APK](https://img.shields.io/github/actions/workflow/status/LIN4CRE/KushCloud/build-apk.yml?style=flat-square&logo=android&label=APK)](https://github.com/LIN4CRE/KushCloud/actions/workflows/build-apk.yml)
 
-A **Flappy Bird-style arcade game** with a chill aesthetic — tap to fly, dodge the jars, grab the leaves. Featuring a custom canvas game engine, synthesised audio, real-time Firebase leaderboards, unlockable cosmetics, and daily missions. Available as an Android APK and playable in any browser.
+A **Flappy Bird-style arcade game** with a chill aesthetic — tap to fly, dodge the jars, grab the leaves. Featuring a custom canvas game engine, synthesised audio, real-time Firebase leaderboards, unlockable cosmetics, and daily missions.
 
-**[Play in Browser](https://lin4cre.github.io/KushCloud/)** · **[Download APK](https://github.com/LIN4CRE/KushCloud/releases/latest)**
+## Play Now
+
+| | Link |
+|---|---|
+| **Play in Browser** | **[lin4cre.github.io/KushCloud/](https://lin4cre.github.io/KushCloud/)** — opens instantly, no install |
+| **Download Android APK** | **[github.com/LIN4CRE/KushCloud/releases/latest](https://github.com/LIN4CRE/KushCloud/releases/latest)** — free, no Play Store |
 
 ---
 
