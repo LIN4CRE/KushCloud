@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, push, onValue, query, orderByChild, limitToLast, get, runTransaction, update } from "firebase/database";
+import { initializeApp, type FirebaseApp } from "firebase/app";
+import { getDatabase, ref, set, push, onValue, query, orderByChild, limitToLast, get, runTransaction, update, type Database } from "firebase/database";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from "firebase/auth";
 import { env } from "./env";
 import {
@@ -9,29 +9,47 @@ import {
   type LeaderboardPeriod,
 } from "../game/leaderboardModel";
 
-// Firebase configuration using validated environment module
-const firebaseConfig = {
-  apiKey: env.firebase.apiKey,
-  authDomain: env.firebase.authDomain,
-  databaseURL: env.firebase.databaseURL,
-  projectId: env.firebase.projectId,
-  storageBucket: env.firebase.storageBucket,
-  messagingSenderId: env.firebase.messagingSenderId,
-  appId: env.firebase.appId,
-};
+function firebaseConfigValid(): boolean {
+  return !!(env.firebase.databaseURL && env.firebase.projectId);
+}
 
-const app = initializeApp(firebaseConfig);
-export const db = getDatabase(app);
-export const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
+export const isFirebaseAvailable = firebaseConfigValid();
+
+let app: FirebaseApp | null = null;
+let dbInstance: Database | null = null;
+let authInstance: ReturnType<typeof getAuth> | null = null;
+
+if (isFirebaseAvailable) {
+  try {
+    app = initializeApp({
+      apiKey: env.firebase.apiKey,
+      authDomain: env.firebase.authDomain,
+      databaseURL: env.firebase.databaseURL,
+      projectId: env.firebase.projectId,
+      storageBucket: env.firebase.storageBucket,
+      messagingSenderId: env.firebase.messagingSenderId,
+      appId: env.firebase.appId,
+    });
+    dbInstance = getDatabase(app);
+    authInstance = getAuth(app);
+  } catch (err) {
+    console.warn("[Firebase] Failed to initialize Firebase:", err);
+  }
+}
+
+export const db = dbInstance;
+export const auth = authInstance;
+const googleProvider = authInstance ? new GoogleAuthProvider() : null;
 
 export async function loginWithGoogle(): Promise<User> {
-  const result = await signInWithPopup(auth, googleProvider);
+  if (!authInstance || !googleProvider) throw new Error("Firebase not available");
+  const result = await signInWithPopup(authInstance, googleProvider);
   return result.user;
 }
 
 export async function logout(): Promise<void> {
-  await signOut(auth);
+  if (!authInstance) return;
+  await signOut(authInstance);
 }
 
 export { onAuthStateChanged, type User };
@@ -61,12 +79,18 @@ export interface UserProfile {
   updatedAt: number;
 }
 
+function guardDb(): Database {
+  if (!dbInstance) throw new Error("Firebase not available");
+  return dbInstance;
+}
+
 export async function submitScore(
   uid: string,
   name: string,
   score: number,
   period: LeaderboardPeriod
 ): Promise<void> {
+  if (!isFirebaseAvailable) return;
   const safeName = name.trim().slice(0, 32) || "Anonymous";
   if (!uid.trim()) return;
   if (!Number.isFinite(score) || !Number.isInteger(score) || score < 0 || score > 100000) return;
@@ -79,52 +103,50 @@ export async function submitScore(
     timestamp: now,
     period,
   };
-  
-  // Use UID as key to ensure one entry per player per period
-  const leaderboardRef = ref(db, `leaderboards/${period}/${uid}`);
-  await runTransaction(leaderboardRef, (current) => {
-    const currentEntry = toLeaderboardEntry(current, uid, period);
-    if (!currentEntry) return entry;
-    if (currentEntry.score > score) return current;
-    if (currentEntry.score === score) {
-      return {
-        ...currentEntry,
+
+  try {
+    const _db = guardDb();
+    const leaderboardRef = ref(_db, `leaderboards/${period}/${uid}`);
+    await runTransaction(leaderboardRef, (current) => {
+      const currentEntry = toLeaderboardEntry(current, uid, period);
+      if (!currentEntry) return entry;
+      if (currentEntry.score > score) return current;
+      if (currentEntry.score === score) {
+        return { ...currentEntry, name: safeName, timestamp: currentEntry.timestamp };
+      }
+      return entry;
+    });
+
+    const profileRef = ref(_db, `users/${uid}`);
+    await runTransaction(profileRef, (current) => {
+      const existing = current as UserProfile | null;
+      const profile: UserProfile = {
+        uid,
         name: safeName,
-        timestamp: currentEntry.timestamp,
+        bestScore: existing ? Math.max(existing.bestScore, score) : score,
+        totalGames: existing?.totalGames || 0,
+        totalCoins: existing?.totalCoins || 0,
+        level: existing?.level || 1,
+        xp: existing?.xp || 0,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
       };
-    }
-    return entry;
-  });
-  
-  // Also update user profile
-  const profileRef = ref(db, `users/${uid}`);
-  await runTransaction(profileRef, (current) => {
-    const existing = current as UserProfile | null;
-    const profile: UserProfile = {
-      uid,
-      name: safeName,
-      bestScore: existing ? Math.max(existing.bestScore, score) : score,
-      // totalGames is managed by the App client to avoid multi-counting across periods
-      totalGames: existing?.totalGames || 0,
-      totalCoins: existing?.totalCoins || 0,
-      level: existing?.level || 1,
-      xp: existing?.xp || 0,
-      createdAt: existing?.createdAt || now,
-      updatedAt: now,
-    };
-    return profile;
-  });
+      return profile;
+    });
+  } catch { /* Firebase unavailable */ }
 }
 
 export function subscribeLeaderboard(
   period: LeaderboardPeriod,
   callback: (entries: LeaderboardEntry[]) => void
 ): () => void {
-  const leaderboardRef = ref(db, `leaderboards/${period}`);
-  // Since we use UID keys now, we can just query the top scores
-  const q = query(leaderboardRef, orderByChild("score"), limitToLast(100));
-  
-  const unsubscribe = onValue(q, (snapshot) => {
+  if (!isFirebaseAvailable) {
+    callback([]);
+    return () => {};
+  }
+  const _db = guardDb();
+  const q = query(ref(_db, `leaderboards/${period}`), orderByChild("score"), limitToLast(100));
+  return onValue(q, (snapshot) => {
     const entries: LeaderboardEntry[] = [];
     snapshot.forEach((child) => {
       const entry = toLeaderboardEntry(child.val(), child.key, period);
@@ -132,56 +154,56 @@ export function subscribeLeaderboard(
     });
     callback(normalizeLeaderboardEntries(entries, period));
   });
-  
-  return unsubscribe;
 }
 
 export function subscribeUserProfile(uid: string, callback: (profile: UserProfile | null) => void): () => void {
-  const profileRef = ref(db, `users/${uid}`);
-  
-  const unsubscribe = onValue(profileRef, (snapshot) => {
-    const profile = snapshot.val() as UserProfile | null;
-    callback(profile);
+  if (!isFirebaseAvailable) {
+    callback(null);
+    return () => {};
+  }
+  const _db = guardDb();
+  return onValue(ref(_db, `users/${uid}`), (snapshot) => {
+    callback(snapshot.val() as UserProfile | null);
   });
-  
-  return unsubscribe;
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
-  const profileRef = ref(db, `users/${uid}`);
-  const snapshot = await get(profileRef);
+  if (!isFirebaseAvailable) return null;
+  const _db = guardDb();
+  const snapshot = await get(ref(_db, `users/${uid}`));
   return snapshot.val() as UserProfile | null;
 }
 
 export async function updateUserProfile(uid: string, updates: Partial<UserProfile>): Promise<void> {
-  if (!uid.trim()) return;
-  const profileRef = ref(db, `users/${uid}`);
+  if (!isFirebaseAvailable || !uid.trim()) return;
+  const _db = guardDb();
   const safeUpdates: Partial<UserProfile> = { ...updates, updatedAt: Date.now() };
   if (typeof safeUpdates.name === "string") safeUpdates.name = sanitizeName(safeUpdates.name);
   if (typeof safeUpdates.bestScore === "number") safeUpdates.bestScore = Math.max(0, Math.min(100000, safeUpdates.bestScore));
-  await update(profileRef, safeUpdates);
+  await update(ref(_db, `users/${uid}`), safeUpdates);
 }
 
 export async function addFriend(uid: string, friendUid: string): Promise<void> {
-  if (uid === friendUid) return;
-  const friendRef = ref(db, `friends/${uid}/${friendUid}`);
-  await set(friendRef, true);
+  if (!isFirebaseAvailable || uid === friendUid) return;
+  const _db = guardDb();
+  await set(ref(_db, `friends/${uid}/${friendUid}`), true);
 }
 
 export async function removeFriend(uid: string, friendUid: string): Promise<void> {
-  const friendRef = ref(db, `friends/${uid}/${friendUid}`);
-  await set(friendRef, null);
+  if (!isFirebaseAvailable) return;
+  const _db = guardDb();
+  await set(ref(_db, `friends/${uid}/${friendUid}`), null);
 }
 
 export function subscribeFriends(uid: string, callback: (friendUids: string[]) => void): () => void {
-  const friendsRef = ref(db, `friends/${uid}`);
-  return onValue(friendsRef, (snapshot) => {
+  if (!isFirebaseAvailable) {
+    callback([]);
+    return () => {};
+  }
+  const _db = guardDb();
+  return onValue(ref(_db, `friends/${uid}`), (snapshot) => {
     const data = snapshot.val();
-    if (!data) {
-      callback([]);
-      return;
-    }
-    callback(Object.keys(data));
+    callback(data ? Object.keys(data) : []);
   });
 }
 
@@ -198,13 +220,14 @@ export interface ChatMessage {
 }
 
 export async function sendMessage(uid: string, name: string, text: string): Promise<void> {
+  if (!isFirebaseAvailable) return;
   const safeUid = uid.trim();
   const safeName = sanitizeName(name);
   const safeText = sanitizeChatText(text);
   if (!safeUid || !safeText) return;
 
-  const chatRef = ref(db, "chat");
-  const newMessageRef = push(chatRef);
+  const _db = guardDb();
+  const newMessageRef = push(ref(_db, "chat"));
   await set(newMessageRef, {
     uid: safeUid,
     name: safeName,
@@ -214,8 +237,12 @@ export async function sendMessage(uid: string, name: string, text: string): Prom
 }
 
 export function subscribeChat(callback: (messages: ChatMessage[]) => void): () => void {
-  const chatRef = query(ref(db, "chat"), orderByChild("timestamp"), limitToLast(50));
-  return onValue(chatRef, (snapshot) => {
+  if (!isFirebaseAvailable) {
+    callback([]);
+    return () => {};
+  }
+  const _db = guardDb();
+  return onValue(query(ref(_db, "chat"), orderByChild("timestamp"), limitToLast(50)), (snapshot) => {
     const messages: ChatMessage[] = [];
     snapshot.forEach((child) => {
       messages.push({ id: child.key!, ...child.val() } as ChatMessage);

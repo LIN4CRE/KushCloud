@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadSave, writeSave, rollDaily, SaveData, migrateSave } from "./game/storage";
-import { auth, onAuthStateChanged, type User, db } from "./config/firebase";
+import { auth, onAuthStateChanged, type User, db, isFirebaseAvailable } from "./config/firebase";
 import { ref, set, get } from "firebase/database";
 
 export type Screen =
@@ -19,6 +19,7 @@ export function useSave() {
 
   // Cloud Sync: Push local to remote
   const pushToCloud = useCallback(async (data: SaveData, uid: string) => {
+    if (!isFirebaseAvailable || !db) return data;
     try {
       setSyncStatus("syncing");
       const userRef = ref(db, `saves/${uid}`);
@@ -35,9 +36,10 @@ export function useSave() {
 
   // Auth Listener
   useEffect(() => {
+    if (!isFirebaseAvailable || !auth) return;
     return onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      if (u) {
+      if (u && db) {
         setSyncStatus("syncing");
         try {
           const userRef = ref(db, `saves/${u.uid}`);

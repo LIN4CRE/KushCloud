@@ -148,16 +148,17 @@ src/
 
 ## Documentation
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) — Guidelines for contributors
-- [SECURITY.md](SECURITY.md) — Security policy and reporting
-- [RELEASE.md](RELEASE.md) — Release process and versioning
-- [GOVERNANCE.md](GOVERNANCE.md) — Project governance model
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Community standards
-- [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) — Technical deep-dive
-- [INSTALL_GUIDE.md](INSTALL_GUIDE.md) — Detailed installation steps
-- [PRODUCTION_READINESS_CHECKLIST.md](docs/PRODUCTION_READINESS_CHECKLIST.md) — Pre-release checklist
-- [SECURITY_CHECKLIST.md](docs/SECURITY_CHECKLIST.md) — Security verification checklist
-- [VERSION_MANAGEMENT.md](docs/VERSION_MANAGEMENT.md) — Version management guide
+- [CHANGELOG](docs/changelog/CHANGELOG.md) — Release history
+- [CONTRIBUTING](docs/community/CONTRIBUTING.md) — Guidelines for contributors
+- [SECURITY.md](docs/security/SECURITY.md) — Security policy and reporting
+- [RELEASE](docs/guides/RELEASE.md) — Release process and versioning
+- [GOVERNANCE](docs/community/GOVERNANCE.md) — Project governance model
+- [CODE_OF_CONDUCT](docs/community/CODE_OF_CONDUCT.md) — Community standards
+- [DEVELOPER_GUIDE](docs/guides/DEVELOPER_GUIDE.md) — Technical deep-dive
+- [INSTALL_GUIDE](docs/guides/INSTALL_GUIDE.md) — Detailed installation steps
+- [PRODUCTION_READINESS_CHECKLIST](docs/guides/PRODUCTION_READINESS_CHECKLIST.md) — Pre-release checklist
+- [SECURITY_CHECKLIST](docs/security/SECURITY_CHECKLIST.md) — Security verification checklist
+- [VERSION_MANAGEMENT](docs/guides/VERSION_MANAGEMENT.md) — Version management guide
 
 ---
 

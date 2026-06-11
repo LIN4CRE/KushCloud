@@ -55,9 +55,9 @@ This release signifies that KushCloud has met all industry-standard criteria for
 ## 📖 Essential Documentation
 
 - **[README.md](README.md)**: Project overview and quick start.
-- **[INSTALL_GUIDE.md](INSTALL_GUIDE.md)**: Detailed platform-specific installation.
-- **[CONTRIBUTING.md](CONTRIBUTING.md)**: Development standards and merge strategies.
-- **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)**: Technical architecture and API details.
+- **[INSTALL_GUIDE.md](../guides/INSTALL_GUIDE.md)**: Detailed platform-specific installation.
+- **[CONTRIBUTING.md](../community/CONTRIBUTING.md)**: Development standards and merge strategies.
+- **[DEVELOPER_GUIDE.md](../guides/DEVELOPER_GUIDE.md)**: Technical architecture and API details.
 
 ---
 
