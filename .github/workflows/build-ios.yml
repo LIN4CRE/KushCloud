@@ -75,7 +75,7 @@ jobs:
           echo "Export skipped (unsigned archive only)"
 
       - name: Upload iOS IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kushcloud-ios-${{ github.sha }}
           path: |
