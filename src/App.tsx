@@ -3,9 +3,9 @@ import { useSave } from "./store";
 import { audio } from "./game/audio";
 import { RunResult } from "./game/engine";
 import {
-  SKINS, TRAILS, TITLES, BADGES, EFFECTS, POWERUPS, LOOT_CRATES,
+  SKINS, TRAILS, TITLES, BADGES, EFFECTS, POWERUPS,
   ACHIEVEMENTS, levelFromXp, LOGIN_REWARDS, getDailyMissions, rollLootCrate,
-  currentWeekIndex, WEEKLY_EVENTS, RARITY, type LootCrate, type Rarity,
+  currentWeekIndex, WEEKLY_EVENTS, RARITY, getActiveEvents, type LootCrate, type Rarity,
 } from "./game/data";
 import {
   validateRun, dayNumber, randomName, DEFAULT_STATS, getRank, type SaveData,
@@ -21,6 +21,7 @@ import Profile from "./screens/Profile";
 import Statistics from "./screens/Statistics";
 import Settings from "./screens/Settings";
 import Tutorial from "./screens/Tutorial";
+import { Button } from "./ui";
 
 export type Screen =
   | "menu" | "play" | "shop" | "leaderboard"
@@ -127,6 +128,7 @@ export default function App() {
             s.stats.totalScore += r.score;
             s.stats.totalCoins += coinsGained;
             s.stats.totalNearMiss += r.nearMiss;
+            s.stats.totalPerfectPasses += r.perfectPasses;
             s.stats.bestCombo = Math.max(s.stats.bestCombo, r.bestCombo);
             if (r.score > s.stats.bestScore) {
               s.stats.bestScore = r.score;
@@ -171,6 +173,33 @@ export default function App() {
             if (val >= a.goal) {
               s.unlockedAchievements.push(a.id);
               newAch.push(a.name);
+            }
+          }
+
+          const activeEvents = getActiveEvents();
+          for (const event of activeEvents) {
+            const state = s.eventState[event.id] || (s.eventState[event.id] = {
+              objectives: {}, claimedObjectives: [], rewardTrackPoints: 0,
+              claimedRewardTiers: [], lastRefreshDay: dayNumber(),
+            });
+            for (const obj of event.objectives) {
+              if (state.claimedObjectives.includes(obj.id)) continue;
+              let val = 0;
+              if (obj.metric === "score") val = r.score;
+              else if (obj.metric === "coins") val = coinsGained;
+              else if (obj.metric === "nearMiss") val = r.nearMiss;
+              else if (obj.metric === "combo") val = r.bestCombo;
+              else if (obj.metric === "gamesPlayed") val = s.dailyPlays;
+              else if (obj.metric === "totalCoins") val = s.stats.totalCoins;
+              else if (obj.metric === "totalScore") val = s.stats.totalScore;
+              else if (obj.metric === "cratesOpened") val = s.cratesOpened;
+
+              const current = Math.max(state.objectives[obj.id] || 0, val);
+              const wasIncomplete = (state.objectives[obj.id] || 0) < obj.goal;
+              state.objectives[obj.id] = current;
+              if (wasIncomplete && current >= obj.goal) {
+                state.rewardTrackPoints += obj.reward;
+              }
             }
           }
         });
@@ -225,6 +254,23 @@ export default function App() {
     update((s) => {
       s.coins -= crate.cost;
       s.cratesOpened += 1;
+      const events = getActiveEvents();
+      for (const event of events) {
+        const state = s.eventState[event.id] || (s.eventState[event.id] = {
+          objectives: {}, claimedObjectives: [], rewardTrackPoints: 0,
+          claimedRewardTiers: [], lastRefreshDay: dayNumber(),
+        });
+        for (const obj of event.objectives) {
+          if (state.claimedObjectives.includes(obj.id)) continue;
+          if (obj.metric === "cratesOpened") {
+            const wasIncomplete = (state.objectives[obj.id] || 0) < obj.goal;
+            state.objectives[obj.id] = s.cratesOpened;
+            if (wasIncomplete && s.cratesOpened >= obj.goal) {
+              state.rewardTrackPoints += obj.reward;
+            }
+          }
+        }
+      }
     });
     setLootCrateOpen(crate);
   };

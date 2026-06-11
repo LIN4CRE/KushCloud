@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { SaveData } from "../game/storage";
 import {
   SKINS, TRAILS, TITLES, BADGES, EFFECTS, POWERUPS, LOOT_CRATES,
   levelFromXp, RARITY, type Rarity, type LootCrate,
 } from "../game/data";
-import { ScreenShell, Button, CoinPill, cx, RarityBadge, RarityGlow, Tabs } from "../ui";
+import { ScreenShell, Button, CoinPill, cx, RarityBadge, RarityGlow, Tabs, ConfettiBurst } from "../ui";
 import { audio } from "../game/audio";
 
 interface Props {

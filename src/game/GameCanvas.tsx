@@ -14,6 +14,7 @@ interface Props {
   onScore?: (s: number) => void;
   onCoin?: (c: number) => void;
   onNearMiss?: (n: number) => void;
+  onPerfectPass?: (p: number) => void;
   onCombo?: (m: number) => void;
   onWorld?: (w: World) => void;
   onDeath?: (r: RunResult) => void;
@@ -37,6 +38,7 @@ export default function GameCanvas(props: Props) {
       onScore: (s: number) => propsRef.current.onScore?.(s),
       onCoin: (c: number) => propsRef.current.onCoin?.(c),
       onNearMiss: (n: number) => propsRef.current.onNearMiss?.(n),
+      onPerfectPass: (p: number) => propsRef.current.onPerfectPass?.(p),
       onCombo: (m: number) => propsRef.current.onCombo?.(m),
       onWorld: (w: World) => propsRef.current.onWorld?.(w),
       onDeath: (r: RunResult) => propsRef.current.onDeath?.(r),

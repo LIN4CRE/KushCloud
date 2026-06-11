@@ -31,6 +31,7 @@ export default function Play({ save, onExit, processRun }: Props) {
   const [runId, setRunId] = useState(0);
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
+  const [perfects, setPerfects] = useState(0);
   const [combo, setCombo] = useState(1);
   const [world, setWorld] = useState<World>(worldForScore(0));
   const [phase, setPhase] = useState<"ready" | "playing" | "dead">("ready");
@@ -62,6 +63,7 @@ export default function Play({ save, onExit, processRun }: Props) {
     setSummary(null);
     setScore(0);
     setCoins(0);
+    setPerfects(0);
     setCombo(1);
     setPhase("ready");
     setPaused(false);
@@ -83,6 +85,7 @@ export default function Play({ save, onExit, processRun }: Props) {
         runId={runId}
         onScore={setScore}
         onCoin={setCoins}
+        onPerfectPass={setPerfects}
         onCombo={(m) => {
           setCombo(m);
           setComboPulse((p) => p + 1);
@@ -140,6 +143,11 @@ export default function Play({ save, onExit, processRun }: Props) {
           {coins > 0 && (
             <div className="text-sm font-bold text-amber-200/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               🍁 {coins}
+            </div>
+          )}
+          {perfects > 0 && (
+            <div className="text-sm font-bold text-sky-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              ✨ {perfects}
             </div>
           )}
           {combo > 1 && (
@@ -242,6 +250,15 @@ export default function Play({ save, onExit, processRun }: Props) {
                 <div className="font-black text-amber-300 tabular-nums">+{summary.coinsGained}</div>
                 <div className="text-[10px] text-white/40 font-semibold mt-0.5">🪙 Coins</div>
               </div>
+              {perfects > 0 && (
+                <>
+                  <div className="w-px h-6 bg-white/10" />
+                  <div className="text-center">
+                    <div className="font-black text-sky-400 tabular-nums">{perfects}</div>
+                    <div className="text-[10px] text-white/40 font-semibold mt-0.5">Perfects</div>
+                  </div>
+                </>
+              )}
               <div className="w-px h-6 bg-white/10" />
               <div className="text-center">
                 <div className="font-black text-sky-300 tabular-nums">+{summary.xpGained}</div>

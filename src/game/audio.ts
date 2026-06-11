@@ -62,11 +62,6 @@ class AudioEngine {
     o.stop(this.ctx.currentTime + dur + 0.02);
   }
 
-  private chords(notes: number[], dur: number, type: OscillatorType, gain: number) {
-    if (!this.sfxGain) return;
-    notes.forEach((f, i) => setTimeout(() => this.tone(f, dur, type, gain, this.sfxGain!), i * 80));
-  }
-
   flap() { if (this.sfxGain) this.tone(420, 0.12, "sine", 0.25, this.sfxGain, 700); }
   score() { if (this.sfxGain) { this.tone(660, 0.12, "triangle", 0.3, this.sfxGain); setTimeout(() => this.tone(880, 0.12, "triangle", 0.25, this.sfxGain!), 70); } }
   coin() { if (this.sfxGain) { this.tone(988, 0.08, "square", 0.18, this.sfxGain); setTimeout(() => this.tone(1319, 0.1, "square", 0.16, this.sfxGain!), 60); } }

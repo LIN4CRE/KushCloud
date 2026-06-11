@@ -1,10 +1,12 @@
 import { Skin, Trail, World, worldForScore } from "./data";
 import { audio } from "./audio";
+import { PowerUpManager } from "./powerups";
 
 export interface RunResult {
   score: number;
   coins: number;
   nearMiss: number;
+  perfectPasses: number;
   bestCombo: number;
   durationMs: number;
   flaps: number;
@@ -36,6 +38,7 @@ export interface EngineCallbacks {
   onScore?: (score: number) => void;
   onCoin?: (runCoins: number) => void;
   onNearMiss?: (count: number) => void;
+  onPerfectPass?: (count: number) => void;
   onCombo?: (mult: number) => void;
   onDeath?: (result: RunResult) => void;
   onWorld?: (world: World) => void;
@@ -67,6 +70,7 @@ export class GameEngine {
   score = 0;
   runCoins = 0;
   nearMiss = 0;
+  perfectPasses = 0;
   combo = 0; // consecutive successes
   bestCombo = 1;
   multiplier = 1;
@@ -82,6 +86,7 @@ export class GameEngine {
   private practiceMode = false;
   private shake = 0;
   private flashAlpha = 0;
+  private powerUpManager: PowerUpManager | null = null;
 
   constructor(skin: Skin, trail: Trail, world: World, cb: EngineCallbacks) {
     this.skin = skin;
@@ -102,6 +107,10 @@ export class GameEngine {
 
   setPracticeMode(on: boolean) {
     this.practiceMode = on;
+  }
+
+  setPowerUpManager(m: PowerUpManager) {
+    this.powerUpManager = m;
   }
 
   resize(w: number, h: number) {
@@ -139,6 +148,7 @@ export class GameEngine {
     this.score = 0;
     this.runCoins = 0;
     this.nearMiss = 0;
+    this.perfectPasses = 0;
     this.combo = 0;
     this.bestCombo = 1;
     this.multiplier = 1;
@@ -158,11 +168,19 @@ export class GameEngine {
       this.startTime = performance.now();
       this.cb.onStateChange?.(this.state);
     }
+    if (this.vy > 0 && this.powerUpManager?.isDoubleJumpAvailable()) {
+      this.powerUpManager.useDoubleJump();
+      this.vy = this.flapV * this.sc;
+      this.wingPhase = 0;
+      audio.flap();
+      this.emitFlapPuff();
+      return;
+    }
     this.vy = this.flapV * this.sc;
     this.flaps++;
     this.wingPhase = 0;
     audio.flap();
-    // puff at tail
+    this.powerUpManager?.resetDoubleJump();
     this.emitFlapPuff();
   }
 
@@ -344,10 +362,27 @@ export class GameEngine {
       if (!p.scored && p.x + p.w < this.bx) {
         p.scored = true;
         this.combo++;
+
+        // Perfect pass check
+        const distFromCenter = Math.abs(this.by - p.gapY);
+        const isPerfect = distFromCenter < p.gap * 0.12;
+
+        if (isPerfect) {
+          this.perfectPasses++;
+          this.combo++; // Bonus combo
+          this.score += this.multiplier * 2;
+          audio.score(); // Could add a special sound
+          this.burst(this.bx, this.by, "#60a5fa", 15, 200, "spark");
+          this.addFloat(this.bx, this.by - 40 * this.sc, "PERFECT!", "#60a5fa", 22);
+          this.cb.onPerfectPass?.(this.perfectPasses);
+          this.shake = 5;
+        } else {
+          this.score += this.multiplier;
+          audio.score();
+        }
+
         this.updateMultiplier();
-        this.score += this.multiplier;
-        audio.score();
-        this.addFloat(this.bx + 20 * this.sc, this.by - 30 * this.sc, `+${this.multiplier}`, "#ffffff", 18);
+        this.addFloat(this.bx + 20 * this.sc, this.by - 30 * this.sc, `+${isPerfect ? this.multiplier * 2 : this.multiplier}`, "#ffffff", 18);
         this.cb.onScore?.(this.score);
         // world transition
         const nw = worldForScore(this.score);
@@ -424,6 +459,7 @@ export class GameEngine {
       score: this.score,
       coins: this.runCoins,
       nearMiss: this.nearMiss,
+      perfectPasses: this.perfectPasses,
       bestCombo: this.bestCombo,
       durationMs: performance.now() - this.startTime,
       flaps: this.flaps,

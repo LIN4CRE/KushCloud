@@ -106,6 +106,7 @@ export default function Statistics({ save, onBack }: Props) {
               <Stat icon="🏆" label="Best Score" value={save.stats.bestScore} />
               <Stat icon="🎮" label="Games Played" value={save.stats.totalGames} />
               <Stat icon="🪙" label="Total Coins" value={save.stats.totalCoins.toLocaleString()} />
+              <Stat icon="✨" label="Perfect Pass" value={save.stats.totalPerfectPasses || 0} />
               <Stat icon="🎯" label="Near Misses" value={save.stats.totalNearMiss} />
               <Stat icon="🔥" label="Best Combo" value={`x${save.stats.bestCombo}`} />
               <Stat icon="🪽" label="Flaps" value={save.stats.totalFlaps.toLocaleString()} />

@@ -51,7 +51,6 @@ function MiniBird({ skinId, trailId }: { skinId: string; trailId: string }) {
 export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal, loginAvailable }: Props) {
   const lvl = levelFromXp(save.xp);
   const title = TITLES.find((t) => t.id === save.equippedTitle);
-  const badge = BADGES.find((b) => b.id === save.equippedBadge);
 
   return (
     <div className="flex h-full flex-col px-5 pb-5 pt-6">
@@ -83,6 +82,9 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
           KUSH<span className="text-lime-300 drop-shadow-[0_0_12px_rgba(163,230,53,0.5)]">CLOUD</span>
         </h1>
         <p className="mt-1.5 text-xs font-semibold text-white/40 tracking-wide">Flap higher. Stay chill. ✌️</p>
+        <div className="mt-2 inline-block rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-black text-emerald-400 uppercase tracking-tighter">
+          v1.4.0 · PERFECT PASS UPDATE
+        </div>
       </div>
 
       {/* Character + stats */}

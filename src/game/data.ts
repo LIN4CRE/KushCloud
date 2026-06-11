@@ -68,7 +68,7 @@ export interface Mission {
 
 export interface PlayerStats {
   totalGames: number; totalScore: number; totalCoins: number; totalNearMiss: number;
-  bestCombo: number; totalFlaps: number; bestScore: number;
+  totalPerfectPasses: number; bestCombo: number; totalFlaps: number; bestScore: number;
 }
 
 export const SKINS: Skin[] = [
@@ -92,6 +92,7 @@ export const SKINS: Skin[] = [
   { id: "angel", name: "Seraphim", desc: "Wings of pure light.", cost: 0, body: "#ffffff", accent: "#ffeaa7", eye: "#74b9ff", emoji: "👼", rarity: "legendary" },
   { id: "neko", name: "Neko-Chan", desc: "Super kawaii mode.", cost: 0, body: "#fd79a8", accent: "#e84393", eye: "#00cec9", emoji: "🐱", rarity: "mythic" },
   { id: "cosmo", name: "Cosmo King", desc: "Ruler of the galaxy.", cost: 0, body: "#2d1b69", accent: "#6c5ce7", eye: "#fdcb6e", emoji: "👾", rarity: "mythic" },
+  { id: "phoenix", name: "Solaris", desc: "Eternal sun spirit.", cost: 0, body: "#ff9f43", accent: "#ee5253", eye: "#222f3e", emoji: "☀️", rarity: "mythic" },
 ];
 
 export const TRAILS: Trail[] = [
@@ -110,6 +111,7 @@ export const TRAILS: Trail[] = [
   { id: "neon", name: "Neon Pulse", desc: "Synthwave dreams.", cost: 0, color: "#fd79a8", glow: "#e84393", kind: "rainbow", rarity: "epic" },
   { id: "lightning", name: "Storm Charge", desc: "Electric avenue.", cost: 0, color: "#f9ca24", glow: "#f0932b", kind: "star", rarity: "legendary" },
   { id: "cosmicdust", name: "Cosmic Dust", desc: "Stardust from the beyond.", cost: 0, color: "#dfe6e9", glow: "#b2bec3", kind: "ghost", rarity: "mythic" },
+  { id: "solar", name: "Solar Flare", desc: "Blazing sun trail.", cost: 0, color: "#ff9f43", glow: "#feca57", kind: "flame", rarity: "mythic" },
 ];
 
 export const TITLES: Title[] = [
@@ -272,6 +274,99 @@ export const WEEKLY_EVENTS = [
 
 export function currentWeekIndex(): number {
   return Math.floor(Date.now() / (86400000 * 7));
+}
+
+export type EventMetric =
+  | "score" | "coins" | "nearMiss" | "combo"
+  | "gamesPlayed" | "cratesOpened" | "totalScore"
+  | "totalCoins" | "prestigeAscensions";
+
+export interface EventObjective {
+  id: string;
+  text: string;
+  goal: number;
+  metric: EventMetric;
+  reward: number;
+}
+
+export interface EventReward {
+  tier: number;
+  pointsRequired: number;
+  type: "coins" | "dust" | "crate" | "title" | "badge" | "effect";
+  id?: string;
+  amount?: number;
+  icon: string;
+}
+
+export interface EventDef {
+  id: string;
+  name: string;
+  desc: string;
+  icon: string;
+  type: "daily" | "weekly" | "seasonal";
+  startDate: number;
+  endDate: number;
+  objectives: EventObjective[];
+  rewardTrack: EventReward[];
+  coinBoost?: number;
+  xpBoost?: number;
+  analyticsId: string;
+}
+
+export const EVENT_DEFS: EventDef[] = [
+  {
+    id: "e_spring_fest_2025",
+    name: "Spring Festival",
+    desc: "Celebrate spring with bonus rewards!",
+    icon: "🌸",
+    type: "seasonal",
+    startDate: 1745107200000,
+    endDate: 1747872000000,
+    objectives: [
+      { id: "sf_score", text: "Reach a score of 30", goal: 30, metric: "score", reward: 50 },
+      { id: "sf_plays", text: "Play 10 games", goal: 10, metric: "gamesPlayed", reward: 30 },
+      { id: "sf_coins", text: "Collect 200 coins", goal: 200, metric: "totalCoins", reward: 40 },
+      { id: "sf_crates", text: "Open 3 loot crates", goal: 3, metric: "cratesOpened", reward: 60 },
+      { id: "sf_combo", text: "Reach x8 combo", goal: 8, metric: "combo", reward: 80 },
+    ],
+    rewardTrack: [
+      { tier: 1, pointsRequired: 50, type: "coins", amount: 100, icon: "🪙" },
+      { tier: 2, pointsRequired: 120, type: "dust", amount: 30, icon: "💎" },
+      { tier: 3, pointsRequired: 200, type: "crate", icon: "🎁" },
+      { tier: 4, pointsRequired: 300, type: "badge", id: "b_spring", icon: "🏅" },
+    ],
+    analyticsId: "event_spring_2025",
+  },
+  {
+    id: "e_weekly_coin_rush",
+    name: "Weekly Coin Rush",
+    desc: "Extra coins from every source!",
+    icon: "🪙",
+    type: "weekly",
+    startDate: 1745798400000,
+    endDate: 1746403200000,
+    objectives: [
+      { id: "wcr_plays", text: "Play 5 games", goal: 5, metric: "gamesPlayed", reward: 20 },
+      { id: "wcr_score", text: "Reach a score of 15", goal: 15, metric: "score", reward: 30 },
+      { id: "wcr_coins", text: "Collect 100 coins", goal: 100, metric: "totalCoins", reward: 40 },
+    ],
+    rewardTrack: [
+      { tier: 1, pointsRequired: 30, type: "coins", amount: 80, icon: "🪙" },
+      { tier: 2, pointsRequired: 70, type: "dust", amount: 20, icon: "💎" },
+      { tier: 3, pointsRequired: 120, type: "coins", amount: 200, icon: "🪙" },
+    ],
+    analyticsId: "event_weekly_coin_rush",
+  },
+];
+
+export function getActiveEvents(): EventDef[] {
+  const now = Date.now();
+  return EVENT_DEFS.filter(e => now >= e.startDate && now < e.endDate);
+}
+
+export function isEventActive(event: EventDef): boolean {
+  const now = Date.now();
+  return now >= event.startDate && now < event.endDate;
 }
 
 // Loot box opening logic

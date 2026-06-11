@@ -1,4 +1,4 @@
-import { PlayerStats, getDailyMissions, Mission, LOGIN_REWARDS } from "./data";
+import { PlayerStats, getDailyMissions, getActiveEvents, EventMetric, Mission, LOGIN_REWARDS } from "./data";
 
 const KEY = "kushcloud_save_v1";
 
@@ -8,6 +8,14 @@ export interface MissionProgress {
 
 export interface OwnedItem {
   id: string; obtained: number; // timestamp
+}
+
+export interface EventSaveState {
+  objectives: Record<string, number>;
+  claimedObjectives: string[];
+  rewardTrackPoints: number;
+  claimedRewardTiers: number[];
+  lastRefreshDay: number;
 }
 
 export interface SaveData {
@@ -46,11 +54,12 @@ export interface SaveData {
   scoreHistory: number[];
   lastSync: number;
   seenItems: Record<string, boolean>;
+  eventState: Record<string, EventSaveState>;
 }
 
 export const DEFAULT_STATS: PlayerStats = {
   totalGames: 0, totalScore: 0, totalCoins: 0, totalNearMiss: 0,
-  bestCombo: 0, totalFlaps: 0, bestScore: 0,
+  totalPerfectPasses: 0, bestCombo: 0, totalFlaps: 0, bestScore: 0,
 };
 
 export function dayNumber(): number {
@@ -59,7 +68,7 @@ export function dayNumber(): number {
 
 function defaultSave(): SaveData {
   return {
-    version: 2,
+    version: 3,
     playerName: randomName(),
     coins: 0,
     xp: 0,
@@ -94,6 +103,7 @@ function defaultSave(): SaveData {
     scoreHistory: [],
     lastSync: Date.now(),
     seenItems: {},
+    eventState: {},
   };
 }
 
@@ -105,6 +115,9 @@ export function randomName(): string {
 
 export function migrateSave(data: Record<string, any>): SaveData {
   const def = defaultSave();
+  if (data.stats && data.stats.totalPerfectPasses === undefined) {
+    data.stats.totalPerfectPasses = 0;
+  }
   if (!data.version || data.version < 2) {
     data.dust ??= 0;
     data.ownedTitles ??= [];
@@ -117,6 +130,10 @@ export function migrateSave(data: Record<string, any>): SaveData {
     data.cratesOpened ??= 0;
     data.seenItems ??= {};
     data.version = 2;
+  }
+  if (data.version < 3) {
+    data.eventState ??= {};
+    data.version = 3;
   }
   return { ...def, ...data, stats: { ...DEFAULT_STATS, ...data.stats } };
 }
@@ -158,6 +175,19 @@ export function rollDaily(data: SaveData): SaveData {
     data.lastLoginDay = today;
     data.loginClaimedToday = false;
   }
+  const activeEvents = getActiveEvents();
+  for (const event of activeEvents) {
+    if (event.type === "daily") {
+      const state = data.eventState[event.id];
+      if (state && state.lastRefreshDay !== today) {
+        state.objectives = {};
+        state.claimedObjectives = [];
+        state.rewardTrackPoints = 0;
+        state.claimedRewardTiers = [];
+        state.lastRefreshDay = today;
+      }
+    }
+  }
   return data;
 }
 
@@ -196,6 +226,34 @@ function seededScores(period: "daily" | "weekly" | "all"): LeaderEntry[] {
 }
 
 const FRIEND_NAMES = ["GanjaGuru", "DabQueen", "MellowMia", "ZenZara", "FrostyFinn"];
+
+export function trackEventMetric(
+  metric: EventMetric,
+  value: number,
+  _save: SaveData,
+  update: (fn: (s: SaveData) => void) => void
+): void {
+  const events = getActiveEvents();
+  if (events.length === 0) return;
+  update((s) => {
+    for (const event of events) {
+      const state = s.eventState[event.id] || (s.eventState[event.id] = {
+        objectives: {}, claimedObjectives: [], rewardTrackPoints: 0,
+        claimedRewardTiers: [], lastRefreshDay: dayNumber(),
+      });
+      for (const obj of event.objectives) {
+        if (state.claimedObjectives.includes(obj.id)) continue;
+        if (obj.metric === metric) {
+          state.objectives[obj.id] = (state.objectives[obj.id] || 0) + value;
+          const current = state.objectives[obj.id] || 0;
+          if (current >= obj.goal && current - value < obj.goal) {
+            state.rewardTrackPoints += obj.reward;
+          }
+        }
+      }
+    }
+  });
+}
 
 export async function getLeaderboard(
   period: "daily" | "weekly" | "all",

@@ -217,7 +217,7 @@ export function Modal({ open, onClose, children }: { open: boolean; onClose: () 
 }
 
 /* Confetti burst particles */
-export function ConfettiBurst({ active, color = "#fbbf24" }: { active: boolean; color?: string }) {
+export function ConfettiBurst({ active }: { active: boolean }) {
   const [particles, setParticles] = useState<{ x: number; y: number; c: string; r: number }[]>([]);
   useEffect(() => {
     if (!active) { setParticles([]); return; }

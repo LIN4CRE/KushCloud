@@ -1,5 +1,17 @@
 # KushCloud Changelog
 
+## v1.4.0 — 2025-06-11
+
+### ✅ Perfect Pass Update
+- **New Mechanic: Perfect Pass**: Score bonus points and combo by flying through the exact center of gaps.
+- **New Content**: Added mythic skin **Solaris** and mythic trail **Solar Flare**.
+- **Enhanced UI**: Added perfect pass counter to HUD and summary screen.
+- **Statistics**: Added lifetime "Perfect Pass" tracking to the statistics dashboard.
+- **Type Safety**: Resolved all 13 TypeScript errors and warnings.
+- **Maintenance**: Updated `PowerUpManager` and migrated save data version to v1.3.0.
+
+---
+
 ## v1.1.0 — 2026-06-10
 
 ### ✅ Changelog
