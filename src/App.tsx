@@ -8,7 +8,7 @@ import { env } from "./config/env";
 import {
   SKINS, TRAILS, TITLES, BADGES, EFFECTS, POWERUPS,
   ACHIEVEMENTS, LOGIN_REWARDS, getDailyMissions, rollLootCrate,
-  RARITY, getActiveEvents, type LootCrate, type Rarity, type LootDrop,
+  RARITY, getActiveEvents, type LootCrate, type Rarity, type LootDrop, type Skin, type Badge,
 } from "./game/data";
 import {
   dayNumber, randomName, DEFAULT_STATS, type SaveData,
