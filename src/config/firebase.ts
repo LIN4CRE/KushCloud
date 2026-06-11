@@ -68,29 +68,33 @@ export async function submitScore(
   // Use UID as key to ensure one entry per player per period
   const leaderboardRef = ref(db, `leaderboards/${period}/${uid}`);
 
-  // Only update if the new score is better, or if it's a reset period
-  // For simplicity in this implementation, we'll assume the caller (App.tsx)
-  // only submits improved or relevant scores.
-  await set(leaderboardRef, entry);
+  // Only update if the new score is better
+  const currentSnapshot = await get(leaderboardRef);
+  const currentData = currentSnapshot.val() as LeaderboardEntry | null;
+  if (!currentData || currentData.score < score) {
+    await set(leaderboardRef, entry);
+  }
   
   // Also update user profile
   const profileRef = ref(db, `users/${uid}`);
-  const snapshot = await get(profileRef);
-  const existing = snapshot.val() as UserProfile | null;
+  const profileSnapshot = await get(profileRef);
+  const existing = profileSnapshot.val() as UserProfile | null;
   
-  const profile: UserProfile = {
-    uid,
-    name,
-    bestScore: existing ? Math.max(existing.bestScore, score) : score,
-    totalGames: (existing?.totalGames || 0) + 1,
-    totalCoins: existing?.totalCoins || 0,
-    level: existing?.level || 1,
-    xp: existing?.xp || 0,
-    createdAt: existing?.createdAt || Date.now(),
-    updatedAt: Date.now(),
-  };
-  
-  await set(profileRef, profile);
+  if (!existing || existing.bestScore < score || existing.name !== name) {
+    const profile: UserProfile = {
+      uid,
+      name,
+      bestScore: existing ? Math.max(existing.bestScore, score) : score,
+      // totalGames is managed by the App client to avoid multi-counting across periods
+      totalGames: existing?.totalGames || 0,
+      totalCoins: existing?.totalCoins || 0,
+      level: existing?.level || 1,
+      xp: existing?.xp || 0,
+      createdAt: existing?.createdAt || Date.now(),
+      updatedAt: Date.now(),
+    };
+    await set(profileRef, profile);
+  }
 }
 
 export function subscribeLeaderboard(

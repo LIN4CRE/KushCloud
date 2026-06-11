@@ -55,11 +55,17 @@ export function subscribeToLeaderboard(
     }));
     
     // Add player if not in list
-    if (!list.some((e) => e.you)) {
+    const myEntry = list.find((e) => e.you);
+    if (myEntry) {
+      if (playerScore > myEntry.score) {
+        myEntry.score = playerScore;
+        list.sort((a, b) => b.score - a.score);
+      }
+    } else {
       list.push({ name: playerName, score: playerScore, you: true });
+      list.sort((a, b) => b.score - a.score);
     }
     
-    list.sort((a, b) => b.score - a.score);
     callback(list.slice(0, 50));
   });
   
