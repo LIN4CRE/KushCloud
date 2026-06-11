@@ -2,20 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import GameCanvas from "../game/GameCanvas";
 import { RunResult } from "../game/engine";
 import { SaveData } from "../game/storage";
+import type { RunSummary } from "../game/runProcessing";
 import { SKINS, TRAILS, World, worldForScore, levelFromXp } from "../game/data";
 import { Button, CoinPill, cx } from "../ui";
 import { audio } from "../game/audio";
 
-export interface RunSummary {
-  xpGained: number;
-  coinsGained: number;
-  levelUpCoins: number;
-  newBest: boolean;
-  leveledUp: number[];
-  achievements: string[];
-  missions: string[];
-  valid: boolean;
-  rank: number;
+function createRunId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
 }
 
 interface Props {
@@ -28,7 +24,7 @@ export default function Play({ save, onExit, processRun }: Props) {
   const skin = SKINS.find((s) => s.id === save.equippedSkin) || SKINS[0];
   const trail = TRAILS.find((t) => t.id === save.equippedTrail) || TRAILS[0];
 
-  const [runId, setRunId] = useState(0);
+  const [runId, setRunId] = useState(() => createRunId());
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
   const [perfects, setPerfects] = useState(0);
@@ -40,8 +36,14 @@ export default function Play({ save, onExit, processRun }: Props) {
   const [summary, setSummary] = useState<RunSummary | null>(null);
   const [comboPulse, setComboPulse] = useState(0);
   const deadTimer = useRef<number>(0);
+  const activeRunIdRef = useRef(runId);
+  const processedRunIdsRef = useRef(new Set<string>());
   const isDead = phase === "dead" || !!summary;
   const prevBestRef = useRef(save.stats.bestScore);
+
+  useEffect(() => {
+    activeRunIdRef.current = runId;
+  }, [runId]);
 
   useEffect(() => {
     audio.resume();
@@ -49,19 +51,31 @@ export default function Play({ save, onExit, processRun }: Props) {
     return () => window.clearTimeout(deadTimer.current);
   }, [save.stats.bestScore]);
 
-  const handleDeath = async (r: RunResult) => {
+  const handleDeath = (r: RunResult) => {
+    if (processedRunIdsRef.current.has(r.runId)) return;
+    processedRunIdsRef.current.add(r.runId);
+
     // Start processing immediately so the score is saved even if the user restarts or leaves
     const summaryPromise = processRun(r);
+    const deathRunId = r.runId;
 
     window.clearTimeout(deadTimer.current);
     deadTimer.current = window.setTimeout(async () => {
-      const s = await summaryPromise;
-      setSummary(s);
-      if (s.leveledUp.length) setTimeout(() => audio.levelUp(), 250);
+      try {
+        const s = await summaryPromise;
+        if (activeRunIdRef.current !== deathRunId) return;
+        setSummary(s);
+        if (s.leveledUp.length) setTimeout(() => audio.levelUp(), 250);
+      } catch (error) {
+        console.error("Failed to process run:", error);
+      }
     }, 850);
   };
 
   const restart = () => {
+    const nextRunId = createRunId();
+    activeRunIdRef.current = nextRunId;
+    window.clearTimeout(deadTimer.current);
     prevBestRef.current = save.stats.bestScore;
     setSummary(null);
     setScore(0);
@@ -71,7 +85,13 @@ export default function Play({ save, onExit, processRun }: Props) {
     setPhase("ready");
     setPaused(false);
     setWorld(worldForScore(0));
-    setRunId((n) => n + 1);
+    setRunId(nextRunId);
+  };
+
+  const exitToMenu = () => {
+    activeRunIdRef.current = "";
+    window.clearTimeout(deadTimer.current);
+    onExit();
   };
 
   const lvl = levelFromXp(save.xp);
@@ -193,7 +213,7 @@ export default function Play({ save, onExit, processRun }: Props) {
           <div className="flex flex-col gap-2.5 w-52">
             <Button size="lg" onClick={() => setPaused(false)}>▶ Resume</Button>
             <Button variant="dark" onClick={restart}>↻ Restart</Button>
-            <Button variant="dark" onClick={onExit}>⌂ Main Menu</Button>
+            <Button variant="dark" onClick={exitToMenu}>⌂ Main Menu</Button>
           </div>
         </div>
       )}
@@ -208,7 +228,7 @@ export default function Play({ save, onExit, processRun }: Props) {
             <div className="flex flex-col gap-2">
               <Button size="lg" className="w-full" onClick={restart}>↻ Practice Again</Button>
               <Button variant="dark" className="w-full" onClick={() => { setPractice(false); restart(); }}>▶ Play for Real</Button>
-              <Button variant="dark" className="w-full" onClick={onExit}>⌂ Main Menu</Button>
+              <Button variant="dark" className="w-full" onClick={exitToMenu}>⌂ Main Menu</Button>
             </div>
           </div>
         </div>
@@ -309,7 +329,7 @@ export default function Play({ save, onExit, processRun }: Props) {
             {/* Actions */}
             <div className="mt-4 flex flex-col gap-2">
               <Button size="lg" className="w-full" onClick={restart}>↻ One More Try</Button>
-              <Button variant="dark" className="w-full" onClick={onExit}>⌂ Main Menu</Button>
+              <Button variant="dark" className="w-full" onClick={exitToMenu}>⌂ Main Menu</Button>
             </div>
 
             <p className="mt-3 text-center text-[10px] font-semibold text-white/25">

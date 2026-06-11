@@ -1,6 +1,6 @@
 {
   "name": "kushcloud",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "private": false,
   "description": "Flappy bird style stoner game",
   "license": "MIT",
@@ -12,6 +12,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "serve": "vite preview",
+    "test": "vitest run",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "audit": "npm audit",
@@ -42,6 +43,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
     "vite": "7.3.2",
-    "vite-plugin-singlefile": "2.3.0"
+    "vite-plugin-singlefile": "2.3.0",
+    "vitest": "^4.1.8"
   }
 }

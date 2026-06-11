@@ -7,11 +7,11 @@ android {
   }
 }
 
-apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
 
-
 }
+
+// No cordova plugins configured
 
 
 if (hasProperty('postBuildExtras')) {

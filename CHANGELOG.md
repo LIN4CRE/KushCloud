@@ -1,5 +1,28 @@
 # KushCloud Changelog
 
+## v1.6.2 — 2026-06-11
+
+### ✅ Critical Fixes
+- **Player Naming Freedom**: Fixed auto-name generation overriding user input. Users can now freely edit, backspace, and select every character including the first one.
+- **Leaderboard Integrity**: Resolved score glitch where scores weren't saved if the player restarted a run quickly. Processing now starts immediately upon death.
+- **Duplicate Elimination**: Scores are now fully deduplicated via unique `runId`. No more duplicate entries from rapid restarts.
+
+### 🎮 Gameplay Improvements
+- **Run Processing Pipeline**: New dedicated `runProcessing.ts` module separates game logic from UI, preventing state corruption during high-speed play.
+- **Leaderboard Model Refactored**: Standalone `leaderboardModel.ts` with full unit test coverage ensures consistent ranking calculations.
+
+### 🛠 Technical Improvements
+- **Modular Refactoring**: Core game logic extracted from `App.tsx` into `runProcessing.ts` and `leaderboardModel.ts`.
+- **Test Coverage**: 6 new unit tests across 2 test files — all passing.
+- **Save Migration**: Version 4 handles `processedRunIds` for future-proofing. Existing saves migrated silently.
+
+### Stability Enhancements
+- **Global Error Boundary**: Catches and displays unhandled exceptions gracefully.
+- **Cloud Sync**: Conflict resolution improved — the save with more XP is always preferred.
+- **Build**: Android version code bumped to 2, version name 1.6.2. APK builds verified.
+
+---
+
 ## v1.6.1 — 2025-06-11
 
 ### ✅ Critical Fixes

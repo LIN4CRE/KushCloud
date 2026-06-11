@@ -4,15 +4,16 @@ import { audio } from "./game/audio";
 import { RunResult } from "./game/engine";
 import {
   SKINS, TRAILS, TITLES, BADGES, EFFECTS, POWERUPS,
-  ACHIEVEMENTS, levelFromXp, LOGIN_REWARDS, getDailyMissions, rollLootCrate,
-  currentWeekIndex, WEEKLY_EVENTS, RARITY, getActiveEvents, type LootCrate, type Rarity,
+  ACHIEVEMENTS, LOGIN_REWARDS, getDailyMissions, rollLootCrate,
+  RARITY, getActiveEvents, type LootCrate, type Rarity,
 } from "./game/data";
 import {
-  validateRun, dayNumber, randomName, DEFAULT_STATS, type SaveData,
+  dayNumber, randomName, DEFAULT_STATS, type SaveData,
 } from "./game/storage";
 import { submitPlayerScore, getRank } from "./game/leaderboard";
+import { applyCompletedRun, type RunSummary } from "./game/runProcessing";
 import Menu from "./screens/Menu";
-import Play, { RunSummary } from "./screens/Play";
+import Play from "./screens/Play";
 import Shop from "./screens/Shop";
 import Leaderboard from "./screens/Leaderboard";
 import Achievements from "./screens/Achievements";
@@ -93,133 +94,17 @@ export default function App() {
 
   const processRun = async (r: RunResult): Promise<RunSummary> => {
     try {
-      const check = validateRun(r.score, r.durationMs, r.flaps, r.coins);
-      const week = currentWeekIndex();
-      const ev = WEEKLY_EVENTS[week % WEEKLY_EVENTS.length];
-      const coinBoost = ev.coinBoost;
-      const xpBoost = ev.xpBoost;
+      const result = update((s) => applyCompletedRun(s, r));
 
-      const beforeLevel = levelFromXp(save.xp).level;
-      let coinsGained = 0;
-      let xpGained = 0;
-      let newBest = false;
-      const newAch: string[] = [];
-      const newMissions: string[] = [];
-
-      if (check.valid) {
-        coinsGained = Math.round(r.coins * 10 * coinBoost) + r.score * 2;
-        xpGained = Math.round((r.score * 10 + r.coins * 5 + r.nearMiss * 8 + 5) * xpBoost);
+      for (const submission of result.submissions) {
+        submitPlayerScore(save.playerName, submission.score, submission.period).catch(() => {});
       }
 
-      const projectedXp = save.xp + xpGained;
-      const targetLevel = levelFromXp(projectedXp).level;
-      const leveledUp: number[] = [];
-      let levelUpCoins = 0;
-      for (let l = beforeLevel + 1; l <= targetLevel; l++) {
-        leveledUp.push(l);
-        levelUpCoins += l * 5;
-      }
-
-      const currentBest = Math.max(r.score, save.stats.bestScore);
-
-      await new Promise<void>((resolve) => {
-        update((s) => {
-          s.stats.totalGames += 1;
-          s.stats.totalFlaps += r.flaps;
-          if (check.valid) {
-            s.stats.totalScore += r.score;
-            s.stats.totalCoins += coinsGained;
-            s.stats.totalNearMiss += r.nearMiss;
-            s.stats.totalPerfectPasses += r.perfectPasses;
-            s.stats.bestCombo = Math.max(s.stats.bestCombo, r.bestCombo);
-            if (r.score > s.stats.bestScore) {
-              s.stats.bestScore = r.score;
-              newBest = true;
-            }
-            s.coins += coinsGained + levelUpCoins;
-            s.xp += xpGained;
-            s.seasonalXp += xpGained; // Seasonal progress
-            s.scoreHistory.push(r.score);
-            if (s.scoreHistory.length > 100) s.scoreHistory = s.scoreHistory.slice(-100);
-            s.dailyPlays += 1;
-            s.dailyCoins += r.coins;
-          }
-
-          const todays = getDailyMissions(dayNumber());
-          for (const m of todays) {
-            let prog = s.missions.find((p) => p.id === m.id);
-            if (!prog) {
-              prog = { id: m.id, progress: 0, claimed: false };
-              s.missions.push(prog);
-            }
-            let v = prog.progress;
-            if (m.metric === "runScore") v = Math.max(v, r.score);
-            else if (m.metric === "runCoins") v = Math.max(v, r.coins);
-            else if (m.metric === "runNearMiss") v = Math.max(v, r.nearMiss);
-            else if (m.metric === "plays") v = s.dailyPlays;
-            else if (m.metric === "totalCoins") v = s.dailyCoins;
-            const wasComplete = prog.progress >= m.goal;
-            prog.progress = v;
-            if (!wasComplete && v >= m.goal) newMissions.push(m.text);
-          }
-
-          for (const a of ACHIEVEMENTS) {
-            if (s.unlockedAchievements.includes(a.id)) continue;
-            let val = 0;
-            if (a.stat === "score") val = s.stats.bestScore;
-            else if (a.stat === "ownedSkins") val = s.ownedSkins.length;
-            else if (a.stat === "ownedTrails") val = s.ownedTrails.length;
-            else if (a.stat === "ownedEffects") val = s.ownedEffects.length;
-            else if (a.stat === "ownedBadges") val = s.ownedBadges.length;
-            else if (a.stat === "ownedTitles") val = s.ownedTitles.length;
-            else val = (s.stats as any)[a.stat] ?? 0;
-            if (val >= a.goal) {
-              s.unlockedAchievements.push(a.id);
-              newAch.push(a.name);
-            }
-          }
-
-          const activeEvents = getActiveEvents();
-          for (const event of activeEvents) {
-            const state = s.eventState[event.id] || (s.eventState[event.id] = {
-              objectives: {}, claimedObjectives: [], rewardTrackPoints: 0,
-              claimedRewardTiers: [], lastRefreshDay: dayNumber(),
-            });
-            for (const obj of event.objectives) {
-              if (state.claimedObjectives.includes(obj.id)) continue;
-              let val = 0;
-              if (obj.metric === "score") val = r.score;
-              else if (obj.metric === "coins") val = coinsGained;
-              else if (obj.metric === "nearMiss") val = r.nearMiss;
-              else if (obj.metric === "combo") val = r.bestCombo;
-              else if (obj.metric === "gamesPlayed") val = s.dailyPlays;
-              else if (obj.metric === "totalCoins") val = s.stats.totalCoins;
-              else if (obj.metric === "totalScore") val = s.stats.totalScore;
-              else if (obj.metric === "cratesOpened") val = s.cratesOpened;
-
-              const current = Math.max(state.objectives[obj.id] || 0, val);
-              const wasIncomplete = (state.objectives[obj.id] || 0) < obj.goal;
-              state.objectives[obj.id] = current;
-              if (wasIncomplete && current >= obj.goal) {
-                state.rewardTrackPoints += obj.reward;
-              }
-            }
-          }
-        });
-        resolve();
-      });
-
-      if (check.valid && r.score > 0) {
-        submitPlayerScore(save.playerName, currentBest, "daily").catch(() => {});
-        submitPlayerScore(save.playerName, currentBest, "weekly").catch(() => {});
-        submitPlayerScore(save.playerName, currentBest, "all").catch(() => {});
-      }
-
-      const rank = await getRank("daily", currentBest);
+      const rank = await getRank("daily", result.rankScore);
 
       return {
-        xpGained, coinsGained, levelUpCoins, newBest, leveledUp,
-        achievements: newAch, missions: newMissions, valid: check.valid, rank,
+        ...result.summary,
+        rank,
       };
     } catch (error) {
       console.error("Error processing run:", error);
@@ -378,7 +263,7 @@ export default function App() {
       s.equippedSkin = "bud"; s.equippedTrail = "none"; s.equippedEffect = "e_none";
       s.equippedTitle = null; s.equippedBadge = null;
       s.unlockedAchievements = []; s.claimedAchievements = [];
-      s.scoreHistory = []; s.missions = [];
+      s.scoreHistory = []; s.missions = []; s.processedRunIds = [];
       s.loginStreak = 0; s.loginClaimedToday = false;
       s.cratesOpened = 0; s.seenItems = {};
       s.playerName = randomName(); s.seenTutorial = true;
@@ -451,7 +336,7 @@ export default function App() {
             user={user}
             syncStatus={syncStatus}
             onBack={() => setScreen("menu")}
-            onRename={(name) => update((s) => { s.playerName = name || randomName(); })}
+            onRename={(name) => update((s) => { s.playerName = name; })}
             onLogin={async () => { try { await loginWithGoogle(); } catch (e) { console.error(e); } }}
             onLogout={async () => { try { await logout(); } catch (e) { console.error(e); } }}
           />

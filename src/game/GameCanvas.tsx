@@ -10,7 +10,7 @@ interface Props {
   highContrast: boolean;
   practiceMode?: boolean;
   paused: boolean;
-  runId: number;
+  runId: string;
   onScore?: (s: number) => void;
   onCoin?: (c: number) => void;
   onNearMiss?: (n: number) => void;
@@ -66,7 +66,7 @@ export default function GameCanvas(props: Props) {
     resize();
     eng.setAccessibility(props.reducedMotion, props.highContrast);
     eng.setPracticeMode(!!props.practiceMode);
-    eng.reset();
+    eng.reset(props.runId);
 
     const ro = new ResizeObserver(resize);
     ro.observe(wrapperRef.current!);
@@ -103,7 +103,7 @@ export default function GameCanvas(props: Props) {
   // reset on new run
   useEffect(() => {
     lastRef.current = 0;
-    engineRef.current?.reset();
+    engineRef.current?.reset(props.runId);
   }, [props.runId]);
 
   // input

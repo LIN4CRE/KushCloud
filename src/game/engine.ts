@@ -3,6 +3,7 @@ import { audio } from "./audio";
 import { PowerUpManager } from "./powerups";
 
 export interface RunResult {
+  runId: string;
   score: number;
   coins: number;
   nearMiss: number;
@@ -76,6 +77,7 @@ export class GameEngine {
   multiplier = 1;
   private flaps = 0;
   private startTime = 0;
+  private runId = "";
 
   private skin: Skin;
   private trail: Trail;
@@ -137,7 +139,12 @@ export class GameEngine {
     }
   }
 
-  reset() {
+  setRunId(runId: string) {
+    this.runId = runId;
+  }
+
+  reset(runId = this.runId) {
+    this.runId = runId;
     this.state = "ready";
     this.by = this.h * 0.45;
     this.vy = 0;
@@ -456,6 +463,7 @@ export class GameEngine {
     this.burst(this.bx, this.by, "#ff6b6b", 22, 280, "spark");
     this.burst(this.bx, this.by, "#ffd24a", 14, 220, "spark");
     const result: RunResult = {
+      runId: this.runId,
       score: this.score,
       coins: this.runCoins,
       nearMiss: this.nearMiss,

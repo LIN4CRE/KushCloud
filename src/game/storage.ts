@@ -58,6 +58,7 @@ export interface SaveData {
   lastCloudSync: number;
   seenItems: Record<string, boolean>;
   eventState: Record<string, EventSaveState>;
+  processedRunIds: string[];
 }
 
 export const DEFAULT_STATS: PlayerStats = {
@@ -71,7 +72,7 @@ export function dayNumber(): number {
 
 function defaultSave(): SaveData {
   return {
-    version: 3,
+    version: 4,
     playerName: randomName(),
     coins: 0,
     xp: 0,
@@ -110,6 +111,7 @@ function defaultSave(): SaveData {
     lastCloudSync: 0,
     seenItems: {},
     eventState: {},
+    processedRunIds: [],
   };
 }
 
@@ -117,6 +119,11 @@ const ADJ = ["Dank", "Hazy", "Mellow", "Chill", "Cosmic", "Frosty", "Sticky", "L
 const NOUN = ["Toker", "Nugget", "Sprout", "Cloud", "Wizard", "Panda", "Sloth", "Buddha", "Gnome", "Yeti"];
 export function randomName(): string {
   return ADJ[Math.floor(Math.random() * ADJ.length)] + NOUN[Math.floor(Math.random() * NOUN.length)] + Math.floor(Math.random() * 90 + 10);
+}
+
+export function normalizePlayerName(name: string, fallback = randomName()): string {
+  const trimmed = name.trim().slice(0, 16);
+  return trimmed || fallback;
 }
 
 export function migrateSave(data: Record<string, any>): SaveData {
@@ -142,6 +149,10 @@ export function migrateSave(data: Record<string, any>): SaveData {
   if (data.version < 3) {
     data.eventState ??= {};
     data.version = 3;
+  }
+  if (data.version < 4) {
+    data.processedRunIds ??= [];
+    data.version = 4;
   }
   return { ...def, ...data, stats: { ...DEFAULT_STATS, ...data.stats } };
 }
@@ -204,7 +215,10 @@ export function currentMissions(): Mission[] {
 }
 
 export function validateRun(score: number, durationMs: number, flaps: number, coins: number): { valid: boolean; reason?: string } {
+  if (![score, durationMs, flaps, coins].every(Number.isFinite)) return { valid: false, reason: "Non-finite values" };
+  if (![score, flaps, coins].every(Number.isInteger)) return { valid: false, reason: "Malformed values" };
   if (score < 0 || coins < 0 || flaps < 0) return { valid: false, reason: "Negative values" };
+  if (durationMs < 0) return { valid: false, reason: "Negative duration" };
   if (score > 0 && durationMs < score * 250) return { valid: false, reason: "Score/time mismatch" };
   if (score > 5 && flaps < 2) return { valid: false, reason: "Insufficient inputs" };
   if (coins > score + 5) return { valid: false, reason: "Coin anomaly" };

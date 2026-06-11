@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { SaveData } from "../game/storage";
 import { ScreenShell, cx } from "../ui";
-import { subscribeToLeaderboard, cleanupSubscriptions, submitPlayerScore } from "../game/leaderboard";
+import { subscribeToLeaderboard, submitPlayerScore } from "../game/leaderboard";
 
 interface Props {
   save: SaveData;
@@ -16,22 +16,11 @@ export default function Leaderboard({ save, onBack }: Props) {
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
-
-    const handleOnline = () => {
-      setIsOnline(true);
-      subscribeToLeaderboard(period, save.playerName, save.stats.bestScore, friends, (entries) => {
-        setList(entries);
-      });
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      subscribeToLeaderboard(period, save.playerName, save.stats.bestScore, friends, (entries) => {
-        setList(entries);
-      });
-    };
-
-    handleOnline();
+    const unsubscribe = subscribeToLeaderboard(period, save.playerName, save.stats.bestScore, friends, (entries) => {
+      setList(entries);
+    });
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -39,17 +28,9 @@ export default function Leaderboard({ save, onBack }: Props) {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      cleanupSubscriptions();
+      unsubscribe();
     };
   }, [period, save.playerName, save.stats.bestScore, friends]);
-
-  useEffect(() => {
-    if (isOnline) {
-      subscribeToLeaderboard(period, save.playerName, save.stats.bestScore, friends, (entries) => {
-        setList(entries);
-      });
-    }
-  }, [period, save.playerName, save.stats.bestScore, friends, isOnline]);
 
   useEffect(() => {
     if (save.stats.bestScore > 0 && isOnline) {
@@ -119,7 +100,7 @@ export default function Leaderboard({ save, onBack }: Props) {
       <div className="space-y-1.5">
         {list.map((e, i) => (
           <div
-            key={e.name + i}
+            key={e.uid || `${e.name}-${i}`}
             className={cx(
               "flex items-center gap-3 rounded-2xl px-3.5 py-3 border transition-all",
               e.you

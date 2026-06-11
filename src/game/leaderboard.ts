@@ -5,6 +5,7 @@ import {
   searchUserByUid
 } from "../config/firebase";
 import { seededScores, FRIEND_NAMES } from "./storage";
+import { calculateRank } from "./leaderboardModel";
 
 let currentUID: string | null = null;
 let unsubscribers: (() => void)[] = [];
@@ -28,10 +29,20 @@ export function setUID(uid: string) {
 }
 
 export interface LeaderboardServiceEntry {
+  uid?: string;
   name: string;
   score: number;
   you?: boolean;
   friend?: boolean;
+}
+
+function sortServiceEntries(entries: LeaderboardServiceEntry[]): LeaderboardServiceEntry[] {
+  return entries.sort((a, b) => (
+    b.score - a.score ||
+    Number(Boolean(b.you)) - Number(Boolean(a.you)) ||
+    (a.uid || "").localeCompare(b.uid || "") ||
+    a.name.localeCompare(b.name)
+  ));
 }
 
 export function subscribeToLeaderboard(
@@ -48,6 +59,7 @@ export function subscribeToLeaderboard(
     // or filter from the existing save data.
     // For now, let's keep it global and filter later if needed.
     const list: LeaderboardServiceEntry[] = entries.map((e) => ({
+      uid: e.uid,
       name: e.name,
       score: e.score,
       you: e.uid === uid,
@@ -59,11 +71,11 @@ export function subscribeToLeaderboard(
     if (myEntry) {
       if (playerScore > myEntry.score) {
         myEntry.score = playerScore;
-        list.sort((a, b) => b.score - a.score);
+        sortServiceEntries(list);
       }
     } else {
-      list.push({ name: playerName, score: playerScore, you: true });
-      list.sort((a, b) => b.score - a.score);
+      list.push({ uid, name: playerName, score: playerScore, you: true });
+      sortServiceEntries(list);
     }
     
     callback(list.slice(0, 50));
@@ -146,10 +158,11 @@ export async function getLeaderboard(
 }
 
 export async function getRank(period: LeaderboardPeriod, playerScore: number): Promise<number> {
+  const uid = getUID();
   try {
     return new Promise((resolve) => {
       const unsub = subscribeLeaderboard(period, (entries) => {
-        resolve(entries.findIndex((e) => e.score === playerScore) + 1 || 1);
+        resolve(calculateRank(entries, uid, playerScore));
         unsub();
       });
       setTimeout(() => resolve(getLocalRank(period, playerScore)), 1500);
@@ -166,8 +179,7 @@ export function getLocalLeaderboard(
   friendsOnly: boolean
 ): LeaderboardServiceEntry[] {
   const list = seededScores(period);
-  const all = [...list, { name: playerName, score: playerScore, you: true }]
-    .sort((a, b) => b.score - a.score);
+  const all = sortServiceEntries([...list, { uid: getUID(), name: playerName, score: playerScore, you: true }]);
   return friendsOnly ? all.filter((e) => e.name === playerName || FRIEND_NAMES.includes(e.name)) : all;
 }
 

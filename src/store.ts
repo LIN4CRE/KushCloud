@@ -101,19 +101,19 @@ export function useSave() {
     };
   }, [pushToCloud]);
 
-  const update = useCallback((fn: (s: SaveData) => void) => {
-    setSave((prev) => {
-      const next: SaveData = JSON.parse(JSON.stringify(prev));
-      fn(next);
-      writeSave(next);
+  const update = useCallback(<T,>(fn: (s: SaveData) => T): T => {
+    const next: SaveData = JSON.parse(JSON.stringify(saveRef.current));
+    const result = fn(next);
+    writeSave(next);
+    saveRef.current = next;
+    setSave(next);
 
-      // Immediate push to cloud on update if logged in
-      if (userRef.current) {
-        pushToCloud(next, userRef.current.uid);
-      }
+    // Immediate push to cloud on update if logged in
+    if (userRef.current) {
+      pushToCloud(next, userRef.current.uid);
+    }
 
-      return next;
-    });
+    return result;
   }, [pushToCloud]);
 
   useEffect(() => {

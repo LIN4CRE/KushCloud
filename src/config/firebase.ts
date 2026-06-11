@@ -1,6 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, push, onValue, query, orderByChild, limitToLast, get } from "firebase/database";
+import { getDatabase, ref, set, push, onValue, query, orderByChild, limitToLast, get, runTransaction } from "firebase/database";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from "firebase/auth";
+import {
+  normalizeLeaderboardEntries,
+  toLeaderboardEntry,
+  type LeaderboardEntry,
+  type LeaderboardPeriod,
+} from "../game/leaderboardModel";
 
 // Firebase configuration - replace with your own Firebase project credentials
 const firebaseConfig = {
@@ -29,15 +35,7 @@ export async function logout(): Promise<void> {
 
 export { onAuthStateChanged, type User };
 
-export type LeaderboardPeriod = "daily" | "weekly" | "all";
-
-export interface LeaderboardEntry {
-  name: string;
-  score: number;
-  timestamp: number;
-  uid: string;
-  period: LeaderboardPeriod;
-}
+export type { LeaderboardEntry, LeaderboardPeriod };
 
 export interface UserProfile {
   uid: string;
@@ -57,44 +55,53 @@ export async function submitScore(
   score: number,
   period: LeaderboardPeriod
 ): Promise<void> {
+  const safeName = name.trim().slice(0, 32) || "Anonymous";
+  if (!uid.trim()) return;
+  if (!Number.isFinite(score) || !Number.isInteger(score) || score < 0 || score > 100000) return;
+
+  const now = Date.now();
   const entry: LeaderboardEntry = {
     uid,
-    name,
+    name: safeName,
     score,
-    timestamp: Date.now(),
+    timestamp: now,
     period,
   };
   
   // Use UID as key to ensure one entry per player per period
   const leaderboardRef = ref(db, `leaderboards/${period}/${uid}`);
-
-  // Only update if the new score is better
-  const currentSnapshot = await get(leaderboardRef);
-  const currentData = currentSnapshot.val() as LeaderboardEntry | null;
-  if (!currentData || currentData.score < score) {
-    await set(leaderboardRef, entry);
-  }
+  await runTransaction(leaderboardRef, (current) => {
+    const currentEntry = toLeaderboardEntry(current, uid, period);
+    if (!currentEntry) return entry;
+    if (currentEntry.score > score) return current;
+    if (currentEntry.score === score) {
+      return {
+        ...currentEntry,
+        name: safeName,
+        timestamp: currentEntry.timestamp,
+      };
+    }
+    return entry;
+  });
   
   // Also update user profile
   const profileRef = ref(db, `users/${uid}`);
-  const profileSnapshot = await get(profileRef);
-  const existing = profileSnapshot.val() as UserProfile | null;
-  
-  if (!existing || existing.bestScore < score || existing.name !== name) {
+  await runTransaction(profileRef, (current) => {
+    const existing = current as UserProfile | null;
     const profile: UserProfile = {
       uid,
-      name,
+      name: safeName,
       bestScore: existing ? Math.max(existing.bestScore, score) : score,
       // totalGames is managed by the App client to avoid multi-counting across periods
       totalGames: existing?.totalGames || 0,
       totalCoins: existing?.totalCoins || 0,
       level: existing?.level || 1,
       xp: existing?.xp || 0,
-      createdAt: existing?.createdAt || Date.now(),
-      updatedAt: Date.now(),
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
     };
-    await set(profileRef, profile);
-  }
+    return profile;
+  });
 }
 
 export function subscribeLeaderboard(
@@ -108,11 +115,10 @@ export function subscribeLeaderboard(
   const unsubscribe = onValue(q, (snapshot) => {
     const entries: LeaderboardEntry[] = [];
     snapshot.forEach((child) => {
-      entries.push(child.val() as LeaderboardEntry);
+      const entry = toLeaderboardEntry(child.val(), child.key, period);
+      if (entry) entries.push(entry);
     });
-    // Sort descending by score
-    entries.sort((a, b) => b.score - a.score);
-    callback(entries);
+    callback(normalizeLeaderboardEntries(entries, period));
   });
   
   return unsubscribe;
