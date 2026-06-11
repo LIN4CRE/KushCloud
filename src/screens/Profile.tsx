@@ -1,14 +1,19 @@
 import { SaveData } from "../game/storage";
 import { SKINS, TRAILS, TITLES, BADGES, EFFECTS, levelFromXp } from "../game/data";
-import { ScreenShell, Stat, ProgressBar, RarityBadge } from "../ui";
+import { ScreenShell, Stat, ProgressBar, RarityBadge, Button, Panel } from "../ui";
+import { type User } from "../config/firebase";
 
 interface Props {
   save: SaveData;
+  user: User | null;
+  syncStatus: "synced" | "syncing" | "error" | "offline";
   onBack: () => void;
   onRename: (name: string) => void;
+  onLogin: () => void;
+  onLogout: () => void;
 }
 
-export default function Profile({ save, onBack, onRename }: Props) {
+export default function Profile({ save, user, syncStatus, onBack, onRename, onLogin, onLogout }: Props) {
   const lvl = levelFromXp(save.xp);
   const skin = SKINS.find((s) => s.id === save.equippedSkin) || SKINS[0];
   const trail = TRAILS.find((t) => t.id === save.equippedTrail) || TRAILS[0];
@@ -137,8 +142,56 @@ export default function Profile({ save, onBack, onRename }: Props) {
       <div className="mt-4 rounded-2xl bg-white/[0.04] border border-white/[0.07] p-3 text-center">
         <p className="text-[10px] font-semibold text-white/25">☁️ Progress auto-saved locally.</p>
       </div>
+
+      {/* Cloud Account */}
+      <div className="mt-5">
+        <h2 className="text-[11px] font-black uppercase tracking-widest text-white/35 mb-2.5">Cloud Save</h2>
+        <Panel>
+          <div className="p-4 flex flex-col gap-3">
+            {user ? (
+              <>
+                <div className="flex items-center gap-3">
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt="" className="h-10 w-10 rounded-full border border-white/10" />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-xl">👤</div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-white truncate">{user.displayName || "Explorer"}</div>
+                    <div className="text-[10px] text-white/40 truncate">{user.email}</div>
+                  </div>
+                  <div className="text-right">
+                    <SyncBadge status={syncStatus} />
+                  </div>
+                </div>
+                <Button variant="dark" size="sm" className="w-full" onClick={onLogout}>
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <div className="text-center py-2">
+                <p className="text-xs text-white/50 mb-3">Sync your progress across all your devices!</p>
+                <Button variant="premium" className="w-full" onClick={onLogin}>
+                  🚀 Sign in with Google
+                </Button>
+              </div>
+            )}
+          </div>
+        </Panel>
+      </div>
     </ScreenShell>
   );
+}
+
+function SyncBadge({ status }: { status: "synced" | "syncing" | "error" | "offline" }) {
+  const cfg = {
+    synced: { label: "Synced", color: "text-emerald-400" },
+    syncing: { label: "Syncing...", color: "text-sky-400 animate-pulse" },
+    error: { label: "Sync Error", color: "text-rose-400" },
+    offline: { label: "Local Only", color: "text-white/30" },
+  }[status];
+
+  return <span className={`text-[10px] font-black uppercase tracking-tighter ${cfg.color}`}>{cfg.label}</span>;
 }
 
 function MiniCollection({ label, owned, total }: { label: string; owned: number; total: number }) {

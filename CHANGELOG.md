@@ -1,5 +1,16 @@
 # KushCloud Changelog
 
+## v1.5.0 — 2025-06-11
+
+### ✅ The Social Update (Part 1)
+- **Firebase Authentication**: Integrated Google Login for cross-device progress syncing.
+- **Cloud Save Sync**: Automated backups to Firebase Realtime Database.
+- **Smart Merging**: Intelligent conflict resolution (picks the save with higher XP).
+- **Profile Enhancements**: Added cloud account management section and sync status indicators.
+- **Reliability**: Refactored module structure to eliminate circular dependencies in game state management.
+
+---
+
 ## v1.4.0 — 2025-06-11
 
 ### ✅ Perfect Pass Update

@@ -83,7 +83,7 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
         </h1>
         <p className="mt-1.5 text-xs font-semibold text-white/40 tracking-wide">Flap higher. Stay chill. ✌️</p>
         <div className="mt-2 inline-block rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-black text-emerald-400 uppercase tracking-tighter">
-          v1.4.0 · PERFECT PASS UPDATE
+          v1.5.0 · SOCIAL UPDATE
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set, push, onValue, query, orderByChild, limitToLast, get } from "firebase/database";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from "firebase/auth";
 
 // Firebase configuration - replace with your own Firebase project credentials
 const firebaseConfig = {
@@ -14,6 +15,19 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
+export const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+
+export async function loginWithGoogle(): Promise<User> {
+  const result = await signInWithPopup(auth, googleProvider);
+  return result.user;
+}
+
+export async function logout(): Promise<void> {
+  await signOut(auth);
+}
+
+export { onAuthStateChanged, type User };
 
 export type LeaderboardPeriod = "daily" | "weekly" | "all";
 

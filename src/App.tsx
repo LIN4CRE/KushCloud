@@ -23,8 +23,10 @@ import Settings from "./screens/Settings";
 import Tutorial from "./screens/Tutorial";
 import { Button } from "./ui";
 
+import { loginWithGoogle, logout } from "./config/firebase";
+
 export default function App() {
-  const { save, update } = useSave();
+  const { save, update, user, syncStatus } = useSave();
   const [screen, setScreen] = useState<Screen>(save.seenTutorial ? "menu" : "tutorial");
   const [toast, setToast] = useState<string | null>(null);
   const [lootCrateOpen, setLootCrateOpen] = useState<LootCrate | null>(null);
@@ -441,8 +443,12 @@ export default function App() {
         {screen === "profile" && (
           <Profile
             save={save}
+            user={user}
+            syncStatus={syncStatus}
             onBack={() => setScreen("menu")}
             onRename={(name) => update((s) => { s.playerName = name || randomName(); })}
+            onLogin={async () => { try { await loginWithGoogle(); } catch (e) { console.error(e); } }}
+            onLogout={async () => { try { await logout(); } catch (e) { console.error(e); } }}
           />
         )}
         {screen === "statistics" && (

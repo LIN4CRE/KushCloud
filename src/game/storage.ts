@@ -53,6 +53,7 @@ export interface SaveData {
   seenTutorial: boolean;
   scoreHistory: number[];
   lastSync: number;
+  lastCloudSync: number;
   seenItems: Record<string, boolean>;
   eventState: Record<string, EventSaveState>;
 }
@@ -102,6 +103,7 @@ function defaultSave(): SaveData {
     seenTutorial: false,
     scoreHistory: [],
     lastSync: Date.now(),
+    lastCloudSync: 0,
     seenItems: {},
     eventState: {},
   };
