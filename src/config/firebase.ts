@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, push, onValue, query, orderByChild, limitToLast, get, runTransaction } from "firebase/database";
+import { getDatabase, ref, set, push, onValue, query, orderByChild, limitToLast, get, runTransaction, update } from "firebase/database";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from "firebase/auth";
 import { env } from "./env";
 import {
@@ -37,6 +37,17 @@ export async function logout(): Promise<void> {
 export { onAuthStateChanged, type User };
 
 export type { LeaderboardEntry, LeaderboardPeriod };
+
+const MAX_NAME_LENGTH = 32;
+const MAX_CHAT_LENGTH = 500;
+
+function sanitizeName(name: string): string {
+  return name.trim().replace(/\s+/g, " ").slice(0, MAX_NAME_LENGTH) || "Anonymous";
+}
+
+function sanitizeChatText(text: string): string {
+  return text.trim().slice(0, MAX_CHAT_LENGTH);
+}
 
 export interface UserProfile {
   uid: string;
@@ -143,8 +154,12 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 }
 
 export async function updateUserProfile(uid: string, updates: Partial<UserProfile>): Promise<void> {
+  if (!uid.trim()) return;
   const profileRef = ref(db, `users/${uid}`);
-  await set(profileRef, { ...updates, updatedAt: Date.now() });
+  const safeUpdates: Partial<UserProfile> = { ...updates, updatedAt: Date.now() };
+  if (typeof safeUpdates.name === "string") safeUpdates.name = sanitizeName(safeUpdates.name);
+  if (typeof safeUpdates.bestScore === "number") safeUpdates.bestScore = Math.max(0, Math.min(100000, safeUpdates.bestScore));
+  await update(profileRef, safeUpdates);
 }
 
 export async function addFriend(uid: string, friendUid: string): Promise<void> {
@@ -183,12 +198,17 @@ export interface ChatMessage {
 }
 
 export async function sendMessage(uid: string, name: string, text: string): Promise<void> {
+  const safeUid = uid.trim();
+  const safeName = sanitizeName(name);
+  const safeText = sanitizeChatText(text);
+  if (!safeUid || !safeText) return;
+
   const chatRef = ref(db, "chat");
   const newMessageRef = push(chatRef);
   await set(newMessageRef, {
-    uid,
-    name,
-    text,
+    uid: safeUid,
+    name: safeName,
+    text: safeText,
     timestamp: Date.now(),
   });
 }
@@ -205,5 +225,16 @@ export function subscribeChat(callback: (messages: ChatMessage[]) => void): () =
 }
 
 export function generateUID(): string {
-  return "user_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  if (globalThis.crypto?.randomUUID) {
+    return `user_${globalThis.crypto.randomUUID()}`;
+  }
+
+  if (globalThis.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+    const random = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `user_${random}`;
+  }
+
+  return `user_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
 }

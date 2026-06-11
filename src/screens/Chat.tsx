@@ -13,7 +13,7 @@ interface Props {
 export default function Chat({ save, onBack }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
-  const [sending, setSearching] = useState(false);
+  const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const myUid = getUID();
 
@@ -31,15 +31,15 @@ export default function Chat({ save, onBack }: Props) {
 
   const handleSend = async () => {
     if (!text.trim() || sending) return;
-    setSearching(true);
+    setSending(true);
     try {
-      await sendMessage(myUid, save.playerName, text.trim());
+      await sendMessage(myUid, save.playerName, text.trim().slice(0, 500));
       setText("");
       audio.click();
     } catch (err) {
       console.error(err);
     } finally {
-      setSearching(false);
+      setSending(false);
     }
   };
 
@@ -82,7 +82,8 @@ export default function Chat({ save, onBack }: Props) {
         <div className="mt-4 pt-4 border-t border-white/10 flex gap-2">
           <input
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => setText(e.target.value.slice(0, 500))}
+            maxLength={500}
             onKeyDown={(e) => { if (e.key === "Enter") handleSend(); }}
             placeholder="Type a message..."
             className="flex-1 rounded-xl bg-black/30 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
