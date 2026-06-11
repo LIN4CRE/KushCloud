@@ -90,6 +90,23 @@ Open an [issue](https://github.com/LIN4CRE/KushCloud/issues/new) labeled `enhanc
    - Discuss any concerns
    - Push updates to address review comments
 
+## 🤝 Merge Strategy
+
+To maintain a clean and traceable commit history, we use the following strategies:
+
+- **Feature Branches**: Use **Squash and Merge**. This keeps the `main` branch history clean by condensing all feature-related commits into a single, high-quality commit.
+- **Bug Fixes**: Use **Rebase and Merge** or **Squash and Merge**. Rebasing is preferred if the fix consists of a single meaningful commit that should be placed on top of `main`.
+- **Maintenance / Dependencies**: Use **Merge Commit** if the changes are broad and benefit from a distinct merge point in the history.
+
+**General Rule**: Never merge `main` back into your feature branch. Instead, **rebase** your branch onto `main` to resolve conflicts:
+```bash
+git checkout feature/your-feature
+git fetch upstream
+git rebase upstream/main
+# Resolve conflicts if any
+git push origin feature/your-feature --force-with-lease
+```
+
 ## Development Guidelines
 
 ### Code Style

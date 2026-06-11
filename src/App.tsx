@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSave, type Screen } from "./store";
 import { audio } from "./game/audio";
 import { RunResult } from "./game/engine";
@@ -30,6 +30,8 @@ import { loginWithGoogle, logout } from "./config/firebase";
 
 export default function App() {
   const { save, update, user, syncStatus } = useSave();
+  const saveRef = useRef(save);
+  saveRef.current = save;
   const [screen, setScreen] = useState<Screen>(save.seenTutorial ? "menu" : "tutorial");
   const [toast, setToast] = useState<string | null>(null);
   const [lootCrateOpen, setLootCrateOpen] = useState<LootCrate | null>(null);
@@ -96,18 +98,27 @@ export default function App() {
     try {
       const result = update((s) => applyCompletedRun(s, r));
 
+      // Use saveRef to avoid stale closure - leaderboard needs current player name
+      const currentSave = saveRef.current;
       for (const submission of result.submissions) {
-        submitPlayerScore(save.playerName, submission.score, submission.period).catch(() => {});
+        submitPlayerScore(currentSave.playerName, submission.score, submission.period).catch(() => {});
       }
 
       const rank = await getRank("daily", result.rankScore);
+
+      // Log summary for debugging run tracking
+      console.log(
+        `[RunProcessor] Run ${r.runId.slice(0, 8)}... completed: ` +
+        `status=${result.summary.status} score=${r.score} ` +
+        `totalGames=${currentSave.stats.totalGames} dailyPlays=${currentSave.dailyPlays}`
+      );
 
       return {
         ...result.summary,
         rank,
       };
     } catch (error) {
-      console.error("Error processing run:", error);
+      console.error("[RunProcessor] Error processing run:", error);
       throw error;
     }
   };

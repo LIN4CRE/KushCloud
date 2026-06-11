@@ -73,19 +73,30 @@ App.tsx (routing, state orchestration)
   - World seeds: procedural generation parameters
 
 #### `game/storage.ts`
-- **Purpose**: Save data persistence & leaderboard helpers
+- **Purpose**: Save data persistence & anti-cheat validation
 - **Key Functions**:
-  - `loadSaveData()`: Deserialise from localStorage
-  - `saveSaveData()`: Validate and serialise to localStorage
-  - `validateScore()`: Checksum-based score integrity verification
-  - `submitToLeaderboard()`: Format score for server (future)
+  - `loadSaveData()` / `saveSaveData()`: Serialisation
+  - `validateRun()`: Integrity check for score, duration, flaps, and coins
+  - `migrateSaveData()`: Versioned schema migrations
+
+#### `game/runProcessing.ts`
+- **Purpose**: High-integrity run completion logic
+- **Key Functions**:
+  - `applyCompletedRun()`: The central point for processing a finished run. Handles XP, coins, level-ups, achievements, missions, and leaderboard submission intents.
+  - `isLikelyDuplicateRun()`: Prevents double-counting runs via fingerprinting.
+
+#### `game/leaderboardModel.ts`
+- **Purpose**: Standalone logic for score ranking and leaderboard periods.
+- **Key Functions**:
+  - `calculateRank()`: Deterministic ranking logic.
+  - Unit tested for accuracy and consistency.
 
 #### `store.ts`
-- **Purpose**: React state hook for game progress
+- **Purpose**: React state hook for game progress with cloud sync integration.
 - **Provides**:
-  - `saveData`: Current player progress (XP, coins, skins, etc.)
-  - `dispatchGameEvent()`: Updates save state based on game events
-  - `resetSaveData()`: Wipe all progress
+  - `save`: Current player progress.
+  - `update()`: Securely update save data with auto-save and cloud-sync.
+  - `user` / `syncStatus`: Firebase auth and synchronization state.
 
 #### `GameCanvas.tsx`
 - **Purpose**: React wrapper for the Canvas element

@@ -53,6 +53,7 @@ Transform KushCloud from a basic offline game into a fully-featured, production-
 - **Practice Mode**: Training environment without obstacles
 - **Advanced Customization**: Save/load game settings
 - **Accessibility Options**: Enhanced UI controls
+- **iOS Build Pipeline**: Fully defined Xcode-ready Capacitor integration with automated GitHub Actions.
 
 #### Technical Implementation
 - **Replay Recording**: Game state serialization

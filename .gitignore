@@ -19,6 +19,7 @@ android/app/build/
 android/captures/
 android/.externalNativeBuild/
 android/local.properties
+release-builds/
 
 # Capacitor
 capacitor.config.json

@@ -1,0 +1,63 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "leaderboards": {
+      "$period": {
+        ".read": true,
+        ".indexOn": ["score"],
+        "$uid": {
+          ".write": true,
+          ".validate": "newData.hasChildren(['uid','name','score','timestamp','period']) && newData.child('uid').val() === $uid",
+          "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 64" },
+          "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 32" },
+          "score": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000 && (!data.child('score').exists() || newData.val() >= data.child('score').val())" },
+          "timestamp": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
+          "period": { ".validate": "newData.val() === $period && (newData.val() === 'global' || newData.val() === 'daily' || newData.val() === 'weekly')" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+
+    "users": {
+      "$uid": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['uid','name'])",
+        "uid": { ".validate": "newData.val() === $uid" },
+        "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 32" },
+        "bestScore": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+        "totalGames": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "totalCoins": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "level": { ".validate": "newData.isNumber() && newData.val() >= 1" },
+        "xp": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "friends": {
+      "$uid": {
+        ".read": true,
+        ".write": true,
+        "$friendUid": { ".validate": "newData.isBoolean() || newData.val() === null" }
+      }
+    },
+
+    "chat": {
+      ".read": true,
+      ".indexOn": ["timestamp"],
+      "$messageId": {
+        ".write": "!data.exists()",
+        ".validate": "newData.hasChildren(['uid','name','text','timestamp'])",
+        "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 64" },
+        "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 32" },
+        "text": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500" },
+        "timestamp": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

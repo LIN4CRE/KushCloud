@@ -5,6 +5,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
 [![Capacitor](https://img.shields.io/badge/Capacitor-8-119EFF?style=flat-square&logo=capacitor&logoColor=white)](https://capacitorjs.com)
+[![iOS Support](https://img.shields.io/badge/iOS-Ready-lightgrey?style=flat-square&logo=apple&logoColor=white)](https://github.com/LIN4CRE/KushCloud)
 [![Firebase](https://img.shields.io/badge/Firebase-FFA320?style=flat-square&logo=firebase&logoColor=white)](https://firebase.google.com)
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/LIN4CRE/KushCloud/build-apk.yml?style=flat-square&logo=githubactions&label=Build)](https://github.com/LIN4CRE/KushCloud/actions/workflows/build-apk.yml)
@@ -25,6 +26,15 @@ A **Flappy Bird-style arcade game** with a chill aesthetic — tap to fly, dodge
 4. Play offline or online — leaderboard works with internet
 
 No ads, no tracking, no permissions beyond storage.
+
+### iOS (Apple devices)
+
+1. Open **https://lin4cre.github.io/KushCloud/** in Safari
+2. Tap the **Share** button (box with upward arrow)
+3. Scroll down and tap **"Add to Home Screen"**
+4. The game will now appear as an app on your home screen with a full-screen experience.
+
+*Native iOS app coming soon to the App Store.*
 
 ### Web (any device)
 

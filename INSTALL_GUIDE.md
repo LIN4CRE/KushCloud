@@ -4,14 +4,37 @@
 
 ---
 
-## 📱 Download APK for Android
+## 📱 Download & Install for Android
 
 ### Direct Download
-- **[kushcloud-v1.0.0-debug.apk](https://github.com/LIN4CRE/KushCloud/releases/download/v1.0.0/kushcloud-v1.0.0-debug.apk)** — For testing on Android devices
-- **[kushcloud-v1.0.0-release-unsigned.apk](https://github.com/LIN4CRE/KushCloud/releases/download/v1.0.0/kushcloud-v1.0.0-release-unsigned.apk)** — For distribution (app stores)
+- **[kushcloud-v1.6.2-debug.apk](https://github.com/LIN4CRE/KushCloud/releases/download/v1.6.2/kushcloud-v1.6.2-debug.apk)** — For testing on Android devices
+- **[kushcloud-v1.6.2-release-unsigned.apk](https://github.com/LIN4CRE/KushCloud/releases/download/v1.6.2/kushcloud-v1.6.2-release-unsigned.apk)** — For distribution (app stores)
 
 ### Browser Play
 - **[Play in Browser](https://lin4cre.github.io/KushCloud/)** — No install needed, instant play
+
+---
+
+## 🍏 How to Install on iOS (iPhone/iPad)
+
+### Progressive Web App (PWA) Method
+KushCloud is optimized for iOS via Safari's "Add to Home Screen" feature.
+
+1. Open **Safari** on your iOS device.
+2. Navigate to **https://lin4cre.github.io/KushCloud/**
+3. Tap the **Share** button at the bottom of the screen.
+4. Select **Add to Home Screen**.
+5. Tap **Add**.
+6. The KushCloud icon will appear on your home screen. Open it for a native-like, full-screen experience.
+
+### Developer Build (Xcode)
+If you wish to build the native iOS app yourself:
+1. Clone the repository on a Mac.
+2. Run `npm install` and `npm run build`.
+3. Run `npx cap sync ios`.
+4. Run `cd ios/App && pod install`.
+5. Open `ios/App/App.xcworkspace` in Xcode.
+6. Connect your device and click **Run**.
 
 ---
 

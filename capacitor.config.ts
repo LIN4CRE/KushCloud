@@ -17,6 +17,16 @@ const config: CapacitorConfig = {
       releaseType: 'APK',
     },
   },
+  ios: {
+    // iOS-specific configuration for feature parity with Android
+    backgroundColor: '#064e3b',
+    preferredContentMode: 'mobile',
+    // Note: WKWebView limitations:
+    //   - localStorage is limited to ~5MB (sufficient for game saves)
+    //   - No WebAudio autoplay without user gesture (handled by audio.resume())
+    //   - No vibration API (cosmetic only, not used)
+    //   - Canvas performance may differ; test on target devices
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 1500,

@@ -38,6 +38,33 @@ export interface RunProcessResult {
   rankScore: number;
 }
 
+// Run tracking log for debugging and validation
+interface RunLogEntry {
+  runId: string;
+  timestamp: number;
+  action: "recorded" | "duplicate" | "invalid";
+  reason?: string;
+  score: number;
+  totalGames: number;
+}
+
+const _runLog: RunLogEntry[] = [];
+const MAX_LOG_SIZE = 200;
+
+export function getRunLog(): readonly RunLogEntry[] {
+  return _runLog;
+}
+
+function logRun(entry: RunLogEntry) {
+  _runLog.push(entry);
+  if (_runLog.length > MAX_LOG_SIZE) _runLog.shift();
+  console.log(
+    `[RunTracker] ${entry.action.toUpperCase()}: runId=${entry.runId.slice(0, 8)}... ` +
+    `score=${entry.score} totalGames=${entry.totalGames}` +
+    (entry.reason ? ` reason="${entry.reason}"` : "")
+  );
+}
+
 function emptySummary(status: RunProcessStatus, valid: boolean): RunSummary {
   return {
     xpGained: 0,
@@ -58,14 +85,31 @@ function rememberProcessedRun(save: SaveData, runId: string) {
     .slice(-PROCESSED_RUN_HISTORY_LIMIT);
 }
 
+/**
+ * Check if a run is a likely duplicate based on score+duration fingerprinting.
+ * Catches edge cases where runIds might be regenerated (e.g. app crash mid-processing).
+ */
+function isLikelyDuplicateRun(save: SaveData, run: RunResult): boolean {
+  // If the run has identical characteristics to the most recent run in scoreHistory,
+  // and it happened within 2 seconds, it's suspicious
+  if (save.scoreHistory.length === 0) return false;
+  const lastScore = save.scoreHistory[save.scoreHistory.length - 1];
+  if (lastScore !== run.score) return false;
+  // Score matches last recorded - check duration anomaly (very short run with same score)
+  if (run.durationMs < 1000 && run.score > 0) return true;
+  return false;
+}
+
 export function applyCompletedRun(save: SaveData, run: RunResult): RunProcessResult {
   const bestBeforeRun = save.stats.bestScore;
 
   if (!run.runId || typeof run.runId !== "string") {
+    logRun({ runId: "INVALID", timestamp: Date.now(), action: "invalid", reason: "Missing or invalid runId", score: run.score, totalGames: save.stats.totalGames });
     return { summary: emptySummary("invalid", false), submissions: [], rankScore: bestBeforeRun };
   }
 
   if (save.processedRunIds.includes(run.runId)) {
+    logRun({ runId: run.runId, timestamp: Date.now(), action: "duplicate", reason: "runId already in processedRunIds", score: run.score, totalGames: save.stats.totalGames });
     return { summary: emptySummary("duplicate", true), submissions: [], rankScore: bestBeforeRun };
   }
 
@@ -73,7 +117,14 @@ export function applyCompletedRun(save: SaveData, run: RunResult): RunProcessRes
   rememberProcessedRun(save, run.runId);
 
   if (!check.valid) {
+    logRun({ runId: run.runId, timestamp: Date.now(), action: "invalid", reason: check.reason, score: run.score, totalGames: save.stats.totalGames });
     return { summary: emptySummary("invalid", false), submissions: [], rankScore: bestBeforeRun };
+  }
+
+  // Additional fingerprint-based duplicate detection
+  if (isLikelyDuplicateRun(save, run)) {
+    logRun({ runId: run.runId, timestamp: Date.now(), action: "duplicate", reason: "Fingerprint match (score+duration anomaly)", score: run.score, totalGames: save.stats.totalGames });
+    return { summary: emptySummary("duplicate", true), submissions: [], rankScore: bestBeforeRun };
   }
 
   const week = currentWeekIndex();
@@ -183,6 +234,14 @@ export function applyCompletedRun(save: SaveData, run: RunResult): RunProcessRes
         { period: "all", score: rankScore },
       ]
     : [];
+
+  logRun({
+    runId: run.runId,
+    timestamp: Date.now(),
+    action: "recorded",
+    score: run.score,
+    totalGames: save.stats.totalGames,
+  });
 
   return {
     summary: {
