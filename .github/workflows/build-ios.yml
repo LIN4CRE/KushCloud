@@ -33,17 +33,29 @@ jobs:
           npx cap sync ios
 
       - name: Install CocoaPods
-        run: cd ios/App && pod install 2>/dev/null || echo "CocoaPods not available"
+        run: |
+          cd ios/App
+          pod install || echo "CocoaPods failed (proceeding without)"
 
       - name: Build iOS App (Archive)
         run: |
-          xcodebuild -workspace ios/App/App.xcworkspace \
-                     -scheme App \
-                     -configuration Release \
-                     -destination 'generic/platform=iOS' \
-                     -archivePath KushCloud.xcarchive \
-                     archive \
-                     CODE_SIGNING_ALLOWED=NO
+          if [ -f ios/App/App.xcworkspace ]; then
+            xcodebuild -workspace ios/App/App.xcworkspace \
+                       -scheme App \
+                       -configuration Release \
+                       -destination 'generic/platform=iOS' \
+                       -archivePath KushCloud.xcarchive \
+                       archive \
+                       CODE_SIGNING_ALLOWED=NO
+          else
+            xcodebuild -project ios/App/App.xcodeproj \
+                       -scheme App \
+                       -configuration Release \
+                       -destination 'generic/platform=iOS' \
+                       -archivePath KushCloud.xcarchive \
+                       archive \
+                       CODE_SIGNING_ALLOWED=NO
+          fi
 
       - name: Export IPA (unsigned)
         run: |
