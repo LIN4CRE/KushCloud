@@ -297,7 +297,8 @@ export default function App() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-slate-950 overflow-hidden">
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="h-[600px] w-[420px] rounded-full bg-emerald-900/30 blur-[80px]" />
+        <div className="h-[600px] w-[420px] rounded-full bg-emerald-900/30 blur-[80px] animate-[glow-pulse_6s_ease-in-out_infinite]" />
+        <div className="h-[300px] w-[300px] translate-x-[120px] translate-y-[80px] rounded-full bg-violet-900/20 blur-[60px] animate-[glow-pulse_8s_ease-in-out_infinite_0.5s]" />
       </div>
 
       <div className="relative mx-auto h-full w-full max-w-md overflow-hidden bg-gradient-to-b from-slate-900 via-emerald-950/60 to-slate-950 shadow-[0_0_80px_rgba(0,0,0,0.8)]">

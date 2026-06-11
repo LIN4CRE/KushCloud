@@ -45,8 +45,14 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
     onBuy: () => void,
     onEquip: () => void,
     preview?: ReactNode,
+    index = 0,
   ) => (
-    <RarityGlow rarity={item.rarity} key={item.id}>
+    <div
+      key={item.id}
+      className="animate-[fade-in_0.3s_ease-out_forwards] opacity-0"
+      style={{ animationDelay: `${index * 40}ms` }}
+    >
+    <RarityGlow rarity={item.rarity}>
       <div className={cx("flex flex-col p-3", equipped && "border border-emerald-400/30 rounded-2xl bg-emerald-500/5")}>
         {preview}
         <div className="mt-2 text-center">
@@ -66,11 +72,15 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
           <Button size="sm" variant="dark" className="mt-auto w-full" onClick={onEquip}>
             Equip
           </Button>
+        ) : (item.cost ?? 0) === 0 ? (
+          <div className="mt-auto rounded-xl bg-black/30 py-1.5 text-center text-xs font-semibold text-white/40">
+            🔒 Found in crates
+          </div>
         ) : (
           <Button
             size="sm"
-            variant={save.coins >= (item.cost ?? 999999) ? "gold" : "dark"}
-            disabled={save.coins < (item.cost ?? 999999)}
+            variant={save.coins >= item.cost! ? "gold" : "dark"}
+            disabled={save.coins < item.cost!}
             className="mt-auto w-full"
             onClick={onBuy}
           >
@@ -79,6 +89,7 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
         )}
       </div>
     </RarityGlow>
+    </div>
   );
 
   return (
@@ -88,7 +99,7 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
       <div className="mt-3">
         {tab === "skins" && (
           <div className="grid grid-cols-2 gap-3">
-            {SKINS.map((s) => renderItemCard(
+            {SKINS.map((s, i) => renderItemCard(
               s,
               save.ownedSkins.includes(s.id),
               save.equippedSkin === s.id,
@@ -105,13 +116,14 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
               >
                 {s.emoji}
               </div>,
+              i,
             ))}
           </div>
         )}
 
         {tab === "trails" && (
           <div className="grid grid-cols-2 gap-3">
-            {TRAILS.map((t) => renderItemCard(
+            {TRAILS.map((t, i) => renderItemCard(
               t,
               save.ownedTrails.includes(t.id),
               save.equippedTrail === t.id,
@@ -119,26 +131,27 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
               () => onBuyTrail(t.id),
               () => onEquipTrail(t.id),
               <div className="mx-auto flex h-12 w-24 items-center justify-center gap-1 rounded-xl bg-black/25">
-                {[0, 1, 2, 3].map((i) => (
+                {[0, 1, 2, 3].map((j) => (
                   <span
-                    key={i}
+                    key={j}
                     className="rounded-full"
                     style={{
-                      width: 10 - i * 2,
-                      height: 10 - i * 2,
-                      background: t.kind === "rainbow" || t.kind === "aurora" ? `hsl(${i * 80},90%,65%)` : t.glow,
-                      opacity: 0.9 - i * 0.2,
+                      width: 10 - j * 2,
+                      height: 10 - j * 2,
+                      background: t.kind === "rainbow" || t.kind === "aurora" ? `hsl(${j * 80},90%,65%)` : t.glow,
+                      opacity: 0.9 - j * 0.2,
                     }}
                   />
                 ))}
               </div>,
+              i,
             ))}
           </div>
         )}
 
         {tab === "titles" && (
           <div className="grid grid-cols-2 gap-3">
-            {TITLES.map((t) => renderItemCard(
+            {TITLES.map((t, i) => renderItemCard(
               { ...t, cost: 0 },
               save.ownedTitles.includes(t.id),
               save.equippedTitle === t.id,
@@ -148,13 +161,14 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-black/25 text-lg">
                 📛
               </div>,
+              i,
             ))}
           </div>
         )}
 
         {tab === "badges" && (
           <div className="grid grid-cols-2 gap-3">
-            {BADGES.map((b) => renderItemCard(
+            {BADGES.map((b, i) => renderItemCard(
               { ...b, cost: 0 },
               save.ownedBadges.includes(b.id),
               save.equippedBadge === b.id,
@@ -164,17 +178,23 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-black/25 text-2xl">
                 {b.icon}
               </div>,
+              i,
             ))}
           </div>
         )}
 
         {tab === "effects" && (
           <div className="grid grid-cols-2 gap-3">
-            {EFFECTS.map((e) => {
+            {EFFECTS.map((e, i) => {
               const owned = save.ownedEffects.includes(e.id);
               const equipped = save.equippedEffect === e.id;
               return (
-                <RarityGlow rarity={e.rarity} key={e.id}>
+                <div
+                  key={e.id}
+                  className="animate-[fade-in_0.3s_ease-out_forwards] opacity-0"
+                  style={{ animationDelay: `${i * 40}ms` }}
+                >
+                <RarityGlow rarity={e.rarity}>
                   <div className={cx("flex flex-col p-3", equipped && "border border-emerald-400/30 rounded-2xl bg-emerald-500/5")}>
                     <div
                       className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl text-lg"
@@ -198,6 +218,7 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
                     )}
                   </div>
                 </RarityGlow>
+                </div>
               );
             })}
           </div>
@@ -288,11 +309,11 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
 
         {tab === "powerups" && (
           <div className="grid grid-cols-2 gap-3">
-            {POWERUPS.map((p) => {
+            {POWERUPS.map((p, i) => {
               const owned = save.ownedPowerUps.includes(p.id);
               const affordable = save.coins >= p.cost;
               return (
-                <div key={p.id} className="rounded-2xl bg-white/[0.06] border border-white/[0.08] p-3 flex flex-col">
+                <div key={p.id} className="rounded-2xl bg-white/[0.06] border border-white/[0.08] p-3 flex flex-col animate-[fade-in_0.3s_ease-out_forwards] opacity-0" style={{ animationDelay: `${i * 40}ms` }}>
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400/20 to-orange-500/20 text-2xl">
                     {p.icon}
                   </div>

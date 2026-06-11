@@ -149,6 +149,7 @@ export class GameEngine {
     this.by = this.h * 0.45;
     this.vy = 0;
     this.rot = 0;
+    this.wingPhase = 0;
     this.pipes = [];
     this.particles = [];
     this.floats = [];
