@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "../ui";
+import { Button, Panel } from "../ui";
 
 interface Props {
   onDone: () => void;
@@ -40,8 +40,8 @@ export default function Tutorial({ onDone, firstTime }: Props) {
   const last = i === STEPS.length - 1;
 
   return (
-    <div className="flex h-full flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm rounded-3xl bg-white/[0.08] backdrop-blur-md border border-white/[0.12] p-7 text-center shadow-[0_24px_64px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.07)]">
+    <div className="flex h-full flex-col items-center justify-center px-6 animate-screen-enter">
+      <Panel className="w-full max-w-sm p-7 text-center">
         {/* Icon */}
         <div className="mb-5 text-6xl animate-[float_2.5s_ease-in-out_infinite] drop-shadow-lg">
           {step.icon}
@@ -97,7 +97,7 @@ export default function Tutorial({ onDone, firstTime }: Props) {
             Skip tutorial
           </button>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }

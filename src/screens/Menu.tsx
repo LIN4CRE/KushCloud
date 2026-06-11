@@ -1,6 +1,7 @@
 import { SaveData } from "../game/storage";
 import { SKINS, TRAILS, TITLES, levelFromXp, SEASON_1_REWARDS } from "../game/data";
-import { Button, ProgressBar, CoinPill, cx } from "../ui";
+import { Button, ProgressBar, CoinPill, FloatingLeaf, cx } from "../ui";
+import { KushLogo } from "../components/KushLogo";
 import { type Screen } from "../store";
 import { audio } from "../game/audio";
 import { env } from "../config/env";
@@ -54,7 +55,7 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
   const title = TITLES.find((t) => t.id === save.equippedTitle);
 
   return (
-    <div className="flex h-full flex-col px-5 pb-5 pt-6">
+    <div className="flex h-full flex-col px-5 pb-5 pt-6 animate-screen-enter">
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <button
@@ -75,17 +76,18 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
       </div>
 
       {/* Title */}
-      <div className="mt-5 text-center">
+      <div className="relative mt-5 text-center">
         {title && (
           <div className="text-[10px] font-semibold text-white/40 mb-1">{title.name}</div>
         )}
-        <h1 className="text-5xl font-black tracking-tight text-white leading-none">
-          KUSH<span className="text-lime-300 drop-shadow-[0_0_12px_rgba(163,230,53,0.5)]">CLOUD</span>
-        </h1>
+        <KushLogo className="mx-auto h-14 w-auto" />
         <p className="mt-1.5 text-xs font-semibold text-white/40 tracking-wide">Flap higher. Stay chill. ✌️</p>
         <div className="mt-2 inline-block rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-black text-emerald-400 uppercase tracking-tighter">
           v{env.app.version}
         </div>
+        <FloatingLeaf />
+        <FloatingLeaf />
+        <FloatingLeaf />
       </div>
 
       {/* Character + stats */}

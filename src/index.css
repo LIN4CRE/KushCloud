@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-primary: #22c55e;
+  --color-brand-secondary: #a3e635;
+  --color-brand-accent: #4ade80;
+  --color-brand-dark: #065f46;
+  --color-brand-deep: #022c22;
+  --color-gold: #f59e0b;
+  --color-gold-light: #fbbf24;
+  --color-premium: #a78bfa;
+  --color-surface: #0f172a;
+  --color-surface-elevated: #1e293b;
+  --color-surface-hover: #334155;
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-border-hover: rgba(255, 255, 255, 0.15);
+
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  --color-bg: #020617;
+  --color-text-secondary: rgba(255, 255, 255, 0.7);
+  --color-text-tertiary: rgba(255, 255, 255, 0.4);
+  --color-glow-emerald: rgba(52, 211, 153, 0.25);
+  --color-glow-amber: rgba(251, 191, 36, 0.25);
+}
+
 html, body, #root {
   height: 100%;
   margin: 0;
@@ -21,7 +51,7 @@ html, body, #root {
 }
 
 @keyframes slide-up {
-  0% { transform: translateY(12px); opacity: 0; }
+  0% { transform: translateY(16px); opacity: 0; }
   100% { transform: translateY(0); opacity: 1; }
 }
 
@@ -36,7 +66,7 @@ html, body, #root {
 }
 
 @keyframes scale-in {
-  0% { transform: scale(0.8); opacity: 0; }
+  0% { transform: scale(0.85); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
 
@@ -87,6 +117,35 @@ html, body, #root {
   50% { filter: brightness(1.5); }
 }
 
+@keyframes screen-enter {
+  0% { opacity: 0; transform: translateY(12px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.03); opacity: 1; }
+}
+
+@keyframes leaf-drift {
+  0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 0; }
+  20% { opacity: 0.6; }
+  80% { opacity: 0.4; }
+  100% { transform: translateY(-120px) rotate(120deg) translateX(30px); opacity: 0; }
+}
+
 ::selection { background: rgba(52, 211, 153, 0.3); }
 
 ::-webkit-scrollbar { width: 4px; }
@@ -94,10 +153,20 @@ html, body, #root {
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
-/* Rarity animation delays */
 .rarity-glow-common { animation: glow-pulse 3s ease-in-out infinite; }
 .rarity-glow-uncommon { animation: glow-pulse 2.5s ease-in-out infinite; }
 .rarity-glow-rare { animation: glow-pulse 2s ease-in-out infinite; }
 .rarity-glow-epic { animation: glow-pulse 1.8s ease-in-out infinite, rarity-flash 2.5s ease-in-out infinite; }
 .rarity-glow-legendary { animation: glow-pulse 1.5s ease-in-out infinite, rarity-flash 1.8s ease-in-out infinite; }
 .rarity-glow-mythic { animation: glow-pulse 1.2s ease-in-out infinite, rarity-flash 1.2s ease-in-out infinite, spin-slow 4s linear infinite; }
+
+.animate-screen-enter { animation: screen-enter var(--duration-slow, 400ms) var(--ease-spring, cubic-bezier(0.16, 1, 0.3, 1)) both; }
+.animate-press { animation: press 200ms ease-out; }
+.animate-wiggle { animation: wiggle 400ms ease-in-out; }
+.animate-breathe { animation: breathe 3s ease-in-out infinite; }
+.animate-leaf-drift { animation: leaf-drift 3s ease-out forwards; }
+
+.screen-exit {
+  animation: screen-enter var(--duration-normal, 250ms) var(--ease-spring, cubic-bezier(0.16, 1, 0.3, 1)) reverse both;
+  pointer-events: none;
+}

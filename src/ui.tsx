@@ -1,4 +1,4 @@
-import { ReactNode, ButtonHTMLAttributes, useState, useEffect } from "react";
+import { ReactNode, ButtonHTMLAttributes, useState, useEffect, useCallback } from "react";
 import { audio } from "./game/audio";
 import { RARITY, type Rarity } from "./game/data";
 
@@ -11,6 +11,7 @@ interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: "sm" | "md" | "lg";
 }
 export function Button({ variant = "primary", size = "md", className, children, onClick, ...rest }: BtnProps) {
+  const [pressed, setPressed] = useState(false);
   const base =
     "relative inline-flex items-center justify-center gap-2 font-bold rounded-2xl transition-all duration-150 active:translate-y-px active:brightness-90 disabled:opacity-35 disabled:pointer-events-none select-none tracking-wide";
   const variants: Record<string, string> = {
@@ -33,9 +34,17 @@ export function Button({ variant = "primary", size = "md", className, children, 
   };
   return (
     <button
-      className={cx(base, variants[variant] || variants.primary, sizes[size], className)}
+      className={cx(
+        base,
+        variants[variant] || variants.primary,
+        sizes[size],
+        pressed && "animate-press",
+        className,
+      )}
       onClick={(e) => {
         audio.click();
+        setPressed(true);
+        setTimeout(() => setPressed(false), 200);
         onClick?.(e);
       }}
       {...rest}
@@ -49,7 +58,7 @@ export function Panel({ children, className }: { children: ReactNode; className?
   return (
     <div
       className={cx(
-        "rounded-3xl bg-white/[0.07] backdrop-blur-md border border-white/[0.1] shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.07)]",
+        "rounded-3xl bg-white/[0.07] backdrop-blur-md border border-white/[0.1] shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.07)] transition-all duration-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.4)] hover:bg-white/[0.09]",
         className,
       )}
     >
@@ -72,12 +81,12 @@ export function ScreenShell({
   subtitle?: string;
 }) {
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col animate-screen-enter">
       <div className="shrink-0 px-4 pt-5 pb-3">
         <div className="flex items-center gap-3">
           <button
             onClick={() => { audio.click(); onBack(); }}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.08] text-white border border-white/[0.1] hover:bg-white/[0.13] active:scale-95 transition-all"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.08] text-white border border-white/[0.1] hover:bg-white/[0.13] active:scale-90 transition-all duration-150"
             aria-label="Back"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -105,8 +114,8 @@ export function Stat({ label, value, icon, variant = "default" }: { label: strin
     gold: "bg-amber-400/10 border-amber-300/20 text-amber-300",
   };
   return (
-    <div className={cx("rounded-2xl border p-3 text-center flex flex-col items-center gap-0.5 transition-all duration-300 hover:scale-[1.02]", variants[variant])}>
-      {icon && <div className="text-xl leading-none mb-0.5 drop-shadow-sm">{icon}</div>}
+    <div className={cx("rounded-2xl border p-3 text-center flex flex-col items-center gap-0.5 transition-all duration-300 hover:scale-[1.04] hover:brightness-110 active:scale-[0.97]", variants[variant])}>
+      {icon && <div className="text-xl leading-none mb-0.5 drop-shadow-sm transition-transform duration-300 group-hover:scale-110">{icon}</div>}
       <div className="text-lg font-black leading-tight tabular-nums">{value}</div>
       <div className="text-[10px] uppercase tracking-wider opacity-50 font-black">{label}</div>
     </div>
@@ -131,7 +140,7 @@ export function ProgressBar({ value, max, className, barClass, animate = true }:
 
 export function CoinPill({ coins }: { coins: number }) {
   return (
-    <div className="flex items-center gap-1.5 rounded-full bg-amber-400/15 border border-amber-300/25 px-3 py-1 font-bold text-amber-200 text-sm shadow-[inset_0_1px_0_rgba(251,191,36,0.1)]">
+    <div className="flex items-center gap-1.5 rounded-full bg-amber-400/15 border border-amber-300/25 px-3 py-1 font-bold text-amber-200 text-sm shadow-[inset_0_1px_0_rgba(251,191,36,0.1)] transition-all duration-300 hover:bg-amber-400/20 animate-breathe">
       <span className="text-base leading-none">🪙</span>
       <span className="tabular-nums">{coins.toLocaleString()}</span>
     </div>
@@ -191,8 +200,8 @@ export function Tabs({ tabs, active, onChange }: {
           className={cx(
             "flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all duration-200",
             active === t.key
-              ? "bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.4)]"
-              : "text-white/50 hover:text-white/70",
+              ? "bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.4)] scale-[1.02]"
+              : "text-white/50 hover:text-white/70 active:scale-95",
           )}
         >
           {t.icon && <span>{t.icon}</span>}
@@ -214,9 +223,9 @@ export function Modal({ open, onClose, children }: { open: boolean; onClose: () 
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-[fade-in_150ms_ease-out]" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div className="relative z-10 w-full max-w-sm animate-[scale-in_0.2s_ease-out]" onClick={(e) => e.stopPropagation()}>
+      <div className="relative z-10 w-full max-w-sm animate-[scale-in_250ms_cubic-bezier(0.16,1,0.3,1)_both]" onClick={(e) => e.stopPropagation()}>
         {children}
       </div>
     </div>
@@ -286,5 +295,63 @@ export function Shimmer({ className }: { className?: string }) {
     <div
       className={cx("animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-white/5 via-white/10 to-white/5 bg-[length:200%_100%] rounded-2xl", className)}
     />
+  );
+}
+
+/* Floating leaf decorative animation (cannabis-style) */
+export function FloatingLeaf({ className }: { className?: string }) {
+  const [style] = useState(() => ({
+    left: `${Math.random() * 100}%`,
+    animationDelay: `${Math.random() * 3}s`,
+    animationDuration: `${3 + Math.random() * 2}s`,
+  }));
+  return (
+    <span
+      className={cx("pointer-events-none absolute text-lg opacity-20 animate-leaf-drift", className)}
+      style={style}
+    >
+      🍃
+    </span>
+  );
+}
+
+/* Toast notification with auto-dismiss */
+interface ToastData {
+  id: number;
+  message: string;
+  type?: "success" | "error" | "info";
+}
+let toastId = 0;
+let toastListeners: ((t: ToastData) => void)[] = [];
+export function showToast(message: string, type: "success" | "error" | "info" = "info") {
+  const t: ToastData = { id: ++toastId, message, type };
+  toastListeners.forEach((fn) => fn(t));
+}
+export function ToastContainer() {
+  const [toasts, setToasts] = useState<ToastData[]>([]);
+  const addToast = useCallback((t: ToastData) => {
+    setToasts((prev) => [...prev, t]);
+    setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== t.id)), 2400);
+  }, []);
+  useEffect(() => {
+    toastListeners.push(addToast);
+    return () => { toastListeners = toastListeners.filter((fn) => fn !== addToast); };
+  }, [addToast]);
+  return (
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none">
+      {toasts.map((t) => (
+        <div
+          key={t.id}
+          className={cx(
+            "pointer-events-auto rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-2xl animate-[slide-down_300ms_var(--ease-spring)_both]",
+            t.type === "success" && "bg-gradient-to-r from-emerald-500 to-emerald-700",
+            t.type === "error" && "bg-gradient-to-r from-rose-500 to-rose-700",
+            t.type === "info" && "bg-gradient-to-r from-blue-500 to-blue-700",
+          )}
+        >
+          {t.message}
+        </div>
+      ))}
+    </div>
   );
 }

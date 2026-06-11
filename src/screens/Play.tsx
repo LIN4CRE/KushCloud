@@ -97,7 +97,7 @@ export default function Play({ save, onExit, processRun }: Props) {
   const lvl = levelFromXp(save.xp);
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className="relative h-full w-full overflow-hidden animate-screen-enter">
       <GameCanvas
         skin={skin}
         trail={trail}

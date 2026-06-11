@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { SaveData } from "../game/storage";
-import { ScreenShell, cx } from "../ui";
+import { ScreenShell, Tabs, cx } from "../ui";
 import { subscribeToLeaderboard, submitPlayerScore } from "../game/leaderboard";
 
 interface Props {
@@ -49,21 +49,16 @@ export default function Leaderboard({ save, onBack }: Props) {
   return (
     <ScreenShell title="Leaderboard" onBack={onBack}>
       {/* Period tabs */}
-      <div className="mb-3 flex gap-1 rounded-xl bg-black/25 p-1">
-        {(["daily", "weekly", "all"] as const).map((p) => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={cx(
-              "flex-1 rounded-lg py-1.5 text-xs font-bold capitalize transition-all duration-200",
-              period === p
-                ? "bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.4)]"
-                : "text-white/50 hover:text-white/70",
-            )}
-          >
-            {p === "all" ? "All-Time" : p.charAt(0).toUpperCase() + p.slice(1)}
-          </button>
-        ))}
+      <div className="mb-3">
+        <Tabs
+          tabs={[
+            { key: "daily", label: "Daily" },
+            { key: "weekly", label: "Weekly" },
+            { key: "all", label: "All-Time" },
+          ]}
+          active={period}
+          onChange={(k) => setPeriod(k as "daily" | "weekly" | "all")}
+        />
       </div>
 
       {/* Scope toggle */}

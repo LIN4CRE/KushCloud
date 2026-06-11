@@ -27,7 +27,7 @@ import Settings from "./screens/Settings";
 import Tutorial from "./screens/Tutorial";
 import Friends from "./screens/Friends";
 import Chat from "./screens/Chat";
-import { Button } from "./ui";
+import { Button, ToastContainer, showToast as toastNotify } from "./ui";
 
 import { loginWithGoogle, logout } from "./config/firebase";
 
@@ -36,13 +36,11 @@ export default function App() {
   const saveRef = useRef(save);
   saveRef.current = save;
   const [screen, setScreen] = useState<Screen>(save.seenTutorial ? "menu" : "tutorial");
-  const [toast, setToast] = useState<string | null>(null);
   const [lootCrateOpen, setLootCrateOpen] = useState<LootCrate | null>(null);
 
   const showToast = (msg: string) => {
-    setToast(msg);
     audio.reward();
-    window.setTimeout(() => setToast(null), 2400);
+    toastNotify(msg);
   };
 
   const [error, setError] = useState<string | null>(null);
@@ -427,14 +425,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Toast */}
-        {toast && (
-          <div className="pointer-events-none absolute left-1/2 top-16 z-50 -translate-x-1/2 animate-[slide-up_0.3s_ease-out]">
-            <div className="rounded-2xl bg-gradient-to-r from-emerald-500 to-lime-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,0,0,0.5)] border border-white/20 backdrop-blur">
-              {toast}
-            </div>
-          </div>
-        )}
+        <ToastContainer />
       </div>
     </div>
   );
