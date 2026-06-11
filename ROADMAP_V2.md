@@ -1,79 +1,85 @@
 # 🗺️ KushCloud Roadmap: Journey to v2.0
 
-This document outlines the strategic development path for KushCloud as we evolve from the v1.x "Core Foundation" into the v2.0 "Community & Expansion" era.
+This document outlines the strategic development path for KushCloud as we evolve from the v1.x "Core Foundation" into the v2.0 "Cross-Platform Live-Service Ecosystem".
 
 ---
 
-## 🟢 v1.5.0 — THE SOCIAL UPDATE
-**Goal**: Turn a solo experience into a connected community.
+## 🟢 v1.5.0 — THE SOCIAL UPDATE (Current Sprint)
+**Objective**: Turn a solo experience into a connected community.
 
-- [ ] **Friend System**: Add friends via UID, view their profiles, and compare stats.
-- [ ] **Cloud Saves**: Sync progress across Web and Android via Firebase Auth (Google/Email).
+- [x] **Firebase Auth Integration**: Google Login for cross-device syncing.
+- [x] **Cloud Save Sync**: Automated backups and conflict resolution.
+- [x] **Friend System**: Add friends via UID, view their profiles, and compare stats.
 - [ ] **Global Chat**: A chill lounge to talk strains, scores, and strategies.
-- [ ] **Player Titles & Frames**: Highly visible cosmetic prestige for high-level players.
-- [ ] **Sharing System**: Export "Death Cards" or "Run Summaries" as images for social media.
+- [ ] **Sharing System**: Export "Run Summaries" for social media.
 
 ---
 
-## 🟡 v1.6.0 — THE COMPETITIVE UPDATE
-**Goal**: Depth through organized competition.
+## 🏆 v1.6.0 — THE COMPETITIVE UPDATE
+**Objective**: Transform KushCloud from a casual progression experience into a competitive live-service game with long-term retention systems.
 
-- [ ] **Tournament Mode**: Weekly bracket-based competitions with exclusive rewards.
-- [ ] **Seasons System**: Monthly leaderboard resets with "Season Rewards" and unique badges.
-- [ ] **Daily Challenges**: Hand-crafted level layouts that are the same for every player that day.
-- [ ] **Ghost Replays**: Watch the "Ghost" of the top 3 leaderboard players to learn their patterns.
-- [ ] **Bounty System**: Community-wide goals (e.g., "Collect 1M coins together") for a global reward.
+### Core Features
+- **Seasonal Progression System**: 8–12 week seasons with exclusive reward tracks.
+- **Global Ranked Leaderboards**: Region-specific and global rankings with anti-cheat.
+- **Tournament Framework**: Scheduled bracket-based match generation.
+- **Competitive Ranking System**: Bronze → Silver → Gold → Platinum → Diamond → Master → Grandmaster.
 
----
-
-## 🟠 v1.7.0 — THE ECONOMY UPDATE
-**Goal**: Sustainability and player-driven value.
-
-- [ ] **The "High" Street Shop**: Daily rotating items and "Flash Sales."
-- [ ] **Premium Currency**: Introduction of "Cloud Credits" for exclusive mythic content.
-- [ ] **Trading/Gifting**: Send skins or trails to your friends.
-- [ ] **Recycling Center**: Break down unwanted common items into more Dust.
-- [ ] **Battle Pass**: "The Kush Pass" with free and premium tracks for seasonal progression.
+### Technical Scope
+- Backend leaderboard service and match history database.
+- Tournament scheduling APIs and anti-exploit validation.
+- Seasonal data migration architecture.
 
 ---
 
-## 🔴 v1.8.0 — THE ENGINE OVERHAUL
-**Goal**: Visual fidelity and technical excellence.
+## 💰 v1.7.0 — THE ECONOMY UPDATE
+**Objective**: Establish a sustainable and engaging progression economy that rewards both free and premium players.
 
-- [ ] **WebGLEngine**: Transition from 2D Canvas to WebGL for advanced shader support (bloom, blur, heat distortion).
-- [ ] **Biomes Expansion**: Add "Zero-G," "Underwater," and "Space" biomes with unique physics.
-- [ ] **Dynamic Weather**: Rain, wind, and smoke clouds that affect bird handling.
-- [ ] **Custom Level Editor**: Players can design and share their own "Jars & Gaps" layouts.
-- [ ] **Haptic 2.0**: Advanced vibration patterns for different power-ups and collisions.
+### Core Features
+- **The Kush Pass**: Free and Premium tracks with 100+ unlockable tiers.
+- **Dynamic Shop System**: Daily rotating inventory and featured bundles.
+- **Enhanced Currency Framework**: Soft (Coins), Premium (Kush Gems), and Tournament Tokens.
+- **Loot & Reward Systems**: Seasonal treasure chests with 6 rarity tiers.
 
----
-
-## 💎 v2.0.0 — THE EXPANSION UPDATE
-**Goal**: Cross-platform dominance and advanced features.
-
-### 📱 Multi-Platform
-- **iOS Release**: Launch on the Apple App Store via Capacitor.
-- **Desktop (Steam/itch.io)**: Dedicated PC build with controller support and 4K textures.
-
-### 🎮 Real-Time Multiplayer
-- **Co-op Mode**: Fly with a friend in the same lane, sharing combo points.
-- **Versus Mode**: Real-time racing against 3 other birds (1v3).
-
-### 🤖 Advanced AI
-- **AI Mentors**: "The Old Stoner" AI that plays alongside you to teach you advanced movements.
-- **Procedural Difficulty**: AI that adjusts gap spacing in real-time based on your skill level.
-
-### 🌐 Web3 & Future-Proofing
-- **Digital Ownership**: Optional integration for rare items.
-- **Full Controller Support**: Support for Xbox, PlayStation, and generic Bluetooth controllers.
+### Technical Scope
+- Secure transaction validation and inventory persistence.
+- LiveOps infrastructure for remote-config driven offers and A/B testing.
 
 ---
 
-## 🚀 Priority Checklist for Next Sprint (v1.5.0)
-1. [ ] Firebase Auth Integration.
-2. [ ] Friend List UI Component.
-3. [ ] Profile Search Functionality.
-4. [ ] Activity Feed (e.g., "Friend X just reached Level 20!").
+## 🚀 v1.8.0 — THE ENGINE OVERHAUL
+**Objective**: Deliver next-generation visuals and performance through a complete rendering architecture upgrade.
+
+### Major Milestone: HTML5 Canvas → WebGL
+- **Graphics Enhancements**: Bloom rendering, dynamic lighting, smoke distortion shaders, and GPU particles.
+- **Environmental Systems**: Dynamic weather (rain/fog) and Day/Night cycles.
+- **Physics Biomes**: Zero-G, Low Gravity, and High Density regions.
+- **Performance**: GPU-instanced rendering and asset streaming (Target: 120 FPS).
+
+---
+
+## 🌎 v2.0.0 — THE EXPANSION UPDATE
+**Objective**: Transition into a fully-fledged cross-platform live-service ecosystem.
+
+### Major Platform Launch
+- **Official iOS Release**: Native deployment via Capacitor with Game Center integration.
+- **Steam/Desktop Release**: Windows/Linux support with Achievements and Controller support.
+
+### Real-Time Multiplayer (Flagship Feature)
+- **Co-Op Mode**: Shared progression, team objectives, and cross-platform parties.
+- **Versus Mode**: Real-time PvP, ranked matchmaking, and spectator mode.
+
+### Infrastructure & Security
+- **Networking Stack**: Authoritative WebSocket servers with lag compensation and rollback.
+- **Backend Services**: Presence system, party management, and chat infrastructure.
+- **Fair Play**: Server-authoritative gameplay and moderation dashboard.
+
+---
+
+## 🚀 Priority Checklist (Next Tasks)
+1. [x] Implement Friend List UI Component (v1.5.1).
+2. [x] UID Search and "Add Friend" logic.
+3. [ ] Global Chat implementation (v1.5.2).
+4. [ ] Activity Feed implementation.
 
 ---
 

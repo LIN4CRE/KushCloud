@@ -131,6 +131,63 @@ export async function updateUserProfile(uid: string, updates: Partial<UserProfil
   await set(profileRef, { ...updates, updatedAt: Date.now() });
 }
 
+export async function addFriend(uid: string, friendUid: string): Promise<void> {
+  if (uid === friendUid) return;
+  const friendRef = ref(db, `friends/${uid}/${friendUid}`);
+  await set(friendRef, true);
+}
+
+export async function removeFriend(uid: string, friendUid: string): Promise<void> {
+  const friendRef = ref(db, `friends/${uid}/${friendUid}`);
+  await set(friendRef, null);
+}
+
+export function subscribeFriends(uid: string, callback: (friendUids: string[]) => void): () => void {
+  const friendsRef = ref(db, `friends/${uid}`);
+  return onValue(friendsRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      callback([]);
+      return;
+    }
+    callback(Object.keys(data));
+  });
+}
+
+export async function searchUserByUid(uid: string): Promise<UserProfile | null> {
+  return getUserProfile(uid);
+}
+
+export interface ChatMessage {
+  id: string;
+  uid: string;
+  name: string;
+  text: string;
+  timestamp: number;
+}
+
+export async function sendMessage(uid: string, name: string, text: string): Promise<void> {
+  const chatRef = ref(db, "chat");
+  const newMessageRef = push(chatRef);
+  await set(newMessageRef, {
+    uid,
+    name,
+    text,
+    timestamp: Date.now(),
+  });
+}
+
+export function subscribeChat(callback: (messages: ChatMessage[]) => void): () => void {
+  const chatRef = query(ref(db, "chat"), orderByChild("timestamp"), limitToLast(50));
+  return onValue(chatRef, (snapshot) => {
+    const messages: ChatMessage[] = [];
+    snapshot.forEach((child) => {
+      messages.push({ id: child.key!, ...child.val() } as ChatMessage);
+    });
+    callback(messages);
+  });
+}
+
 export function generateUID(): string {
   return "user_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }

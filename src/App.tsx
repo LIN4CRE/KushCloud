@@ -21,6 +21,8 @@ import Profile from "./screens/Profile";
 import Statistics from "./screens/Statistics";
 import Settings from "./screens/Settings";
 import Tutorial from "./screens/Tutorial";
+import Friends from "./screens/Friends";
+import Chat from "./screens/Chat";
 import { Button } from "./ui";
 
 import { loginWithGoogle, logout } from "./config/firebase";
@@ -134,6 +136,7 @@ export default function App() {
             }
             s.coins += coinsGained + levelUpCoins;
             s.xp += xpGained;
+            s.seasonalXp += xpGained; // Seasonal progress
             s.scoreHistory.push(r.score);
             if (s.scoreHistory.length > 100) s.scoreHistory = s.scoreHistory.slice(-100);
             s.dailyPlays += 1;
@@ -461,6 +464,12 @@ export default function App() {
             onChange={(patch) => update((s) => Object.assign(s, patch))}
             onReset={resetProgress}
           />
+        )}
+        {screen === "friends" && (
+          <Friends save={save} onBack={() => setScreen("menu")} />
+        )}
+        {screen === "chat" && (
+          <Chat save={save} onBack={() => setScreen("menu")} />
         )}
         {screen === "tutorial" && (
           <Tutorial

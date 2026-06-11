@@ -1,6 +1,6 @@
 import { SaveData } from "../game/storage";
 import { SKINS, TRAILS, TITLES, BADGES, EFFECTS, levelFromXp } from "../game/data";
-import { ScreenShell, Stat, ProgressBar, RarityBadge, Button, Panel } from "../ui";
+import { ScreenShell, Stat, ProgressBar, RarityBadge, Button } from "../ui";
 import { type User } from "../config/firebase";
 
 interface Props {
@@ -82,11 +82,11 @@ export default function Profile({ save, user, syncStatus, onBack, onRename, onLo
 
       {/* Stats grid */}
       <div className="mt-4 grid grid-cols-3 gap-2">
-        <Stat icon="🏆" label="Best Score" value={save.stats.bestScore} />
+        <Stat icon="🏆" label="Best Score" value={save.stats.bestScore} variant="gold" />
         <Stat icon="🎮" label="Games" value={save.stats.totalGames} />
         <Stat icon="🪙" label="Total Coins" value={save.stats.totalCoins.toLocaleString()} />
         <Stat icon="📊" label="Total Score" value={save.stats.totalScore.toLocaleString()} />
-        <Stat icon="🎯" label="Near Misses" value={save.stats.totalNearMiss} />
+        <Stat icon="🎯" label="Near Misses" value={save.stats.totalNearMiss} variant="highlight" />
         <Stat icon="🔥" label="Best Combo" value={`x${save.stats.bestCombo}`} />
         <Stat icon="🪽" label="Flaps" value={save.stats.totalFlaps.toLocaleString()} />
         <Stat icon="🎁" label="Crates Opened" value={save.cratesOpened} />
@@ -144,40 +144,41 @@ export default function Profile({ save, user, syncStatus, onBack, onRename, onLo
       </div>
 
       {/* Cloud Account */}
-      <div className="mt-5">
+      <div className="mt-5 mb-4">
         <h2 className="text-[11px] font-black uppercase tracking-widest text-white/35 mb-2.5">Cloud Save</h2>
-        <Panel>
+        <div className="overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br from-white/[0.05] to-transparent backdrop-blur-sm">
           <div className="p-4 flex flex-col gap-3">
             {user ? (
               <>
                 <div className="flex items-center gap-3">
                   {user.photoURL ? (
-                    <img src={user.photoURL} alt="" className="h-10 w-10 rounded-full border border-white/10" />
+                    <img src={user.photoURL} alt="" className="h-10 w-10 rounded-full border border-white/20 shadow-lg" />
                   ) : (
-                    <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-xl">👤</div>
+                    <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-xl border border-emerald-500/30">👤</div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-white truncate">{user.displayName || "Explorer"}</div>
-                    <div className="text-[10px] text-white/40 truncate">{user.email}</div>
+                    <div className="text-sm font-black text-white truncate">{user.displayName || "Explorer"}</div>
+                    <div className="text-[10px] font-bold text-white/40 truncate">{user.email}</div>
                   </div>
                   <div className="text-right">
                     <SyncBadge status={syncStatus} />
                   </div>
                 </div>
-                <Button variant="dark" size="sm" className="w-full" onClick={onLogout}>
+                <Button variant="dark" size="sm" className="w-full bg-white/5 border-white/10 hover:bg-white/10" onClick={onLogout}>
                   Sign Out
                 </Button>
               </>
             ) : (
-              <div className="text-center py-2">
-                <p className="text-xs text-white/50 mb-3">Sync your progress across all your devices!</p>
-                <Button variant="premium" className="w-full" onClick={onLogin}>
+              <div className="text-center py-2 px-4">
+                <div className="text-3xl mb-2 opacity-50">☁️</div>
+                <p className="text-xs font-semibold text-white/60 mb-4 leading-relaxed">Sign in to sync your coins, skins, and stats across all your devices!</p>
+                <Button variant="premium" className="w-full shadow-lg" onClick={onLogin}>
                   🚀 Sign in with Google
                 </Button>
               </div>
             )}
           </div>
-        </Panel>
+        </div>
       </div>
     </ScreenShell>
   );

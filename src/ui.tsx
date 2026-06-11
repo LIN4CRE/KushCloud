@@ -97,23 +97,30 @@ export function ScreenShell({
   );
 }
 
-export function Stat({ label, value, icon }: { label: string; value: ReactNode; icon?: string }) {
+export function Stat({ label, value, icon, variant = "default" }: { label: string; value: ReactNode; icon?: string; variant?: "default" | "highlight" | "danger" | "gold" }) {
+  const variants = {
+    default: "bg-white/[0.07] border-white/[0.09] text-white",
+    highlight: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+    danger: "bg-rose-500/10 border-rose-500/20 text-rose-400",
+    gold: "bg-amber-400/10 border-amber-300/20 text-amber-300",
+  };
   return (
-    <div className="rounded-2xl bg-white/[0.07] border border-white/[0.09] p-3 text-center flex flex-col items-center gap-0.5">
-      {icon && <div className="text-xl leading-none mb-0.5">{icon}</div>}
-      <div className="text-lg font-black text-white leading-tight">{value}</div>
-      <div className="text-[10px] uppercase tracking-wider text-white/45 font-semibold">{label}</div>
+    <div className={cx("rounded-2xl border p-3 text-center flex flex-col items-center gap-0.5 transition-all duration-300 hover:scale-[1.02]", variants[variant])}>
+      {icon && <div className="text-xl leading-none mb-0.5 drop-shadow-sm">{icon}</div>}
+      <div className="text-lg font-black leading-tight tabular-nums">{value}</div>
+      <div className="text-[10px] uppercase tracking-wider opacity-50 font-black">{label}</div>
     </div>
   );
 }
 
-export function ProgressBar({ value, max, className, barClass }: { value: number; max: number; className?: string; barClass?: string }) {
+export function ProgressBar({ value, max, className, barClass, animate = true }: { value: number; max: number; className?: string; barClass?: string; animate?: boolean }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
   return (
-    <div className={cx("h-2 w-full overflow-hidden rounded-full bg-black/30", className)}>
+    <div className={cx("h-2 w-full overflow-hidden rounded-full bg-black/40 border border-white/5", className)}>
       <div
         className={cx(
-          "h-full rounded-full bg-gradient-to-r from-emerald-400 to-lime-400 transition-all duration-700 shadow-[0_0_6px_rgba(74,222,128,0.5)]",
+          "h-full rounded-full bg-gradient-to-r from-emerald-400 to-lime-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]",
+          animate && "transition-all duration-1000 ease-out",
           barClass,
         )}
         style={{ width: pct + "%" }}

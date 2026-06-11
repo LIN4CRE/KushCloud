@@ -313,6 +313,26 @@ export interface EventDef {
   analyticsId: string;
 }
 
+export interface SeasonTier {
+  xp: number;
+  reward: {
+    type: "coins" | "dust" | "skin" | "trail" | "badge";
+    id?: string;
+    amount?: number;
+  };
+  icon: string;
+}
+
+export const SEASON_1_REWARDS: SeasonTier[] = [
+  { xp: 500, reward: { type: "coins", amount: 200 }, icon: "🪙" },
+  { xp: 1200, reward: { type: "dust", amount: 50 }, icon: "💎" },
+  { xp: 2500, reward: { type: "trail", id: "spark" }, icon: "✨" },
+  { xp: 5000, reward: { type: "coins", amount: 1000 }, icon: "💰" },
+  { xp: 10000, reward: { type: "skin", id: "cosmic" }, icon: "🌌" },
+  { xp: 20000, reward: { type: "badge", id: "b_perfect" }, icon: "✨" },
+  { xp: 50000, reward: { type: "skin", id: "phoenix" }, icon: "☀️" },
+];
+
 export const EVENT_DEFS: EventDef[] = [
   {
     id: "e_spring_fest_2025",

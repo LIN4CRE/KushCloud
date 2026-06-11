@@ -52,6 +52,8 @@ export interface SaveData {
   highContrast: boolean;
   seenTutorial: boolean;
   scoreHistory: number[];
+  seasonalXp: number;
+  currentSeason: number;
   lastSync: number;
   lastCloudSync: number;
   seenItems: Record<string, boolean>;
@@ -102,6 +104,8 @@ function defaultSave(): SaveData {
     highContrast: false,
     seenTutorial: false,
     scoreHistory: [],
+    seasonalXp: 0,
+    currentSeason: 1,
     lastSync: Date.now(),
     lastCloudSync: 0,
     seenItems: {},
@@ -131,6 +135,8 @@ export function migrateSave(data: Record<string, any>): SaveData {
     data.equippedEffect ??= "e_none";
     data.cratesOpened ??= 0;
     data.seenItems ??= {};
+    data.seasonalXp ??= 0;
+    data.currentSeason ??= 1;
     data.version = 2;
   }
   if (data.version < 3) {

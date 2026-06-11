@@ -1,4 +1,9 @@
-import { LeaderboardPeriod, subscribeLeaderboard, submitScore, generateUID, getUserProfile, updateUserProfile, UserProfile } from "../config/firebase";
+import {
+  LeaderboardPeriod, subscribeLeaderboard, submitScore, generateUID,
+  getUserProfile, updateUserProfile, UserProfile, addFriend as addFriendDb,
+  removeFriend as removeFriendDb, subscribeFriends as subscribeFriendsDb,
+  searchUserByUid
+} from "../config/firebase";
 import { seededScores, FRIEND_NAMES } from "./storage";
 
 let currentUID: string | null = null;
@@ -39,11 +44,14 @@ export function subscribeToLeaderboard(
   const uid = getUID();
   
   const unsub = subscribeLeaderboard(period, (entries) => {
+    // If friendsOnly is true, we'll need to fetch the friends list first
+    // or filter from the existing save data.
+    // For now, let's keep it global and filter later if needed.
     const list: LeaderboardServiceEntry[] = entries.map((e) => ({
       name: e.name,
       score: e.score,
       you: e.uid === uid,
-      friend: false,
+      friend: false, // Updated by the caller if needed
     }));
     
     // Add player if not in list
@@ -60,6 +68,27 @@ export function subscribeToLeaderboard(
     unsub();
     unsubscribers = unsubscribers.filter((u) => u !== unsub);
   };
+}
+
+export async function addFriend(friendUid: string): Promise<void> {
+  const uid = getUID();
+  await addFriendDb(uid, friendUid);
+}
+
+export async function removeFriend(friendUid: string): Promise<void> {
+  const uid = getUID();
+  await removeFriendDb(uid, friendUid);
+}
+
+export function subscribeFriends(callback: (friendUids: string[]) => void): () => void {
+  const uid = getUID();
+  const unsub = subscribeFriendsDb(uid, callback);
+  unsubscribers.push(unsub);
+  return unsub;
+}
+
+export async function findUser(uid: string): Promise<UserProfile | null> {
+  return searchUserByUid(uid);
 }
 
 export function cleanupSubscriptions() {

@@ -1,5 +1,5 @@
 import { SaveData } from "../game/storage";
-import { SKINS, TRAILS, TITLES, levelFromXp } from "../game/data";
+import { SKINS, TRAILS, TITLES, levelFromXp, SEASON_1_REWARDS } from "../game/data";
 import { Button, ProgressBar, CoinPill, cx } from "../ui";
 import { type Screen } from "../store";
 import { audio } from "../game/audio";
@@ -117,6 +117,32 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
             <div className="mt-0.5 text-[10px] uppercase font-semibold tracking-wider text-white/40">Total</div>
           </div>
         </div>
+
+        {/* Seasonal Progress */}
+        <div className="w-full mt-4 rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🏆</span>
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-tighter text-indigo-400">Season 1</div>
+                <div className="text-sm font-black text-white leading-none">High Times</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] font-bold text-white/40">Next Reward</div>
+              <div className="text-xs font-black text-indigo-300">{SEASON_1_REWARDS.find(r => r.xp > save.seasonalXp)?.icon || "✅"}</div>
+            </div>
+          </div>
+          <ProgressBar
+            value={save.seasonalXp}
+            max={SEASON_1_REWARDS.find(r => r.xp > save.seasonalXp)?.xp || 50000}
+            barClass="bg-gradient-to-r from-indigo-500 to-purple-500"
+          />
+          <div className="mt-1.5 flex justify-between items-center">
+            <span className="text-[9px] font-bold text-white/30">{save.seasonalXp.toLocaleString()} / {(SEASON_1_REWARDS.find(r => r.xp > save.seasonalXp)?.xp || 50000).toLocaleString()} XP</span>
+            <button className="text-[9px] font-black uppercase text-indigo-400 hover:text-indigo-300 transition-colors">View Track ›</button>
+          </div>
+        </div>
       </div>
 
       {/* Play button */}
@@ -128,18 +154,27 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
       <div className="mt-3 grid grid-cols-4 gap-2">
         <NavBtn icon="🛍️" label="Shop" onClick={() => onNav("shop")} />
         <NavBtn
-          icon="📋"
-          label="Daily"
-          onClick={() => onNav("missions")}
-          badge={loginAvailable ? "!" : missionsDone < missionsTotal ? String(missionsTotal - missionsDone) : undefined}
+          icon="💬"
+          label="Chat"
+          onClick={() => onNav("chat")}
         />
         <NavBtn icon="🏆" label="Ranks" onClick={() => onNav("leaderboard")} />
         <NavBtn icon="🏅" label="Awards" onClick={() => onNav("achievements")} />
       </div>
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <NavBtn icon="📊" label="Stats" onClick={() => onNav("statistics")} wide />
-        <NavBtn icon="⚙️" label="Settings" onClick={() => onNav("settings")} wide />
-        <NavBtn icon="❓" label="How to Play" onClick={() => onNav("tutorial")} wide />
+        <NavBtn icon="👥" label="Friends" onClick={() => onNav("friends")} wide />
+        <NavBtn
+          icon="📋"
+          label="Daily Missions"
+          onClick={() => onNav("missions")}
+          badge={loginAvailable ? "!" : missionsDone < missionsTotal ? String(missionsTotal - missionsDone) : undefined}
+          wide
+        />
+      </div>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        <NavBtn icon="📊" label="Stats" onClick={() => onNav("statistics")} />
+        <NavBtn icon="⚙️" label="Settings" onClick={() => onNav("settings")} />
+        <NavBtn icon="❓" label="Help" onClick={() => onNav("tutorial")} />
       </div>
     </div>
   );
