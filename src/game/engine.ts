@@ -88,7 +88,8 @@ export class GameEngine {
   private practiceMode = false;
   private shake = 0;
   private flashAlpha = 0;
-  private powerUpManager: PowerUpManager | null = null;
+  private shieldInvuln = 0;
+  private powerUpManager = new PowerUpManager();
 
   constructor(skin: Skin, trail: Trail, world: World, cb: EngineCallbacks) {
     this.skin = skin;
@@ -113,6 +114,7 @@ export class GameEngine {
 
   setPowerUpManager(m: PowerUpManager) {
     this.powerUpManager = m;
+    this.powerUpManager.reset();
   }
 
   resize(w: number, h: number) {
@@ -164,6 +166,8 @@ export class GameEngine {
     this.speed = 130;
     this.shake = 0;
     this.flashAlpha = 0;
+    this.shieldInvuln = 0;
+    this.powerUpManager.reset();
     this.world = worldForScore(0);
     this.cb.onWorld?.(this.world);
     this.cb.onStateChange?.(this.state);
@@ -176,20 +180,22 @@ export class GameEngine {
       this.startTime = performance.now();
       this.cb.onStateChange?.(this.state);
     }
-    if (this.vy > 0 && this.powerUpManager?.isDoubleJumpAvailable()) {
+    if (this.vy > 0 && this.powerUpManager.isDoubleJumpAvailable()) {
       this.powerUpManager.useDoubleJump();
       this.vy = this.flapV * this.sc;
       this.wingPhase = 0;
       audio.flap();
       this.emitFlapPuff();
+      navigator.vibrate?.(8);
       return;
     }
     this.vy = this.flapV * this.sc;
     this.flaps++;
     this.wingPhase = 0;
     audio.flap();
-    this.powerUpManager?.resetDoubleJump();
+    this.powerUpManager.resetDoubleJump();
     this.emitFlapPuff();
+    navigator.vibrate?.(8);
   }
 
   private emitFlapPuff() {
@@ -208,12 +214,12 @@ export class GameEngine {
   }
 
   private get difficulty() {
-    return Math.min(1, this.score / 50);
+    return Math.min(1.5, this.score / 200);
   }
 
   private spawnPipe() {
     const d = this.difficulty;
-    let gap = (200 - d * 50) * this.sc;
+    let gap = (180 - d * 46) * this.sc;
     gap = Math.max(100 * this.sc, gap);
     const margin = 70 * this.sc * 0.5;
     const usable = this.h - this.groundH - gap - margin * 2;
@@ -330,8 +336,14 @@ export class GameEngine {
     }
 
     // playing
-    this.speed = (130 + this.difficulty * 80) * this.sc;
-    this.vy += this.gravity * this.sc * dt;
+    const mods = this.powerUpManager.getModifiers();
+    this.powerUpManager.update();
+    if (this.shieldInvuln > 0) this.shieldInvuln = Math.max(0, this.shieldInvuln - dt);
+
+    const baseSpeed = (130 + this.difficulty * 80) * this.sc;
+    this.speed = baseSpeed * mods.speedMult;
+    const effGravity = this.gravity * this.sc * mods.gravityMult;
+    this.vy += effGravity * dt;
     this.by += this.vy * dt;
     this.rot = Math.max(-0.5, Math.min(1.2, this.vy / (700 * this.sc)));
 
@@ -339,7 +351,7 @@ export class GameEngine {
 
     // spawn pipes by spacing (skip in practice mode)
     if (!this.practiceMode) {
-      const spacing = Math.max(200 * this.sc, this.w * 0.58);
+      const spacing = Math.max(200 * this.sc, this.w * (0.58 - this.difficulty * 0.08));
       const last = this.pipes[this.pipes.length - 1];
       if (!last || last.x < this.w - spacing) this.spawnPipe();
     }
@@ -349,20 +361,32 @@ export class GameEngine {
 
     for (const p of this.pipes) {
       p.x -= this.speed * dt;
-      // coin
+      // coin — magnet auto-collect
       if (p.coin && !p.coin.taken) {
         p.coin.bob += dt * 4;
         const cx = p.x + p.w / 2;
         const cy = p.coin.y + Math.sin(p.coin.bob) * 6 * this.sc;
         const cr = 13 * this.sc;
-        if (Math.hypot(cx - this.bx, cy - this.by) < this.radius + cr) {
+        const coinDist = Math.hypot(cx - this.bx, cy - this.by);
+        // magnet pull
+        if (mods.magnetRadius > 0 && coinDist < mods.magnetRadius * this.sc) {
           p.coin.taken = true;
-          this.runCoins++;
+          this.runCoins += Math.round(mods.coinMult);
+          this.combo++;
+          this.updateMultiplier();
+          audio.coin();
+          this.burst(cx, cy, "#a78bfa", 8, 120, "spark");
+          this.burst(cx, cy, "#ffd24a", 4, 80, "spark");
+          this.addFloat(cx, cy - 10, mods.coinMult > 1 ? `+${mods.coinMult}×` : "+coin", "#c084fc", 14);
+          this.cb.onCoin?.(this.runCoins);
+        } else if (coinDist < this.radius + cr) {
+          p.coin.taken = true;
+          this.runCoins += Math.round(mods.coinMult);
           this.combo++;
           this.updateMultiplier();
           audio.coin();
           this.burst(cx, cy, "#ffd24a", 12, 180, "spark");
-          this.addFloat(cx, cy - 10, "+coin", "#ffd24a", 14);
+          this.addFloat(cx, cy - 10, mods.coinMult > 1 ? `+${mods.coinMult}×` : "+coin", "#ffd24a", 14);
           this.cb.onCoin?.(this.runCoins);
         }
       }
@@ -415,7 +439,10 @@ export class GameEngine {
           this.updateMultiplier();
           this.score += this.multiplier;
           audio.nearMiss();
-          this.burst(this.bx + this.radius, this.by, "#7dffb0", 8, 150, "spark");
+          this.shake = 4;
+          navigator.vibrate?.(15);
+          this.burst(this.bx + this.radius, this.by, "#7dffb0", 10, 170, "spark");
+          this.burst(this.bx + this.radius, this.by, "#ffffff", 6, 100, "puff");
           this.addFloat(this.bx, this.by + 24 * this.sc, "NEAR MISS!", "#7dffb0", 15);
           this.cb.onNearMiss?.(this.nearMiss);
         }
@@ -427,7 +454,7 @@ export class GameEngine {
     // collisions
     let dead = false;
     if (this.by >= floorY) { dead = true; this.by = floorY; }
-    if (!this.practiceMode) {
+    if (!this.practiceMode && this.shieldInvuln <= 0) {
       if (this.by <= ceil) { this.by = ceil; this.vy = 0; }
       for (const p of this.pipes) {
         if (p.x > this.bx + this.radius || p.x + p.w < this.bx - this.radius) continue;
@@ -441,7 +468,21 @@ export class GameEngine {
       }
     }
 
-    if (dead) this.die();
+    if (dead) {
+      if (mods.shieldHits > 0 && this.shieldInvuln <= 0) {
+        this.powerUpManager.consumeShield();
+        this.vy = this.flapV * this.sc * 0.7;
+        this.shieldInvuln = 0.6;
+        this.shake = 6;
+        this.flashAlpha = 0.4;
+        this.burst(this.bx, this.by, "#60a5fa", 20, 250, "spark");
+        audio.shieldBreak();
+        dead = false;
+        navigator.vibrate?.(30);
+      } else {
+        this.die();
+      }
+    }
 
     this.updateParticles(dt);
     if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 40);
@@ -461,6 +502,7 @@ export class GameEngine {
     audio.hit();
     this.shake = 12;
     this.flashAlpha = 0.7;
+    navigator.vibrate?.(50);
     this.burst(this.bx, this.by, "#ff6b6b", 22, 280, "spark");
     this.burst(this.bx, this.by, "#ffd24a", 14, 220, "spark");
 
@@ -709,6 +751,21 @@ export class GameEngine {
     ctx.save();
     ctx.translate(this.bx, this.by);
     ctx.rotate(this.rot);
+
+    // combo aura — expands with multiplier
+    if (this.multiplier > 1 && !this.highContrast) {
+      const intensity = Math.min(0.5, this.multiplier * 0.05);
+      const auraR = r * (1.2 + this.multiplier * 0.08);
+      const ag = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, auraR);
+      ag.addColorStop(0, `rgba(74,222,128,0)`);
+      ag.addColorStop(0.4 + Math.sin(performance.now() / 500) * 0.1, `rgba(74,222,128,${intensity * 0.3})`);
+      ag.addColorStop(1, `rgba(74,222,128,0)`);
+      ctx.fillStyle = ag;
+      ctx.beginPath();
+      ctx.arc(0, 0, auraR, 0, 7);
+      ctx.fill();
+    }
+
     // glow
     if (!this.highContrast) {
       ctx.shadowColor = this.skin.accent;
@@ -765,6 +822,24 @@ export class GameEngine {
     ctx.beginPath();
     ctx.arc(r * 0.25, r * 0.25, r * 0.35, 0.1, Math.PI - 0.4);
     ctx.stroke();
+
+    // shield visual — pulsing ring
+    const shieldActive = this.powerUpManager.getShieldHits() > 0 || this.shieldInvuln > 0;
+    if (shieldActive) {
+      const pulse = 1 + Math.sin(performance.now() / 180) * 0.06;
+      const alpha = this.shieldInvuln > 0
+        ? 0.3 + Math.sin(performance.now() / 60) * 0.2
+        : 0.35 + Math.sin(performance.now() / 300) * 0.15;
+      ctx.save();
+      ctx.strokeStyle = `rgba(96,165,250,${alpha})`;
+      ctx.lineWidth = 3 * this.sc * pulse;
+      ctx.shadowColor = "#60a5fa";
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.35, 0, 7);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     ctx.restore();
   }

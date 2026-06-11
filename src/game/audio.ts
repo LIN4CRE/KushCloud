@@ -67,6 +67,7 @@ class AudioEngine {
   coin() { if (this.sfxGain) { this.tone(988, 0.08, "square", 0.18, this.sfxGain); setTimeout(() => this.tone(1319, 0.1, "square", 0.16, this.sfxGain!), 60); } }
   nearMiss() { if (this.sfxGain) this.tone(1200, 0.06, "sine", 0.15, this.sfxGain, 1600); }
   hit() { if (this.sfxGain) this.tone(180, 0.3, "sawtooth", 0.35, this.sfxGain, 60); }
+  shieldBreak() { if (this.sfxGain) { this.tone(800, 0.08, "square", 0.3, this.sfxGain, 400); setTimeout(() => this.tone(1200, 0.12, "sine", 0.25, this.sfxGain!), 60); } }
   levelUp() { if (this.sfxGain) [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.2, "triangle", 0.25, this.sfxGain!), i * 90)); }
   reward() { if (this.sfxGain) [659, 880, 1175].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, "square", 0.2, this.sfxGain!), i * 80)); }
   click() { if (this.sfxGain) this.tone(520, 0.05, "sine", 0.12, this.sfxGain); }
