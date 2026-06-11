@@ -219,7 +219,7 @@ export function validateRun(score: number, durationMs: number, flaps: number, co
   if (![score, flaps, coins].every(Number.isInteger)) return { valid: false, reason: "Malformed values" };
   if (score < 0 || coins < 0 || flaps < 0) return { valid: false, reason: "Negative values" };
   if (durationMs < 0) return { valid: false, reason: "Negative duration" };
-  if (score > 0 && durationMs < score * 250) return { valid: false, reason: "Score/time mismatch" };
+  if (score > 0 && durationMs < score * 30) return { valid: false, reason: "Score/time mismatch" };
   if (score > 5 && flaps < 2) return { valid: false, reason: "Insufficient inputs" };
   if (coins > score + 5) return { valid: false, reason: "Coin anomaly" };
   if (score > 100000) return { valid: false, reason: "Out of bounds" };
