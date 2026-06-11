@@ -8,19 +8,25 @@ import { viteSingleFile } from "vite-plugin-singlefile";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function removeModuleScript(): Plugin {
+function classicScript(): Plugin {
   return {
     name: "classic-script",
     enforce: "post",
     transformIndexHtml(html) {
-      return html.replace(/ type="module"/g, "");
+      let result = html.replace(/ type="module"/g, "");
+      const scriptMatch = result.match(/<script[^>]*>[\s\S]*?<\/script>/);
+      if (scriptMatch) {
+        const scriptTag = scriptMatch[0];
+        result = result.replace(scriptTag, "").replace("</body>", `${scriptTag}\n  </body>`);
+      }
+      return result;
     },
   };
 }
 
 export default defineConfig({
   base: "/KushCloud/",
-  plugins: [react({ jsxRuntime: "automatic" }), tailwindcss(), viteSingleFile(), removeModuleScript()],
+  plugins: [react({ jsxRuntime: "automatic" }), tailwindcss(), viteSingleFile(), classicScript()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
