@@ -165,9 +165,9 @@ src/
 ## Documentation
 
 - [CHANGELOG](docs/CHANGELOG.md) — Release history
-- [CONTRIBUTING](CONTRIBUTING.md) — Guidelines for contributors
-- [SECURITY](SECURITY.md) — Security policy and reporting
-- [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md) — Community standards
+- [CONTRIBUTING](docs/CONTRIBUTING.md) — Guidelines for contributors
+- [SECURITY](docs/SECURITY.md) — Security policy and reporting
+- [CODE_OF_CONDUCT](docs/CODE_OF_CONDUCT.md) — Community standards
 - [DEPLOYMENT_GUIDE](docs/DEPLOYMENT_GUIDE.md) — Build and deploy instructions
 - [RELEASE_GUIDE](docs/RELEASE_GUIDE.md) — Release process and versioning
 - [ROADMAP](docs/ROADMAP.md) — Future plans
