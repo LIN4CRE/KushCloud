@@ -13,7 +13,7 @@
           "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 64" },
           "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 32" },
           "score": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000 && (!data.child('score').exists() || newData.val() >= data.child('score').val())" },
-          "timestamp": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
+          "timestamp": { ".validate": "newData.isNumber() && newData.val() <= now + 60000 && newData.val() > 1577836800000" },
           "period": { ".validate": "newData.val() === $period && (newData.val() === 'all' || newData.val() === 'daily' || newData.val() === 'weekly')" },
           "$other": { ".validate": false }
         }
@@ -23,17 +23,20 @@
     "users": {
       "$uid": {
         ".read": true,
-        ".write": true,
-        ".validate": "newData.hasChildren(['uid','name'])",
+
+        "// NOTE": "Anonymous-UID model: clients are not Firebase-authenticated, so write is open. To prevent griefing we (a) require the uid field to match the path, (b) bound every numeric field, (c) require updatedAt to be monotonically non-decreasing so a stale client cannot roll a profile back, and (d) reject unknown fields. To fully lock writes to the owner, migrate to Firebase Anonymous Auth and use \"auth.uid === $uid\" here (see docs/SECURITY.md).",
+
+        ".write": "newData.exists() && newData.child('uid').val() === $uid && (!data.child('updatedAt').exists() || newData.child('updatedAt').val() >= data.child('updatedAt').val())",
+        ".validate": "newData.hasChildren(['uid','name','updatedAt'])",
         "uid": { ".validate": "newData.val() === $uid" },
         "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 32" },
-        "bestScore": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
-        "totalGames": { ".validate": "newData.isNumber() && newData.val() >= 0" },
-        "totalCoins": { ".validate": "newData.isNumber() && newData.val() >= 0" },
-        "level": { ".validate": "newData.isNumber() && newData.val() >= 1" },
-        "xp": { ".validate": "newData.isNumber() && newData.val() >= 0" },
-        "createdAt": { ".validate": "newData.isNumber()" },
-        "updatedAt": { ".validate": "newData.isNumber()" },
+        "bestScore": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000 && (!data.child('bestScore').exists() || newData.val() >= data.child('bestScore').val())" },
+        "totalGames": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000000" },
+        "totalCoins": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000" },
+        "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 1000" },
+        "xp": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000" },
+        "createdAt": { ".validate": "newData.isNumber() && newData.val() > 1577836800000 && newData.val() <= now + 60000" },
+        "updatedAt": { ".validate": "newData.isNumber() && newData.val() > 1577836800000 && newData.val() <= now + 60000" },
         "$other": { ".validate": false }
       }
     },
@@ -42,20 +45,25 @@
       "$uid": {
         ".read": true,
         ".write": true,
-        "$friendUid": { ".validate": "newData.isBoolean() || newData.val() === null" }
+        "$friendUid": {
+          ".validate": "($friendUid !== $uid) && (newData.isBoolean() || newData.val() === null)"
+        }
       }
     },
 
     "chat": {
       ".read": true,
       ".indexOn": ["timestamp"],
+
+      "// NOTE": "Chat messages are immutable (write only when the node does not already exist). Length and required fields are validated below. Hardened anti-spam (per-uid rate limiting) requires either Firebase Auth or a Cloud Function, since RTDB rules cannot reliably throttle anonymous clients by path. Tracked in docs/SECURITY.md.",
+
       "$messageId": {
-        ".write": "!data.exists()",
+        ".write": "!data.exists() && newData.exists()",
         ".validate": "newData.hasChildren(['uid','name','text','timestamp'])",
         "uid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 64" },
         "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 32" },
         "text": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500" },
-        "timestamp": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
+        "timestamp": { ".validate": "newData.isNumber() && newData.val() <= now + 60000 && newData.val() > 1577836800000" },
         "$other": { ".validate": false }
       }
     }

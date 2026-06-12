@@ -7,6 +7,11 @@ on:
       - 'v*'
   workflow_dispatch:
 
+# Required so the tagged-build step can upload IPA/xcarchive assets to the
+# GitHub Release via `gh release upload`.
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-latest

@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.4.0 (2026-06-12)
+
+### Security
+- Hardened Firebase Realtime Database rules: monotonic `updatedAt` to prevent profile rollbacks, upper bounds on all numeric profile fields, monotonic `bestScore`, sane timestamp floors (`> 2020-01-01`), field allow-listing on `users`, self-add guard on `friends`, and explicit chat immutability.
+- Documented the anonymous-UID threat model, residual risks, and the recommended Firebase Anonymous Auth migration in `docs/SECURITY.md`.
+
+### Build & Tooling
+- App version is now injected from `package.json` at build time (`VITE_APP_VERSION`), eliminating the hardcoded version in `src/config/env.ts` and the risk of version drift.
+- Eliminated the `EMPTY_IMPORT_META` build warning via a scoped Rollup `onwarn` filter — production build is now warning-free.
+- Added typed `import.meta.env` declarations in `src/vite-env.d.ts`.
+
+### Testing
+- Added 53 new unit tests (92 → 145 total): `PowerUpManager` (20), `toLeaderboardEntry`/`compareLeaderboardEntries` validation (22), and `updateChecker` install-type & dismiss/skip logic (11).
+- Coverage config now uses `all: true` with an explicit include/exclude list so the reported coverage honestly reflects untested modules.
+
+### CI/CD
+- Added missing `permissions: contents: write` to the iOS build workflow so release-asset uploads succeed on tagged builds.
+
+### Release
+- Version bump to 2.4.0; Android `versionCode` 24 / `versionName` 2.4.0.
+
 ## 2.3.0 (2026-06-12)
 - Update modal with install-type detection (PWA/Android/web), dismiss/skip persistence, hourly recheck
 - PWA foundation: manifest.json, service worker (network-first), icon.svg
