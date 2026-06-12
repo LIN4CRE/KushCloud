@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.6.0 (2026-06-12)
+
+### Merge & Audit Release
+- **Merged v2.5.0 feature branch into main** with all new gameplay mechanics (FRENZY, clutch, pickups, revive, podium badges)
+- **Critical bug fixes:** Fixed pipe gap underflow (`engine.ts:360`), fixed collision detection strict inequality (`engine.ts:797`)
+- **Data integrity:** Added save retry queue on localStorage failures (`storage.ts`)
+- **Cleanup:** Removed duplicate/unused Firebase imports (`store.ts`)
+- **Version bump:** All configs updated to 2.6.0 (Android versionCode 26)
+- **Documentation:** Updated CHANGELOG, RELEASE_NOTES, HEALTH_REPORT to reflect 2.6.0
+
 ## 2.5.0 (2026-06-12)
 
 ### Gameplay (new mechanics)

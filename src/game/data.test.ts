@@ -3,7 +3,7 @@ import {
   xpForLevel, levelFromXp, worldForScore, getDailyMissions,
   SKINS, TRAILS, WORLDS, ACHIEVEMENTS, POWERUPS, LOOT_CRATES,
   RARITY, currentWeekIndex, getActiveEvents, isEventActive,
-  rollLootCrate, EVENT_DEFS,
+  rollLootCrate, EVENT_DEFS, podiumBadgeForRank, BADGES,
 } from "./data";
 
 describe("xpForLevel", () => {
@@ -220,5 +220,25 @@ describe("rollLootCrate", () => {
   it("dust is non-negative", () => {
     const result = rollLootCrate(LOOT_CRATES[3], new Set());
     expect(result.dust).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("podiumBadgeForRank", () => {
+  it("maps ranks 1-3 to gold/silver/bronze badges", () => {
+    expect(podiumBadgeForRank(1)).toBe("b_gold");
+    expect(podiumBadgeForRank(2)).toBe("b_silver");
+    expect(podiumBadgeForRank(3)).toBe("b_bronze");
+  });
+
+  it("returns null for ranks outside the podium", () => {
+    expect(podiumBadgeForRank(4)).toBeNull();
+    expect(podiumBadgeForRank(100)).toBeNull();
+    expect(podiumBadgeForRank(0)).toBeNull();
+  });
+
+  it("podium badge ids exist in the BADGES list", () => {
+    for (const id of ["b_gold", "b_silver", "b_bronze"]) {
+      expect(BADGES.find((b) => b.id === id)).toBeTruthy();
+    }
   });
 });

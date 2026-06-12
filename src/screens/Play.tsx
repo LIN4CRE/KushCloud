@@ -19,9 +19,11 @@ interface Props {
   save: SaveData;
   onExit: () => void;
   processRun: (r: RunResult) => Promise<RunSummary>;
+  /** Deducts the revive cost from banked coins; returns false if unaffordable. */
+  reviveRun: (cost: number) => boolean;
 }
 
-export default function Play({ save, onExit, processRun }: Props) {
+export default function Play({ save, onExit, processRun, reviveRun }: Props) {
   const skin = SKINS.find((s) => s.id === save.equippedSkin) || SKINS[0];
   const trail = TRAILS.find((t) => t.id === save.equippedTrail) || TRAILS[0];
 
@@ -48,6 +50,9 @@ export default function Play({ save, onExit, processRun }: Props) {
   const prevBestRef = useRef(save.stats.bestScore);
   const [isNewBest, setIsNewBest] = useState(false);
   const [revived, setRevived] = useState(false);
+  const [reviveSignal, setReviveSignal] = useState(0);
+  const [reviveRunId, setReviveRunId] = useState("");
+  // Revive costs more each time within a run; once-per-run keeps it from trivializing scores.
   const reviveCost = Math.max(50, Math.floor(save.stats.bestScore * 2));
 
   // Auto-pause when tab loses focus
@@ -112,6 +117,7 @@ export default function Play({ save, onExit, processRun }: Props) {
             leveledUp: [],
             achievements: [],
             missions: [],
+            badges: [],
             valid: false,
             rank: 1,
             status: "invalid",
@@ -162,6 +168,8 @@ export default function Play({ save, onExit, processRun }: Props) {
         paused={paused || !!summary}
         runId={runId}
         bestScoreBefore={save.stats.bestScore}
+        reviveSignal={reviveSignal}
+        reviveRunId={reviveRunId}
         onScore={setScore}
         onCoin={setCoins}
         onPerfectPass={setPerfects}
@@ -483,6 +491,17 @@ export default function Play({ save, onExit, processRun }: Props) {
               </div>
             )}
 
+            {/* Badges earned (boasting rights!) */}
+            {summary.badges.length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {summary.badges.map((b) => (
+                  <div key={b} className="rounded-xl bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 border border-violet-300/25 px-3 py-2 text-sm font-bold text-violet-100 animate-[pop_0.4s_ease-out]">
+                    🎖️ Badge unlocked: {b}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Actions */}
             <div className="mt-4 flex flex-col gap-2">
               {!revived && save.coins >= reviveCost && summary.valid && (
@@ -491,19 +510,23 @@ export default function Play({ save, onExit, processRun }: Props) {
                   size="lg"
                   className="w-full"
                   onClick={() => {
-                    // Revive: deduct coins and continue from current score
-                    const currentScore = score;
-                    const currentCoins = coins;
-                    setSummary(null);
-                    setRevived(true);
-                    setPhase("ready");
-                    // Use next runId but keep score context
+                    // Deduct coins first; bail if the (possibly stale) save can't afford it.
+                    if (!reviveRun(reviveCost)) return;
+                    // Resurrect the SAME run in-engine (score/coins/stats preserved).
+                    // The post-revive segment gets a fresh runId so its death is
+                    // still recorded (not deduped against the pre-revive death),
+                    // while score/coins/duration carry over.
                     const nextRunId = createRunId();
                     activeRunIdRef.current = nextRunId;
-                    setRunId(nextRunId);
-                    setScore(currentScore);
-                    setCoins(currentCoins);
-                    // Note: coins are deducted from banked coins, not run coins
+                    setRevived(true);
+                    setSummary(null);
+                    setPaused(false);
+                    setPhase("playing");
+                    window.clearTimeout(deadTimer.current);
+                    setReviveRunId(nextRunId);
+                    setReviveSignal((n) => n + 1);
+                    setPuToast(null);
+                    window.clearTimeout(puToastTimer.current);
                   }}
                 >
                   💛 Revive ({reviveCost} 🪙)

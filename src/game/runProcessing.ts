@@ -1,6 +1,8 @@
 import type { RunResult } from "./engine";
 import {
   ACHIEVEMENTS,
+  BADGES,
+  SKILL_BADGE_RULES,
   WEEKLY_EVENTS,
   currentWeekIndex,
   getActiveEvents,
@@ -22,6 +24,8 @@ export interface RunSummary {
   leveledUp: number[];
   achievements: string[];
   missions: string[];
+  /** Names of badges newly earned this run (skill milestones + podium). */
+  badges: string[];
   valid: boolean;
   rank: number;
   status: RunProcessStatus;
@@ -76,6 +80,7 @@ function emptySummary(status: RunProcessStatus, valid: boolean): RunSummary {
     leveledUp: [],
     achievements: [],
     missions: [],
+    badges: [],
     valid,
     rank: 1,
     status,
@@ -154,6 +159,7 @@ export function applyCompletedRun(save: SaveData, run: RunResult): RunProcessRes
 
   const achievements: string[] = [];
   const missions: string[] = [];
+  const badges: string[] = [];
   const newBest = run.score > save.stats.bestScore;
 
   save.stats.totalGames += 1;
@@ -206,6 +212,26 @@ export function applyCompletedRun(save: SaveData, run: RunResult): RunProcessRes
     if (value >= achievement.goal) {
       save.unlockedAchievements.push(achievement.id);
       achievements.push(achievement.name);
+    }
+  }
+
+  // Auto-award skill/milestone badges so they're actually earnable through play
+  // (previously badges could only drop from loot crates).
+  const badgeCtx = {
+    totalGames: save.stats.totalGames,
+    bestScore: save.stats.bestScore,
+    bestCombo: save.stats.bestCombo,
+    ownedSkins: save.ownedSkins.length,
+    runScore: run.score,
+    runNearMiss: run.nearMiss,
+    runPerfectPasses: run.perfectPasses,
+  };
+  for (const rule of SKILL_BADGE_RULES) {
+    if (save.ownedBadges.includes(rule.id)) continue;
+    if (rule.test(badgeCtx)) {
+      save.ownedBadges.push(rule.id);
+      const b = BADGES.find((x) => x.id === rule.id);
+      if (b) badges.push(b.name);
     }
   }
 
@@ -263,6 +289,7 @@ export function applyCompletedRun(save: SaveData, run: RunResult): RunProcessRes
       leveledUp,
       achievements,
       missions,
+      badges,
       valid: true,
       rank: 1,
       status: "recorded",

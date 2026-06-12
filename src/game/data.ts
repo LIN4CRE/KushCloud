@@ -145,7 +145,43 @@ export const BADGES: Badge[] = [
   { id: "b_leet", name: "1337", desc: "Score exactly 1337 total.", icon: "💻", rarity: "legendary" },
   { id: "b_perfect", name: "Perfect Run", desc: "Complete a run with 0 misses.", icon: "✨", rarity: "legendary" },
   { id: "b_mythic", name: "Mythic Seeker", desc: "Unlock a mythic item.", icon: "🌈", rarity: "mythic" },
+  // Podium badges — boasting rights for placing on the daily leaderboard.
+  { id: "b_bronze", name: "Bronze Tier", desc: "Finished 3rd on the daily leaderboard.", icon: "🥉", rarity: "rare" },
+  { id: "b_silver", name: "Silver Tier", desc: "Finished 2nd on the daily leaderboard.", icon: "🥈", rarity: "epic" },
+  { id: "b_gold", name: "Gold Tier", desc: "Finished 1st on the daily leaderboard.", icon: "🥇", rarity: "legendary" },
 ];
+
+/** Badges that are auto-awarded by gameplay (skill/milestone), with their unlock test. */
+export const SKILL_BADGE_RULES: { id: string; test: (ctx: BadgeContext) => boolean }[] = [
+  { id: "b_first", test: (c) => c.totalGames >= 1 },
+  { id: "b_10games", test: (c) => c.totalGames >= 10 },
+  { id: "b_50games", test: (c) => c.totalGames >= 50 },
+  { id: "b_100games", test: (c) => c.totalGames >= 100 },
+  { id: "b_score50", test: (c) => c.bestScore >= 50 },
+  { id: "b_score100", test: (c) => c.bestScore >= 100 },
+  { id: "b_score200", test: (c) => c.bestScore >= 200 },
+  { id: "b_collector", test: (c) => c.ownedSkins >= 10 },
+  { id: "b_combo20", test: (c) => c.bestCombo >= 20 },
+  { id: "b_perfect", test: (c) => c.runScore > 0 && c.runNearMiss === 0 && c.runPerfectPasses > 0 },
+];
+
+export interface BadgeContext {
+  totalGames: number;
+  bestScore: number;
+  bestCombo: number;
+  ownedSkins: number;
+  runScore: number;
+  runNearMiss: number;
+  runPerfectPasses: number;
+}
+
+/** Maps a daily leaderboard rank (1-based) to the podium badge id, if any. */
+export function podiumBadgeForRank(rank: number): string | null {
+  if (rank === 1) return "b_gold";
+  if (rank === 2) return "b_silver";
+  if (rank === 3) return "b_bronze";
+  return null;
+}
 
 export const EFFECTS: Effect[] = [
   { id: "e_none", name: "No Effect", desc: "Clean gameplay.", rarity: "common", kind: "ambient", color: "#ffffff" },

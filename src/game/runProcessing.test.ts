@@ -140,6 +140,41 @@ describe("applyCompletedRun", () => {
     expect(save.xp).toBeGreaterThan(0);
   });
 
+  it("auto-awards the First Flight badge on the first game", () => {
+    const save = makeSave();
+    expect(save.ownedBadges).not.toContain("b_first");
+    const result = applyCompletedRun(save, makeRun({ score: 5 }));
+    expect(result.summary.status).toBe("recorded");
+    expect(save.ownedBadges).toContain("b_first");
+    expect(result.summary.badges).toContain("First Flight");
+  });
+
+  it("awards a milestone score badge when the best score crosses the threshold", () => {
+    const save = makeSave();
+    const result = applyCompletedRun(save, makeRun({ runId: "hi", score: 55, coins: 0, nearMiss: 0, flaps: 30 }));
+    expect(result.summary.status).toBe("recorded");
+    expect(save.ownedBadges).toContain("b_score50");
+    expect(result.summary.badges).toContain("Sky High");
+  });
+
+  it("does not re-award a badge that is already owned", () => {
+    const save = makeSave();
+    applyCompletedRun(save, makeRun({ runId: "a", score: 5 }));
+    const before = [...save.ownedBadges];
+    const second = applyCompletedRun(save, makeRun({ runId: "b", score: 6 }));
+    // b_first should not be listed again
+    expect(second.summary.badges).not.toContain("First Flight");
+    expect(save.ownedBadges.filter((id) => id === "b_first")).toHaveLength(1);
+    expect(save.ownedBadges).toEqual(expect.arrayContaining(before));
+  });
+
+  it("awards the Perfect Run badge for a clean run with perfects and no misses", () => {
+    const save = makeSave();
+    const result = applyCompletedRun(save, makeRun({ runId: "perf", score: 12, nearMiss: 0, perfectPasses: 4, flaps: 12 }));
+    expect(result.summary.status).toBe("recorded");
+    expect(save.ownedBadges).toContain("b_perfect");
+  });
+
   it("tracks daily plays", () => {
     const save = makeSave();
     applyCompletedRun(save, makeRun({ runId: "r1", score: 5 }));

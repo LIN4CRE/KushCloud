@@ -12,6 +12,10 @@ interface Props {
   paused: boolean;
   runId: string;
   bestScoreBefore: number;
+  /** Increment to resurrect the bird mid-run (paid Revive) without resetting score. */
+  reviveSignal?: number;
+  /** The fresh runId to assign to the post-revive segment (for scoring/dedup). */
+  reviveRunId?: string;
   onScore?: (s: number) => void;
   onCoin?: (c: number) => void;
   onNearMiss?: (n: number) => void;
@@ -113,6 +117,14 @@ export default function GameCanvas(props: Props) {
     lastRef.current = 0;
     engineRef.current?.reset(props.runId);
   }, [props.runId]);
+
+  // revive on signal change (skip initial 0 / undefined)
+  useEffect(() => {
+    if (props.reviveSignal) {
+      lastRef.current = 0;
+      engineRef.current?.revive(propsRef.current.reviveRunId);
+    }
+  }, [props.reviveSignal]);
 
   // input
   useEffect(() => {

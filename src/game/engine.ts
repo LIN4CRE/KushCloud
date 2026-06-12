@@ -265,6 +265,42 @@ export class GameEngine {
     this.cb.onFrenzy?.(false, 0);
   }
 
+  /**
+   * Resurrect the bird mid-run after a crash, preserving score/coins/stats.
+   * Clears nearby pipes and grants brief invulnerability so the player gets a
+   * fair restart from where they died. Used by the paid Revive flow.
+   */
+  revive(newRunId?: string) {
+    if (this.state !== "dead") return;
+    // The post-revive segment is scored as a fresh run (new id) so its eventual
+    // death is still recorded and not deduped against the pre-revive death.
+    if (newRunId) this.runId = newRunId;
+    // NOTE: startTime is intentionally preserved so durationMs reflects total
+    // elapsed run time (pre + post revive), keeping anti-cheat validation honest.
+    this.state = "playing";
+    // lift the bird back into a safe central position with a gentle upward boost
+    this.by = this.h * 0.45;
+    this.vy = this.flapV * this.sc * 0.6;
+    this.rot = 0;
+    // clear any pipes near the bird so the player isn't instantly re-killed
+    this.pipes = this.pipes.filter((p) => p.x > this.bx + this.w * 0.45);
+    this.pickups = [];
+    // generous invulnerability window + visual cue
+    this.shieldInvuln = 1.4;
+    this.shake = 8;
+    this.flashAlpha = 0.6;
+    this.slowmoTimer = 0.25;
+    // reset the death-fall squash
+    this.squashX = 1;
+    this.squashY = 1;
+    this.burst(this.bx, this.by, "#fde047", 24, 260, "spark");
+    this.burst(this.bx, this.by, "#ffffff", 12, 160, "puff");
+    this.addFloat(this.w / 2, this.h * 0.3, "💛 REVIVED!", "#fde047", 24);
+    audio.levelUp();
+    navigator.vibrate?.([20, 40, 20]);
+    this.cb.onStateChange?.(this.state);
+  }
+
   flap() {
     if (this.state === "dead") return;
     if (this.state === "ready") {
@@ -320,9 +356,9 @@ export class GameEngine {
     let gap = (180 - d * 46) * this.sc;
     gap = Math.max(100 * this.sc, gap);
     const margin = 70 * this.sc * 0.5;
-    const usable = this.h - this.groundH - gap - margin * 2;
-    const top = margin + (usable > 0 ? Math.random() * usable : this.h * 0.25);
-    const gapY = top + gap / 2;
+    const usable = Math.max(0, this.h - this.groundH - gap - margin * 2);
+    const top = margin + (usable > 0 ? Math.random() * usable : margin);
+    const gapY = Math.max(gap / 2 + margin, Math.min(top + gap / 2, this.h - this.groundH - gap / 2 - margin));
     const pipe: Pipe = {
       x: this.w + 40,
       gapY,
@@ -758,7 +794,7 @@ export class GameEngine {
   private circleRect(cx: number, cy: number, r: number, rx: number, ry: number, rw: number, rh: number) {
     const nx = Math.max(rx, Math.min(cx, rx + rw));
     const ny = Math.max(ry, Math.min(cy, ry + rh));
-    return (cx - nx) ** 2 + (cy - ny) ** 2 < r * r;
+    return (cx - nx) ** 2 + (cy - ny) ** 2 <= r * r;
   }
 
   private die() {

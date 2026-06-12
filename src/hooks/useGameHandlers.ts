@@ -2,7 +2,7 @@ import { useCallback, useRef } from "react";
 import { audio } from "../game/audio";
 import { RunResult } from "../game/engine";
 import {
-  ACHIEVEMENTS, getDailyMissions, LOGIN_REWARDS,
+  ACHIEVEMENTS, BADGES, getDailyMissions, LOGIN_REWARDS, podiumBadgeForRank,
 } from "../game/data";
 import { dayNumber, randomName, DEFAULT_STATS, type SaveData } from "../game/storage";
 import { getRank } from "../game/leaderboard";
@@ -32,6 +32,21 @@ export function useGameHandlers(save: SaveData, update: UpdateFn, setScreen: (s:
       }
       const rank = await getRank("daily", result.rankScore);
       result.summary.rank = rank;
+
+      // Boasting rights: award a permanent podium badge for top-3 daily finishes
+      // (only on a valid, recorded run that set a leaderboard score).
+      if (result.summary.valid && result.summary.status === "recorded" && result.rankScore > 0) {
+        const podiumId = podiumBadgeForRank(rank);
+        if (podiumId && !saveRef.current.ownedBadges.includes(podiumId)) {
+          update((s) => { if (!s.ownedBadges.includes(podiumId)) s.ownedBadges.push(podiumId); });
+          const b = BADGES.find((x) => x.id === podiumId);
+          if (b) {
+            result.summary.badges = [...result.summary.badges, b.name];
+            showToast(`${b.icon} ${b.name} badge earned!`);
+          }
+        }
+      }
+
       if (import.meta.env.DEV) {
         console.log(
           `[RunProcessor] Run ${r.runId.slice(0, 8)}... completed: ` +
@@ -44,6 +59,20 @@ export function useGameHandlers(save: SaveData, update: UpdateFn, setScreen: (s:
       console.error("[RunProcessor] Error processing run:", error);
       throw error;
     }
+  }, [update, showToast]);
+
+  /**
+   * Deduct revive cost from banked coins. Returns true if the player could
+   * afford it (and coins were deducted), false otherwise. This is the single
+   * source of truth for the revive transaction so the UI can't grant a free
+   * revive if the save is stale.
+   */
+  const reviveRun = useCallback((cost: number): boolean => {
+    const s = saveRef.current;
+    if (s.coins < cost) return false;
+    update((d) => { d.coins = Math.max(0, d.coins - cost); });
+    audio.shieldBreak();
+    return true;
   }, [update]);
 
   const claimAchievement = useCallback((id: string) => {
@@ -91,5 +120,5 @@ export function useGameHandlers(save: SaveData, update: UpdateFn, setScreen: (s:
     setScreen("menu");
   }, [update, showToast, setScreen]);
 
-  return { processRun, claimAchievement, claimMission, claimLogin, resetProgress };
+  return { processRun, reviveRun, claimAchievement, claimMission, claimLogin, resetProgress };
 }

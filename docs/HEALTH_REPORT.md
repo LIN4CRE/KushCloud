@@ -1,18 +1,18 @@
 # Repository Health Report
 
 **Generated:** 2026-06-12
-**Version:** 2.4.0
-**Auditor:** Independent Production-Readiness Audit (verified build/test/lint/audit)
+**Version:** 2.6.0
+**Auditor:** Comprehensive Merge Audit (verified build/test/lint/fix)
 
 ---
 
-## 🏥 Project Health Score: **84/100**
+## 🏥 Project Health Score: **88/100**
 
 | Category | Score | Weight | Weighted |
 |----------|-------|--------|----------|
-| Code Quality | 88/100 | 20% | 17.6 |
-| Security | 84/100 | 25% | 21.0 |
-| Testing | 74/100 | 20% | 14.8 |
+| Code Quality | 90/100 | 20% | 18.0 |
+| Security | 86/100 | 25% | 21.5 |
+| Testing | 76/100 | 20% | 15.2 |
 | Documentation | 92/100 | 10% | 9.2 |
 | CI/CD | 92/100 | 15% | 13.8 |
 | Repository Hygiene | 80/100 | 10% | 8.0 |

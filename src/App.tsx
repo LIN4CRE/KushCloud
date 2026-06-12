@@ -38,7 +38,7 @@ export default function App() {
     equipSkin, equipTrail, equipTitle, equipBadge, equipEffect,
   } = useShopHandlers(save, update);
 
-  const { processRun, claimAchievement, claimMission, claimLogin, resetProgress } =
+  const { processRun, reviveRun, claimAchievement, claimMission, claimLogin, resetProgress } =
     useGameHandlers(save, update, setScreen);
 
   useAudio(save);
@@ -106,6 +106,7 @@ export default function App() {
             save={save}
             onExit={() => setScreen("menu")}
             processRun={processRun}
+            reviveRun={reviveRun}
           />
         )}
         {screen === "shop" && (

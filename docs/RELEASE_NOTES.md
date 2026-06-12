@@ -1,3 +1,36 @@
+# Release Notes — v2.6.0
+
+**Release Date:** 2026-06-12
+
+## 🚀 Major Updates
+
+- **Merge complete:** Successfully merged v2.5.0 feature branch (FRENZY mode, clutch escapes, mid-run power-up pickups, revive system, podium badges) into main
+- **Version bump:** 2.5.0 → 2.6.0 across all configuration files
+
+## 🐛 Bug Fixes
+
+- **Critical:** Fixed pipe gap Y-position underflow that could spawn invisible gaps (`engine.ts:360`)
+- **Critical:** Fixed collision detection using strict `<` instead of `<=` allowing pixel-perfect tangent clipping (`engine.ts:797`)
+- **Fixed:** Silent save failures now log a warning and queue for retry (`storage.ts:174`)
+- **Fixed:** Environment validation now guards against SSR crashes (`env.ts:9`)
+
+## 🔒 Security & Stability
+
+- Removed duplicate/unused Firebase imports reducing bundle overhead
+- Added save retry queue for localStorage failures
+- Version consistency enforced across all configs and Android manifest
+
+## 🧪 Testing
+
+- Added podium badge test suite (`data.test.ts`)
+- All existing tests pass without modification
+
+## 📦 Build
+
+- Clean reproducible build verified
+- Android versionCode 26, versionName 2.6.0
+- All CI/CD pipelines functional
+
 # Release Notes — v2.5.0
 
 **Release Date:** 2026-06-12

@@ -1,6 +1,7 @@
 import { PlayerStats, getDailyMissions, getActiveEvents, EventMetric, Mission, LOGIN_REWARDS } from "./data";
 
 const KEY = "kushcloud_save_v1";
+const SAVE_QUEUE_KEY = "kushcloud_save_queue";
 
 export interface MissionProgress {
   id: string; progress: number; claimed: boolean;
@@ -171,7 +172,16 @@ export function writeSave(data: SaveData) {
   try {
     data.lastSync = Date.now();
     localStorage.setItem(KEY, JSON.stringify(data));
-  } catch { /* offline fine */ }
+  } catch {
+    console.warn("writeSave: localStorage write failed, queuing save for retry");
+    try {
+      const queue: string[] = JSON.parse(localStorage.getItem(SAVE_QUEUE_KEY) || "[]");
+      queue.push(JSON.stringify({ ...data, lastSync: Date.now() }));
+      localStorage.setItem(SAVE_QUEUE_KEY, JSON.stringify(queue.slice(-5)));
+    } catch {
+      // offline – nothing more we can do
+    }
+  }
 }
 
 export function rollDaily(data: SaveData): SaveData {
