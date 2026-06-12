@@ -1,12 +1,7 @@
-import path from "path";
-import { fileURLToPath } from "url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 function classicScript(): Plugin {
   return {
@@ -26,12 +21,7 @@ function classicScript(): Plugin {
 
 export default defineConfig({
   base: "/KushCloud/",
-  plugins: [react({ jsxRuntime: "automatic" }), tailwindcss(), viteSingleFile(), classicScript()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-    },
-  },
+  plugins: [react(), tailwindcss(), viteSingleFile(), classicScript()],
   build: {
     target: "es2018",
     cssMinify: "lightningcss",

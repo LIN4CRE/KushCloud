@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import GameCanvas from "../game/GameCanvas";
+import GameCanvas from "../components/GameCanvas";
 import { RunResult } from "../game/engine";
 import { SaveData } from "../game/storage";
 import type { RunSummary } from "../game/runProcessing";

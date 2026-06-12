@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { GameEngine, RunResult, GameState } from "./engine";
-import { Skin, Trail, World, worldForScore } from "./data";
-import { audio } from "./audio";
+import { GameEngine, RunResult, GameState } from "../game/engine";
+import { Skin, Trail, World, worldForScore } from "../game/data";
+import { audio } from "../game/audio";
 
 interface Props {
   skin: Skin;

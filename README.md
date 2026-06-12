@@ -51,17 +51,16 @@ Open **https://lin4cre.github.io/KushCloud/** in Chrome, Safari, or Firefox. Ful
 ## Features
 
 | Feature | Details |
-|---|---|
-| **Custom game engine** | Canvas-based physics, procedural level generation, near-miss detection, particle systems |
-| **Synthesised audio** | Music and sound effects generated in real-time via Web Audio API — zero audio files, tiny bundle |
-| **Real-time leaderboards** | Global, daily, and weekly scoreboards powered by Firebase Realtime Database with anti-cheat validation |
-| **Progression system** | XP, levelling, coins, daily login streaks, weekly events, achievements |
-| **Shop** | Unlockable bird skins and particle trails — cosmetic only, never pay-to-win |
-| **Daily missions** | Rotating challenges with rewards, server-validated scores |
-| **Statistics dashboard** | Player analytics, progress tracking, server sync status |
-| **Practice mode** | Replay system, advanced customization, power user tools |
-| **Accessibility** | Reduced motion mode, high contrast mode |
-| **APK builds** | Auto-built via GitHub Actions on every release tag — downloadable instantly |
+|---|---|---|
+| **Custom game engine** | Canvas physics, procedural generation, near-miss detection, particle systems |
+| **Synthesised audio** | Music + SFX via Web Audio API — zero audio files |
+| **Leaderboards** | Global, daily, weekly scoreboards with anti-cheat validation |
+| **Progression** | XP, levels, coins, login streaks, loot crates, seasonal events |
+| **Shop** | Unlockable skins, trails, titles, badges — cosmetic only |
+| **Daily missions** | Rotating challenges with rewards |
+| **Statistics** | Player analytics, progress tracking, sync status |
+| **Accessibility** | Reduced motion, high contrast modes |
+| **APK builds** | Auto-built via CI on every release tag |
 
 ---
 
@@ -122,11 +121,11 @@ cd android && ./gradlew assembleDebug
 ### Quick Commands
 
 ```bash
-npm run dev          # Dev server on :5000
-npm run typecheck    # TypeScript check
-npm run lint         # ESLint
-npm run build        # Production build (single-file)
-npm test             # Run 113 unit tests
+npm run dev           # Dev server on :5000
+npm run typecheck     # TypeScript check
+npm run lint          # ESLint
+npm run build         # Production build (single-file)
+npm test              # Run unit tests
 npm run test:coverage # Coverage report
 ```
 
@@ -136,25 +135,20 @@ npm run test:coverage # Coverage report
 
 ```
 src/
-├── game/              # Core engine, audio, physics, collision, storage
-│   ├── engine.ts      # Game loop, bird physics, pipe generation, particles
-│   ├── audio.ts       # Procedural music & SFX synthesis
-│   ├── data.ts        # Skins, trails, achievements, world config
-│   ├── storage.ts     # Save/load, validation, migration
-│   ├── runProcessing.ts # Anti-cheat, XP/coin calculation, leaderboard submission
-│   ├── leaderboard.ts # Leaderboard read/write with Firebase
-│   └── GameCanvas.tsx # Canvas renderer component
-├── hooks/             # Custom React hooks (extracted from App.tsx)
-│   ├── useAudio.ts    # Audio initialization and volume sync
-│   ├── useGameHandlers.ts # Run processing, achievements, missions, login rewards
-│   └── useShopHandlers.ts # Buy/equip skins, trails, crates, dust crafting
-├── screens/           # Menu, Play, Shop, Missions, Profile, Leaderboard, etc.
-├── utils/             # Sanitization, error handling, update checker
+├── game/              # Engine, audio, physics, storage, data
+├── components/        # React components (GameCanvas, KushLogo)
+├── screens/           # Menu, Play, Shop, Settings, Leaderboard, etc.
+├── hooks/             # Custom React hooks
 ├── config/            # Firebase init, env validation
-├── ui.tsx             # Shared design system components (Button, Toast, ScreenShell)
-├── store.ts           # Persistent save-data hook (localStorage + Firebase sync)
-└── App.tsx            # Navigation, loot crate modal, update banner
+├── utils/             # Error handling, sanitization, update checker
+├── App.tsx            # Root navigation and state
+├── store.ts           # Persistent save-data hook
+├── ui.tsx             # Shared design system components
+├── index.css          # Tailwind imports and animations
+└── main.tsx           # Entry point
 ```
+
+`tests/` mirrors `src/` with Vitest unit tests.
 
 ---
 
@@ -170,17 +164,13 @@ src/
 
 ## Documentation
 
-- [CHANGELOG](docs/changelog/CHANGELOG.md) — Release history
-- [CONTRIBUTING](docs/community/CONTRIBUTING.md) — Guidelines for contributors
-- [SECURITY.md](docs/security/SECURITY.md) — Security policy and reporting
-- [RELEASE](docs/guides/RELEASE.md) — Release process and versioning
-- [GOVERNANCE](docs/community/GOVERNANCE.md) — Project governance model
-- [CODE_OF_CONDUCT](docs/community/CODE_OF_CONDUCT.md) — Community standards
-- [DEVELOPER_GUIDE](docs/guides/DEVELOPER_GUIDE.md) — Technical deep-dive
-- [INSTALL_GUIDE](docs/guides/INSTALL_GUIDE.md) — Detailed installation steps
-- [PRODUCTION_READINESS_CHECKLIST](docs/guides/PRODUCTION_READINESS_CHECKLIST.md) — Pre-release checklist
-- [SECURITY_CHECKLIST](docs/security/SECURITY_CHECKLIST.md) — Security verification checklist
-- [VERSION_MANAGEMENT](docs/guides/VERSION_MANAGEMENT.md) — Version management guide
+- [CHANGELOG](docs/CHANGELOG.md) — Release history
+- [CONTRIBUTING](CONTRIBUTING.md) — Guidelines for contributors
+- [SECURITY](SECURITY.md) — Security policy and reporting
+- [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md) — Community standards
+- [DEPLOYMENT_GUIDE](docs/DEPLOYMENT_GUIDE.md) — Build and deploy instructions
+- [RELEASE_GUIDE](docs/RELEASE_GUIDE.md) — Release process and versioning
+- [ROADMAP](docs/ROADMAP.md) — Future plans
 
 ---
 
