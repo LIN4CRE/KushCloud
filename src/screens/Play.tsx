@@ -76,6 +76,21 @@ export default function Play({ save, onExit, processRun }: Props) {
         if (s.leveledUp.length) setTimeout(() => audio.levelUp(), 250);
       } catch (error) {
         console.error("Failed to process run:", error);
+        // Always show Game Over so the player can restart
+        if (activeRunIdRef.current === deathRunId) {
+          setSummary({
+            xpGained: 0,
+            coinsGained: 0,
+            levelUpCoins: 0,
+            newBest: false,
+            leveledUp: [],
+            achievements: [],
+            missions: [],
+            valid: false,
+            rank: 1,
+            status: "invalid",
+          });
+        }
       }
     }, 850);
   };
@@ -240,6 +255,19 @@ export default function Play({ save, onExit, processRun }: Props) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Dead but no summary yet — tap to restart fallback (covers processing failures) */}
+      {phase === "dead" && !summary && !practice && (
+        <button
+          onClick={restart}
+          className="absolute inset-0 z-10 flex items-center justify-center bg-transparent cursor-pointer"
+          aria-label="Tap to restart"
+        >
+          <div className="rounded-2xl bg-black/50 px-6 py-3 border border-white/10 backdrop-blur-sm animate-pulse">
+            <p className="text-sm font-bold text-white/80">Tap to restart...</p>
+          </div>
+        </button>
       )}
 
       {/* Game Over modal */}
