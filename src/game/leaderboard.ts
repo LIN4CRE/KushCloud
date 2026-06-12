@@ -4,6 +4,7 @@ import {
   removeFriend as removeFriendDb, subscribeFriends as subscribeFriendsDb,
   searchUserByUid
 } from "../config/firebase";
+import type { LeaderboardEntry } from "../config/firebase";
 import { seededScores, FRIEND_NAMES } from "./storage";
 import { calculateRank } from "./leaderboardModel";
 
@@ -12,12 +13,16 @@ let unsubscribers: (() => void)[] = [];
 
 export function getUID(): string {
   if (!currentUID) {
-    const stored = localStorage.getItem("kushcloud_uid");
-    if (stored) {
-      currentUID = stored;
-    } else {
+    try {
+      const stored = localStorage.getItem("kushcloud_uid");
+      if (stored) {
+        currentUID = stored;
+      } else {
+        currentUID = generateUID();
+        localStorage.setItem("kushcloud_uid", currentUID);
+      }
+    } catch {
       currentUID = generateUID();
-      localStorage.setItem("kushcloud_uid", currentUID);
     }
   }
   return currentUID;
@@ -49,38 +54,51 @@ export function subscribeToLeaderboard(
   period: LeaderboardPeriod,
   playerName: string,
   playerScore: number,
-  _friendsOnly: boolean,
+  friendsOnly: boolean,
   callback: (entries: LeaderboardServiceEntry[]) => void
 ): () => void {
   const uid = getUID();
-  
-  const unsub = subscribeLeaderboard(period, (entries) => {
-    // If friendsOnly is true, we'll need to fetch the friends list first
-    // or filter from the existing save data.
-    // For now, let's keep it global and filter later if needed.
-    const list: LeaderboardServiceEntry[] = entries.map((e) => ({
+
+  const emit = (entries: LeaderboardEntry[]) => {
+    const mapped: LeaderboardServiceEntry[] = entries.map((e) => ({
       uid: e.uid,
       name: e.name,
       score: e.score,
       you: e.uid === uid,
-      friend: false, // Updated by the caller if needed
+      friend: false,
     }));
-    
-    // Add player if not in list
-    const myEntry = list.find((e) => e.you);
+    const myEntry = mapped.find((e) => e.you);
     if (myEntry) {
       if (playerScore > myEntry.score) {
         myEntry.score = playerScore;
-        sortServiceEntries(list);
+        sortServiceEntries(mapped);
       }
     } else {
-      list.push({ uid, name: playerName, score: playerScore, you: true });
-      sortServiceEntries(list);
+      mapped.push({ uid, name: playerName, score: playerScore, you: true });
+      sortServiceEntries(mapped);
     }
-    
-    callback(list.slice(0, 50));
+    const finalList = friendsOnly
+      ? mapped.filter((e) => e.you || FRIEND_NAMES.includes(e.name))
+      : mapped;
+    callback(finalList.slice(0, 50));
+  };
+
+  const unsub = subscribeLeaderboard(period, (entries) => {
+    if (entries.length > 0) {
+      emit(entries);
+    } else {
+      // Firebase unavailable or empty — use local seeded scores
+      const localEntries: LeaderboardEntry[] = seededScores(period).map((s) => ({
+        uid: s.name,
+        name: s.name,
+        score: s.score,
+        timestamp: Date.now(),
+        period,
+      }));
+      emit(localEntries);
+    }
   });
-  
+
   unsubscribers.push(unsub);
   return () => {
     unsub();

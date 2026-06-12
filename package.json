@@ -1,6 +1,6 @@
 {
   "name": "kushcloud",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": false,
   "description": "Flappy bird style arcade game with canvas physics, real-time Firebase leaderboards, unlockable skins, and daily missions.",
   "license": "MIT",

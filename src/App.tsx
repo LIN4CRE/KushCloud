@@ -49,8 +49,17 @@ export default function App() {
       console.error("Application error:", event.error);
       setError(event.error?.message || "An unknown error occurred");
     };
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      console.error("Unhandled promise rejection:", event.reason);
+      setError(event.reason?.message || "An unknown error occurred");
+      event.preventDefault();
+    };
     window.addEventListener("error", handleError);
-    return () => window.removeEventListener("error", handleError);
+    window.addEventListener("unhandledrejection", handleRejection);
+    return () => {
+      window.removeEventListener("error", handleError);
+      window.removeEventListener("unhandledrejection", handleRejection);
+    };
   }, []);
 
   useEffect(() => {

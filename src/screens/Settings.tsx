@@ -1,5 +1,6 @@
 import { SaveData } from "../game/storage";
 import { ScreenShell, Button, cx } from "../ui";
+import { env } from "../config/env";
 
 interface Props {
   save: SaveData;
@@ -123,7 +124,7 @@ export default function Settings({ save, onBack, onChange, onReset }: Props) {
         </Button>
 
         <p className="pb-2 pt-1 text-center text-[10px] font-semibold text-white/20">
-          KushCloud {import.meta.env.VITE_APP_VERSION || "2.1.0"} · Made with 🌿 & ☁️
+          {env.app.name} v{env.app.version} · Made with 🌿 & ☁️
         </p>
       </div>
     </ScreenShell>

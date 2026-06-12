@@ -6,6 +6,7 @@ import type { RunSummary } from "../game/runProcessing";
 import { SKINS, TRAILS, World, worldForScore, levelFromXp } from "../game/data";
 import { Button, CoinPill, cx } from "../ui";
 import { audio } from "../game/audio";
+import { env } from "../config/env";
 
 function createRunId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -377,9 +378,12 @@ export default function Play({ save, onExit, processRun }: Props) {
               <Button variant="dark" className="w-full" onClick={exitToMenu}>⌂ Main Menu</Button>
             </div>
 
-            <p className="mt-3 text-center text-[10px] font-semibold text-white/25">
-              Level {lvl.level} · {save.coins.toLocaleString()} coins banked
-            </p>
+            <div className="mt-3 text-center">
+              <p className="text-[10px] font-semibold text-white/25">
+                Level {lvl.level} · {save.coins.toLocaleString()} coins banked
+              </p>
+              <p className="text-[8px] font-semibold text-white/15 mt-1">{env.app.name} v{env.app.version}</p>
+            </div>
           </div>
         </div>
       )}
