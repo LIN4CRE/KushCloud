@@ -249,7 +249,8 @@ export function xpForLevel(level: number): number {
 export function levelFromXp(totalXp: number): { level: number; into: number; need: number } {
   let level = 1;
   let remaining = totalXp;
-  while (remaining >= xpForLevel(level)) {
+  const MAX_LEVEL = 1000;
+  while (remaining >= xpForLevel(level) && level < MAX_LEVEL) {
     remaining -= xpForLevel(level);
     level++;
   }
@@ -274,6 +275,13 @@ export const WEEKLY_EVENTS = [
 
 export function currentWeekIndex(): number {
   return Math.floor(Date.now() / (86400000 * 7));
+}
+
+/** Returns bonus crate rolls if the current weekly event is "Loot Fever". */
+export function lootFeverBonusRolls(): number {
+  const week = currentWeekIndex();
+  const ev = WEEKLY_EVENTS[week % WEEKLY_EVENTS.length];
+  return ev.name === "Loot Fever" ? 1 : 0;
 }
 
 export type EventMetric =
@@ -390,8 +398,8 @@ export function isEventActive(event: EventDef): boolean {
 }
 
 // Loot box opening logic
-export function rollLootCrate(crate: LootCrate, ownedIds: Set<string> = new Set()): { drops: LootDrop[]; dust: number } {
-  const rolls = crate.minRolls + Math.floor(Math.random() * (crate.maxRolls - crate.minRolls + 1));
+export function rollLootCrate(crate: LootCrate, ownedIds: Set<string> = new Set(), options?: { bonusRolls?: number }): { drops: LootDrop[]; dust: number } {
+  const rolls = crate.minRolls + Math.floor(Math.random() * (crate.maxRolls - crate.minRolls + 1)) + (options?.bonusRolls || 0);
   const drops: LootDrop[] = [];
   let dust = 0;
   const allItems: LootDrop[] = [...SKINS.filter(s => s.id !== "bud"), ...TRAILS.filter(t => t.id !== "none"), ...TITLES, ...BADGES, ...EFFECTS.filter(e => e.id !== "e_none")];

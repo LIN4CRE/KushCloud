@@ -8,6 +8,8 @@ import {
 import { dayNumber, type SaveData } from "../game/storage";
 import { showToast as toastNotify } from "../ui";
 
+const DUST_COST: Record<Rarity, number> = { common: 15, uncommon: 30, rare: 60, epic: 120, legendary: 300, mythic: 800 };
+
 type UpdateFn = <T>(fn: (s: SaveData) => T) => T;
 
 export function useShopHandlers(save: SaveData, update: UpdateFn) {
@@ -107,8 +109,6 @@ export function useShopHandlers(save: SaveData, update: UpdateFn) {
     });
     showToast(`Got ${p.name}! Use it in-game!`);
   }, [update, showToast]);
-
-  const DUST_COST: Record<Rarity, number> = { common: 15, uncommon: 30, rare: 60, epic: 120, legendary: 300, mythic: 800 };
 
   const buyDustItem = useCallback((rarity: Rarity) => {
     const cost = DUST_COST[rarity];

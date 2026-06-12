@@ -60,6 +60,10 @@ class AudioEngine {
     g.connect(dest);
     o.start();
     o.stop(this.ctx.currentTime + dur + 0.02);
+    // Disconnect nodes after playback to prevent GC pressure
+    const cleanup = () => { try { o.disconnect(); g.disconnect(); } catch { /* already cleaned up */ } };
+    o.addEventListener("ended", cleanup);
+    setTimeout(cleanup, (dur + 0.1) * 1000);
   }
 
   flap() { if (this.sfxGain) this.tone(420, 0.12, "sine", 0.25, this.sfxGain, 700); }

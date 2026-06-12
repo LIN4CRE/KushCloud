@@ -133,10 +133,12 @@ export function applyCompletedRun(save: SaveData, run: RunResult): RunProcessRes
   const ev = WEEKLY_EVENTS[week % WEEKLY_EVENTS.length];
   const coinBoost = ev.coinBoost;
   const xpBoost = ev.xpBoost;
+  // Combo Carnival: near-misses give extra combo bonus to XP
+  const comboCarnivalBonus = ev.name === "Combo Carnival" ? run.nearMiss * 5 : 0;
 
   const beforeLevel = levelFromXp(save.xp).level;
   const coinsGained = Math.round(run.coins * 10 * coinBoost) + run.score * 2;
-  const xpGained = Math.round((run.score * 10 + run.coins * 5 + run.nearMiss * 8 + 5) * xpBoost);
+  const xpGained = Math.round((run.score * 10 + run.coins * 5 + run.nearMiss * 8 + comboCarnivalBonus + 5) * xpBoost);
   const projectedXp = save.xp + xpGained;
   const targetLevel = levelFromXp(projectedXp).level;
   const leveledUp: number[] = [];

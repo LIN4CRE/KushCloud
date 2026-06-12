@@ -38,12 +38,20 @@ export default function Play({ save, onExit, processRun }: Props) {
   const deadTimer = useRef<number>(0);
   const activeRunIdRef = useRef(runId);
   const processedRunIdsRef = useRef(new Set<string>());
+  const gameOverRef = useRef<HTMLDivElement>(null);
   const isDead = phase === "dead" || !!summary;
   const prevBestRef = useRef(save.stats.bestScore);
 
   useEffect(() => {
     activeRunIdRef.current = runId;
   }, [runId]);
+
+  // Focus trap for Game Over modal
+  useEffect(() => {
+    if (summary && !practice && gameOverRef.current) {
+      gameOverRef.current.focus();
+    }
+  }, [summary, practice]);
 
   useEffect(() => {
     audio.resume();
@@ -237,7 +245,14 @@ export default function Play({ save, onExit, processRun }: Props) {
       {/* Game Over modal */}
       {summary && !practice && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
-          <div className="w-full max-w-sm rounded-3xl bg-slate-900/95 border border-white/10 p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)] animate-[pop_0.35s_ease-out]">
+          <div
+            ref={gameOverRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={summary.newBest ? "New best score" : "Game over"}
+            tabIndex={-1}
+            className="w-full max-w-sm rounded-3xl bg-slate-900/95 border border-white/10 p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)] animate-[pop_0.35s_ease-out] outline-none"
+          >
             {/* Header */}
             <div className="text-center mb-4">
               <h2 className="text-2xl font-black text-white">

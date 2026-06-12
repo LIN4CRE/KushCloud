@@ -228,7 +228,7 @@ function CrateReveal({ crate, save, onClaim, onClose }: {
 
   useEffect(() => {
     const owned = new Set([...save.ownedSkins, ...save.ownedTrails, ...save.ownedTitles, ...save.ownedBadges, ...save.ownedEffects]);
-    const result = rollLootCrate(crate, owned);
+    const result = rollLootCrate(crate, owned, { bonusRolls: lootFeverBonusRolls() });
     if (result.drops.length === 0) {
       onClaim([], 0);
       return;
@@ -310,4 +310,4 @@ function CrateReveal({ crate, save, onClaim, onClose }: {
 }
 
 // Re-export needed for CrateReveal
-import { RARITY, rollLootCrate } from "./game/data";
+import { RARITY, rollLootCrate, lootFeverBonusRolls } from "./game/data";

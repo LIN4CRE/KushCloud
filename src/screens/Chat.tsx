@@ -49,6 +49,9 @@ export default function Chat({ save, onBack }: Props) {
         {/* Messages */}
         <div
           ref={scrollRef}
+          role="log"
+          aria-live="polite"
+          aria-label="Chat messages"
           className="flex-1 overflow-y-auto space-y-3 pr-2 [scrollbar-width:thin]"
         >
           {messages.length === 0 && (
@@ -86,11 +89,13 @@ export default function Chat({ save, onBack }: Props) {
             maxLength={500}
             onKeyDown={(e) => { if (e.key === "Enter") handleSend(); }}
             placeholder="Type a message..."
+            aria-label="Chat message input"
             className="flex-1 rounded-xl bg-black/30 border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
           />
           <button
             onClick={handleSend}
             disabled={!text.trim() || sending}
+            aria-label="Send message"
             className="h-10 w-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
           >
             {sending ? "..." : "✈️"}

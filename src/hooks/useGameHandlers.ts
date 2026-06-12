@@ -31,6 +31,7 @@ export function useGameHandlers(save: SaveData, update: UpdateFn, setScreen: (s:
         submitPlayerScore(currentSave.playerName, submission.score, submission.period).catch(() => {});
       }
       const rank = await getRank("daily", result.rankScore);
+      result.summary.rank = rank;
       if (import.meta.env.DEV) {
         console.log(
           `[RunProcessor] Run ${r.runId.slice(0, 8)}... completed: ` +
