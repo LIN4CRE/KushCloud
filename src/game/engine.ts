@@ -1,6 +1,15 @@
-import { Skin, Trail, World, worldForScore } from "./data";
+import { Skin, Trail, World, worldForScore, POWERUPS } from "./data";
 import { audio } from "./audio";
 import { PowerUpManager } from "./powerups";
+
+// Power-ups that can spawn as mid-run pickups (the cosmetic/utility ones —
+// no shields here so the dramatic shield save stays a deliberate shop purchase).
+const PICKUP_POOL: { id: string; color: string }[] = [
+  { id: "pu_coin", color: "#c084fc" },
+  { id: "pu_slow", color: "#7dd3fc" },
+  { id: "pu_magnet", color: "#34d399" },
+  { id: "pu_double", color: "#fbbf24" },
+];
 
 export interface RunResult {
   runId: string;
@@ -11,6 +20,8 @@ export interface RunResult {
   bestCombo: number;
   durationMs: number;
   flaps: number;
+  /** Number of extremely-tight "clutch" escapes during the run. */
+  clutch?: number;
 }
 
 export type GameState = "ready" | "playing" | "dead";
@@ -35,6 +46,18 @@ interface FloatText {
   x: number; y: number; vy: number; life: number; text: string; color: string; size: number;
 }
 
+// A power-up token that floats across the screen mid-run. Flying into it
+// activates the corresponding effect via the PowerUpManager.
+interface PowerUpPickup {
+  x: number;
+  y: number;
+  bob: number;
+  taken: boolean;
+  id: string;
+  icon: string;
+  color: string;
+}
+
 export interface EngineCallbacks {
   onScore?: (score: number) => void;
   onCoin?: (runCoins: number) => void;
@@ -44,6 +67,12 @@ export interface EngineCallbacks {
   onDeath?: (result: RunResult) => void;
   onWorld?: (world: World) => void;
   onStateChange?: (state: GameState) => void;
+  /** Fired when the player flies into a mid-run power-up token. */
+  onPowerUp?: (id: string, name: string) => void;
+  /** Fired when FRENZY mode starts (true) or ends (false). */
+  onFrenzy?: (active: boolean, remainingMs: number) => void;
+  /** Fired on a clutch (very-near-death) escape, with the bonus awarded. */
+  onClutch?: (count: number) => void;
 }
 
 export class GameEngine {
@@ -107,6 +136,17 @@ export class GameEngine {
   private speedLines: { x: number; y: number; len: number; speed: number }[] = [];
   // new best indicator
   bestScoreBefore = 0;
+
+  // --- mid-run power-up pickups ---
+  private pickups: PowerUpPickup[] = [];
+  private nextPickupScore = 8; // first pickup window
+
+  // --- streak gate / FRENZY (double points after a perfect streak) ---
+  private perfectStreak = 0;
+  frenzyTimer = 0;
+  private readonly FRENZY_STREAK_GOAL = 3; // perfects in a row to trigger
+  private readonly FRENZY_DURATION = 6; // seconds
+  clutch = 0; // count of clutch escapes this run
 
   constructor(skin: Skin, trail: Trail, world: World, cb: EngineCallbacks) {
     this.skin = skin;
@@ -215,8 +255,14 @@ export class GameEngine {
     this.lastMilestone = 0;
     this.speedLines = [];
     this.bestScoreBefore = 0;
+    this.pickups = [];
+    this.nextPickupScore = 8;
+    this.perfectStreak = 0;
+    this.frenzyTimer = 0;
+    this.clutch = 0;
     this.cb.onWorld?.(this.world);
     this.cb.onStateChange?.(this.state);
+    this.cb.onFrenzy?.(false, 0);
   }
 
   flap() {
@@ -291,6 +337,51 @@ export class GameEngine {
       pipe.coin = { y: gapY + (Math.random() - 0.5) * gap * 0.4, taken: false, bob: Math.random() * Math.PI * 2 };
     }
     this.pipes.push(pipe);
+  }
+
+  private spawnPickup() {
+    const pick = PICKUP_POOL[Math.floor(Math.random() * PICKUP_POOL.length)];
+    const def = POWERUPS.find((p) => p.id === pick.id);
+    if (!def) return;
+    // Spawn in a safe vertical band so it's always reachable.
+    const minY = this.h * 0.2;
+    const maxY = this.h - this.groundH - this.h * 0.2;
+    this.pickups.push({
+      x: this.w + 50,
+      y: minY + Math.random() * Math.max(1, maxY - minY),
+      bob: Math.random() * Math.PI * 2,
+      taken: false,
+      id: pick.id,
+      icon: def.icon,
+      color: pick.color,
+    });
+  }
+
+  private collectPickup(pu: PowerUpPickup, py: number) {
+    const def = POWERUPS.find((p) => p.id === pu.id);
+    this.powerUpManager.activate(pu.id);
+    audio.powerUp();
+    this.shake = Math.max(this.shake, 5);
+    this.flashAlpha = Math.max(this.flashAlpha, 0.25);
+    this.burst(pu.x, py, pu.color, 18, 220, "spark");
+    this.burst(pu.x, py, "#ffffff", 8, 130, "puff");
+    this.addFloat(pu.x, py - 26 * this.sc, `${pu.icon} ${def?.name ?? "Power-Up"}!`, pu.color, 17);
+    navigator.vibrate?.([12, 20, 12]);
+    this.cb.onPowerUp?.(pu.id, def?.name ?? "Power-Up");
+  }
+
+  private triggerFrenzy() {
+    this.frenzyTimer = this.FRENZY_DURATION;
+    this.perfectStreak = 0;
+    this.shake = 12;
+    this.flashAlpha = 0.6;
+    audio.frenzy();
+    this.burst(this.w / 2, this.h * 0.35, "#ff6b6b", 26, 280, "spark");
+    this.burst(this.w / 2, this.h * 0.35, "#fbbf24", 22, 260, "spark");
+    this.burst(this.w / 2, this.h * 0.35, "#60a5fa", 18, 240, "spark");
+    this.addFloat(this.w / 2, this.h * 0.3, "🔥 FRENZY! 2× POINTS", "#fbbf24", 24);
+    navigator.vibrate?.([30, 30, 30, 30, 60]);
+    this.cb.onFrenzy?.(true, this.frenzyTimer * 1000);
   }
 
   private get groundH() {
@@ -445,6 +536,37 @@ export class GameEngine {
       const spacing = Math.max(200 * this.sc, this.w * (0.58 - this.difficulty * 0.08));
       const last = this.pipes[this.pipes.length - 1];
       if (!last || last.x < this.w - spacing) this.spawnPipe();
+
+      // Mid-run power-up pickups: once the player passes a score threshold,
+      // spawn a floating token, then schedule the next one ~12-20 points later.
+      if (this.score >= this.nextPickupScore && this.pickups.length === 0) {
+        this.spawnPickup();
+        this.nextPickupScore = this.score + 12 + Math.floor(Math.random() * 8);
+      }
+    }
+
+    // FRENZY countdown
+    if (this.frenzyTimer > 0) {
+      this.frenzyTimer = Math.max(0, this.frenzyTimer - dt);
+      if (this.frenzyTimer === 0) this.cb.onFrenzy?.(false, 0);
+      else this.cb.onFrenzy?.(true, this.frenzyTimer * 1000);
+    }
+
+    // move & collect power-up pickups
+    for (const pu of this.pickups) {
+      if (pu.taken) continue;
+      pu.x -= this.speed * dt;
+      pu.bob += dt * 4;
+      const py = pu.y + Math.sin(pu.bob) * 7 * this.sc;
+      const pr = 16 * this.sc;
+      if (Math.hypot(pu.x - this.bx, py - this.by) < this.radius + pr) {
+        pu.taken = true;
+        this.collectPickup(pu, py);
+      }
+    }
+    // cull off-screen pickups
+    for (let i = this.pickups.length - 1; i >= 0; i--) {
+      if (this.pickups[i].x < -40 || this.pickups[i].taken) this.pickups.splice(i, 1);
     }
 
     const floorY = this.h - this.groundH - this.radius;
@@ -490,19 +612,28 @@ export class GameEngine {
         const distFromCenter = Math.abs(this.by - p.gapY);
         const isPerfect = distFromCenter < p.gap * 0.12;
 
+        const frenzyMult = this.frenzyTimer > 0 ? 2 : 1;
         if (isPerfect) {
           this.perfectPasses++;
           this.combo++; // Bonus combo
-          this.score += this.multiplier * 2;
+          this.score += this.multiplier * 2 * frenzyMult;
           audio.score(); // Could add a special sound
           this.burst(this.bx, this.by, "#60a5fa", 15, 200, "spark");
           this.addFloat(this.bx, this.by - 40 * this.sc, "PERFECT!", "#60a5fa", 22);
           this.cb.onPerfectPass?.(this.perfectPasses);
           this.shake = 5;
           navigator.vibrate?.([10, 30, 10]);
+
+          // streak gate: chain perfects to trigger FRENZY
+          this.perfectStreak++;
+          if (this.frenzyTimer <= 0 && this.perfectStreak >= this.FRENZY_STREAK_GOAL) {
+            this.triggerFrenzy();
+          }
         } else {
-          this.score += this.multiplier;
+          this.score += this.multiplier * frenzyMult;
           audio.score();
+          // a non-perfect pass breaks the perfect streak (combo is untouched)
+          this.perfectStreak = 0;
         }
 
         this.updateMultiplier();
@@ -550,14 +681,31 @@ export class GameEngine {
           this.nearMiss++;
           this.combo++;
           this.updateMultiplier();
-          this.score += this.multiplier;
-          audio.nearMiss();
-          this.shake = 4;
-          this.slowmoTimer = 0.18; // brief slowmo on near miss
-          navigator.vibrate?.(15);
-          this.burst(this.bx + this.radius, this.by, "#7dffb0", 10, 170, "spark");
-          this.burst(this.bx + this.radius, this.by, "#ffffff", 6, 100, "puff");
-          this.addFloat(this.bx, this.by + 24 * this.sc, "NEAR MISS!", "#7dffb0", 15);
+          const frenzyMult = this.frenzyTimer > 0 ? 2 : 1;
+          // A "clutch" is an extremely tight escape — bigger reward & drama.
+          const isClutch = near < 6 * this.sc;
+          if (isClutch) {
+            this.clutch++;
+            this.score += this.multiplier * 3 * frenzyMult;
+            audio.clutch();
+            this.shake = 9;
+            this.flashAlpha = Math.max(this.flashAlpha, 0.35);
+            this.slowmoTimer = 0.4; // dramatic, longer slowmo on a clutch
+            navigator.vibrate?.([10, 25, 10, 25, 40]);
+            this.burst(this.bx + this.radius, this.by, "#fbbf24", 16, 220, "spark");
+            this.burst(this.bx + this.radius, this.by, "#ffffff", 10, 130, "puff");
+            this.addFloat(this.bx, this.by + 24 * this.sc, "⚡ CLUTCH! +" + this.multiplier * 3 * frenzyMult, "#fbbf24", 18);
+            this.cb.onClutch?.(this.clutch);
+          } else {
+            this.score += this.multiplier * frenzyMult;
+            audio.nearMiss();
+            this.shake = 4;
+            this.slowmoTimer = 0.18; // brief slowmo on near miss
+            navigator.vibrate?.(15);
+            this.burst(this.bx + this.radius, this.by, "#7dffb0", 10, 170, "spark");
+            this.burst(this.bx + this.radius, this.by, "#ffffff", 6, 100, "puff");
+            this.addFloat(this.bx, this.by + 24 * this.sc, "NEAR MISS!", "#7dffb0", 15);
+          }
           this.cb.onNearMiss?.(this.nearMiss);
         }
       }
@@ -650,6 +798,7 @@ export class GameEngine {
       bestCombo: this.bestCombo,
       durationMs: performance.now() - this.startTime,
       flaps: this.flaps,
+      clutch: this.clutch,
     };
     this.cb.onStateChange?.(this.state);
     this.cb.onDeath?.(result);
@@ -710,6 +859,9 @@ export class GameEngine {
     // pipes
     for (const p of this.pipes) this.drawPipe(ctx, p);
 
+    // mid-run power-up pickups
+    this.drawPickups(ctx);
+
     this.drawGround(ctx);
 
     // particles behind bird
@@ -730,6 +882,16 @@ export class GameEngine {
       ctx.fillStyle = f.color;
       ctx.fillText(f.text, f.x, f.y);
       ctx.restore();
+    }
+
+    // FRENZY vignette — warm pulsing edge glow while active
+    if (this.frenzyTimer > 0 && !this.reducedMotion) {
+      const pulse = 0.35 + Math.sin(performance.now() / 90) * 0.15;
+      const vg = ctx.createRadialGradient(w / 2, h / 2, h * 0.25, w / 2, h / 2, h * 0.75);
+      vg.addColorStop(0, "rgba(251,191,36,0)");
+      vg.addColorStop(1, `rgba(255,107,53,${pulse})`);
+      ctx.fillStyle = vg;
+      ctx.fillRect(-20, -20, w + 40, h + 40);
     }
 
     // world flash
@@ -756,6 +918,41 @@ export class GameEngine {
         ctx.fillText(`x${this.multiplier} COMBO`, w / 2, 92 * this.sc);
       }
       ctx.restore();
+    }
+  }
+
+  private drawPickups(ctx: CanvasRenderingContext2D) {
+    for (const pu of this.pickups) {
+      if (pu.taken) continue;
+      const py = pu.y + Math.sin(pu.bob) * 7 * this.sc;
+      const r = 16 * this.sc;
+      ctx.save();
+      // pulsing halo so the token reads as collectable
+      const pulse = 0.5 + Math.sin(pu.bob * 1.5) * 0.5;
+      if (!this.highContrast) {
+        ctx.shadowColor = pu.color;
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = pu.color + "33";
+        ctx.beginPath();
+        ctx.arc(pu.x, py, r * (1.5 + pulse * 0.3), 0, 7);
+        ctx.fill();
+      }
+      // disc
+      ctx.fillStyle = pu.color;
+      ctx.beginPath();
+      ctx.arc(pu.x, py, r, 0, 7);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.beginPath();
+      ctx.arc(pu.x, py, r * 0.78, 0, 7);
+      ctx.fill();
+      // icon
+      ctx.font = `${18 * this.sc}px system-ui`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(pu.icon, pu.x, py + 1);
+      ctx.restore();
+      ctx.textBaseline = "alphabetic";
     }
   }
 

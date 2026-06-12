@@ -109,6 +109,37 @@ describe("applyCompletedRun", () => {
     expect(save.xp).toBeGreaterThanOrEqual(254);
   });
 
+  it("awards bonus XP for clutch escapes", () => {
+    const baseline = makeSave();
+    applyCompletedRun(baseline, makeRun({ runId: "base", score: 20, coins: 5, nearMiss: 3, clutch: 0 }));
+
+    const withClutch = makeSave();
+    applyCompletedRun(withClutch, makeRun({ runId: "clutch", score: 20, coins: 5, nearMiss: 3, clutch: 4 }));
+
+    // 4 clutches × 15 XP = +60 base XP (before any weekly multiplier), so the
+    // clutch run must earn strictly more XP than the identical no-clutch run.
+    expect(withClutch.xp).toBeGreaterThan(baseline.xp);
+  });
+
+  it("caps the clutch XP bonus at the run score (anti-exploit)", () => {
+    const inflated = makeSave();
+    // Absurd clutch count far above score should be clamped to `score`.
+    applyCompletedRun(inflated, makeRun({ runId: "x", score: 5, coins: 0, nearMiss: 0, clutch: 9999 }));
+
+    const clamped = makeSave();
+    applyCompletedRun(clamped, makeRun({ runId: "y", score: 5, coins: 0, nearMiss: 0, clutch: 5 }));
+
+    // Both should yield the same XP because clutch is clamped to score (5).
+    expect(inflated.xp).toBe(clamped.xp);
+  });
+
+  it("treats a missing clutch field as zero", () => {
+    const save = makeSave();
+    const result = applyCompletedRun(save, makeRun({ score: 10 }));
+    expect(result.summary.status).toBe("recorded");
+    expect(save.xp).toBeGreaterThan(0);
+  });
+
   it("tracks daily plays", () => {
     const save = makeSave();
     applyCompletedRun(save, makeRun({ runId: "r1", score: 5 }));

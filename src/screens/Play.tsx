@@ -36,6 +36,10 @@ export default function Play({ save, onExit, processRun }: Props) {
   const [practice, setPractice] = useState(false);
   const [summary, setSummary] = useState<RunSummary | null>(null);
   const [comboPulse, setComboPulse] = useState(0);
+  const [frenzy, setFrenzy] = useState<{ active: boolean; ms: number }>({ active: false, ms: 0 });
+  const [clutchCount, setClutchCount] = useState(0);
+  const [puToast, setPuToast] = useState<{ name: string; key: number } | null>(null);
+  const puToastTimer = useRef<number>(0);
   const deadTimer = useRef<number>(0);
   const activeRunIdRef = useRef(runId);
   const processedRunIdsRef = useRef(new Set<string>());
@@ -133,6 +137,10 @@ export default function Play({ save, onExit, processRun }: Props) {
     setRunId(nextRunId);
     setIsNewBest(false);
     setRevived(false);
+    setFrenzy({ active: false, ms: 0 });
+    setClutchCount(0);
+    setPuToast(null);
+    window.clearTimeout(puToastTimer.current);
   };
 
   const exitToMenu = () => {
@@ -164,6 +172,13 @@ export default function Play({ save, onExit, processRun }: Props) {
         onWorld={setWorld}
         onStateChange={(s) => setPhase(s)}
         onDeath={handleDeath}
+        onFrenzy={(active, ms) => setFrenzy({ active, ms })}
+        onClutch={(c) => setClutchCount(c)}
+        onPowerUp={(_id, name) => {
+          setPuToast({ name, key: Date.now() });
+          window.clearTimeout(puToastTimer.current);
+          puToastTimer.current = window.setTimeout(() => setPuToast(null), 1800);
+        }}
       />
 
       {/* Top HUD */}
@@ -232,6 +247,42 @@ export default function Play({ save, onExit, processRun }: Props) {
         </div>
       )}
 
+      {/* FRENZY banner with countdown */}
+      {frenzy.active && phase === "playing" && (
+        <div className="pointer-events-none absolute left-1/2 top-[132px] -translate-x-1/2 flex flex-col items-center gap-1 animate-[pop_0.4s_ease-out]">
+          <div className="combo-flame rounded-full bg-gradient-to-r from-rose-500/30 to-amber-400/30 border border-amber-300/50 px-4 py-1 text-sm font-black text-amber-200 shadow-[0_0_24px_rgba(251,191,36,0.5)]">
+            🔥 FRENZY · 2× POINTS
+          </div>
+          <div className="h-1 w-28 overflow-hidden rounded-full bg-black/40">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-amber-400 to-rose-500 transition-[width] duration-200 ease-linear"
+              style={{ width: `${Math.max(0, Math.min(100, (frenzy.ms / 6000) * 100))}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Power-up pickup toast */}
+      {puToast && phase === "playing" && (
+        <div
+          key={puToast.key}
+          className="pointer-events-none absolute left-1/2 top-[176px] -translate-x-1/2 animate-[pop_0.4s_ease-out]"
+        >
+          <div className="rounded-full bg-violet-500/25 border border-violet-300/40 px-3 py-1 text-xs font-black text-violet-100 shadow-[0_0_18px_rgba(167,139,250,0.4)]">
+            ⚡ {puToast.name}!
+          </div>
+        </div>
+      )}
+
+      {/* Clutch counter */}
+      {clutchCount > 0 && phase === "playing" && (
+        <div className="pointer-events-none absolute right-3 top-[150px] animate-[pop_0.3s_ease-out]">
+          <div className="rounded-lg bg-amber-500/20 border border-amber-400/30 px-2 py-1 text-[11px] font-black text-amber-300">
+            ⚡ {clutchCount} clutch{clutchCount > 1 ? "es" : ""}
+          </div>
+        </div>
+      )}
+
       {/* NEW BEST indicator during gameplay */}
       {isNewBest && phase === "playing" && (
         <div className="pointer-events-none absolute left-1/2 top-[140px] -translate-x-1/2 animate-[pop_0.5s_ease-out]">
@@ -255,6 +306,11 @@ export default function Play({ save, onExit, processRun }: Props) {
                 ? "Free flight — no pipes, no scoring. Just vibe! 🌿"
                 : "Fly through the jars. Grab leaves. Don't crash."}
             </p>
+            {!practice && (
+              <p className="mt-2 text-[11px] font-semibold text-amber-300/70">
+                ⚡ Squeeze through tight = CLUTCH · 3 PERFECTS = 🔥 FRENZY · grab floating power-ups!
+              </p>
+            )}
           </div>
           {!practice && save.stats.bestScore > 0 && (
             <div className="mt-1 rounded-full bg-amber-500/15 border border-amber-400/25 px-4 py-1.5 text-xs font-bold text-amber-300/80">
@@ -371,6 +427,15 @@ export default function Play({ save, onExit, processRun }: Props) {
                   <div className="text-center">
                     <div className="font-black text-sky-400 tabular-nums">{perfects}</div>
                     <div className="text-[10px] text-white/40 font-semibold mt-0.5">Perfects</div>
+                  </div>
+                </>
+              )}
+              {clutchCount > 0 && (
+                <>
+                  <div className="w-px h-6 bg-white/10" />
+                  <div className="text-center">
+                    <div className="font-black text-amber-300 tabular-nums">{clutchCount}</div>
+                    <div className="text-[10px] text-white/40 font-semibold mt-0.5">⚡ Clutch</div>
                   </div>
                 </>
               )}

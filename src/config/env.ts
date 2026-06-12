@@ -18,7 +18,7 @@ export const env = {
     // Injected from package.json at build time (vite.config.ts) so the app
     // version is always in sync with the released package. Falls back to a
     // literal only when the define is unavailable (e.g. some test runners).
-    version: import.meta.env.VITE_APP_VERSION || "2.4.0",
+    version: import.meta.env.VITE_APP_VERSION || "2.5.0",
     isDev: import.meta.env.DEV,
     isProd: import.meta.env.PROD,
   },

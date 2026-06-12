@@ -20,6 +20,9 @@ interface Props {
   onWorld?: (w: World) => void;
   onDeath?: (r: RunResult) => void;
   onStateChange?: (s: GameState) => void;
+  onPowerUp?: (id: string, name: string) => void;
+  onFrenzy?: (active: boolean, remainingMs: number) => void;
+  onClutch?: (count: number) => void;
 }
 
 export default function GameCanvas(props: Props) {
@@ -44,6 +47,9 @@ export default function GameCanvas(props: Props) {
       onWorld: (w: World) => propsRef.current.onWorld?.(w),
       onDeath: (r: RunResult) => propsRef.current.onDeath?.(r),
       onStateChange: (st: GameState) => propsRef.current.onStateChange?.(st),
+      onPowerUp: (id: string, name: string) => propsRef.current.onPowerUp?.(id, name),
+      onFrenzy: (active: boolean, remainingMs: number) => propsRef.current.onFrenzy?.(active, remainingMs),
+      onClutch: (count: number) => propsRef.current.onClutch?.(count),
     };
     const eng = new GameEngine(props.skin, props.trail, worldForScore(0), cb);
     engineRef.current = eng;

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.5.0 (2026-06-12)
+
+### Gameplay (new mechanics)
+- **Mid-run power-up pickups** — floating tokens (Coin Magnet, Slow Motion, Coin Vacuum, Double Jump) now spawn during a run; fly into them to activate the effect live. Includes pulsing canvas tokens, a pickup SFX, and a HUD toast.
+- **Streak gate → FRENZY** — landing 3 PERFECT passes in a row triggers FRENZY: **2× points** for 6 seconds, with a warm screen vignette, fanfare SFX, and a HUD countdown bar.
+- **Clutch escapes** — an extremely tight pipe squeeze (tighter than a normal near-miss) is now a **CLUTCH**: triple points, dramatic longer slow-mo, distinct SFX, a live counter, a Game Over stat, and bonus XP (capped at run score to prevent exploits).
+- All three stack with existing combos/multipliers and respect reduced-motion and practice mode.
+
+### Testing
+- +3 unit tests for the clutch XP bonus (reward, anti-exploit cap, missing-field default) → 148 total.
+
 ## 2.4.0 (2026-06-12)
 
 ### Security

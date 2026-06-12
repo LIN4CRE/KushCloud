@@ -103,6 +103,26 @@ class AudioEngine {
 
   equip() { if (this.sfxGain) this.tone(880, 0.08, "sine", 0.2, this.sfxGain); }
 
+  // Picking up a mid-flight power-up: bright rising arpeggio.
+  powerUp() {
+    if (!this.sfxGain) return;
+    [659, 880, 1175, 1568].forEach((f, i) => setTimeout(() => this.tone(f, 0.1, "triangle", 0.22, this.sfxGain!), i * 45));
+  }
+
+  // FRENZY trigger: punchy, exciting fanfare.
+  frenzy() {
+    if (!this.sfxGain) return;
+    [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => this.tone(f, 0.13, "square", 0.22, this.sfxGain!), i * 55));
+    setTimeout(() => { if (this.sfxGain) this.tone(1568, 0.25, "triangle", 0.3, this.sfxGain); }, 300);
+  }
+
+  // CLUTCH near-death escape: tense whoosh that resolves upward.
+  clutch() {
+    if (!this.sfxGain) return;
+    this.tone(1400, 0.1, "sine", 0.18, this.sfxGain, 600);
+    setTimeout(() => { if (this.sfxGain) this.tone(900, 0.18, "triangle", 0.22, this.sfxGain); }, 90);
+  }
+
   milestone() {
     if (!this.sfxGain) return;
     [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, "triangle", 0.3, this.sfxGain!), i * 60));

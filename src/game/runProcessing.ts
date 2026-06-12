@@ -137,8 +137,12 @@ export function applyCompletedRun(save: SaveData, run: RunResult): RunProcessRes
   const comboCarnivalBonus = ev.name === "Combo Carnival" ? run.nearMiss * 5 : 0;
 
   const beforeLevel = levelFromXp(save.xp).level;
+  // Clutch escapes are a skill signal — reward them, but cap relative to score
+  // so they can't be abused as an XP exploit (clutches require passing pipes).
+  const clutchCount = Math.max(0, Math.min(run.clutch ?? 0, run.score));
+  const clutchXpBonus = clutchCount * 15;
   const coinsGained = Math.round(run.coins * 10 * coinBoost) + run.score * 2;
-  const xpGained = Math.round((run.score * 10 + run.coins * 5 + run.nearMiss * 8 + comboCarnivalBonus + 5) * xpBoost);
+  const xpGained = Math.round((run.score * 10 + run.coins * 5 + run.nearMiss * 8 + clutchXpBonus + comboCarnivalBonus + 5) * xpBoost);
   const projectedXp = save.xp + xpGained;
   const targetLevel = levelFromXp(projectedXp).level;
   const leveledUp: number[] = [];
