@@ -103,6 +103,16 @@ class AudioEngine {
 
   equip() { if (this.sfxGain) this.tone(880, 0.08, "sine", 0.2, this.sfxGain); }
 
+  milestone() {
+    if (!this.sfxGain) return;
+    [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, "triangle", 0.3, this.sfxGain!), i * 60));
+  }
+
+  worldChange() {
+    if (!this.sfxGain) return;
+    [392, 523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.2, "sine", 0.25, this.sfxGain!), i * 80));
+  }
+
   purchase() {
     if (!this.sfxGain) return;
     this.tone(660, 0.1, "triangle", 0.2, this.sfxGain);

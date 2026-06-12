@@ -1,0 +1,19 @@
+# These owners will be automatically requested for review
+# when a pull request changes files matching these patterns.
+
+# Default owner for everything
+* @LIN4CRE
+
+# Game engine and core logic
+/src/game/ @LIN4CRE
+
+# Firebase configuration and security rules
+/src/config/ @LIN4CRE
+/docs/firebase-database.rules.json @LIN4CRE
+
+# CI/CD and build configuration
+/.github/ @LIN4CRE
+/android/ @LIN4CRE
+
+# Documentation
+/docs/ @LIN4CRE

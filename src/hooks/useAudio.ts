@@ -3,11 +3,13 @@ import { audio } from "../game/audio";
 import type { SaveData } from "../game/storage";
 
 export function useAudio(save: SaveData) {
+  const musicVol = save.musicVol;
+
   // Initialize audio on first user interaction
   useEffect(() => {
     const start = () => {
       audio.resume();
-      if (save.musicVol > 0) audio.startMusic();
+      if (musicVol > 0) audio.startMusic();
       window.removeEventListener("pointerdown", start);
       window.removeEventListener("keydown", start);
     };
@@ -17,7 +19,7 @@ export function useAudio(save: SaveData) {
       window.removeEventListener("pointerdown", start);
       window.removeEventListener("keydown", start);
     };
-  }, []);
+  }, [musicVol]);
 
   // Sync volume settings
   useEffect(() => {

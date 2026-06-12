@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'KushCloud',
   webDir: 'dist',
   android: {
-    allowMixedContent: true,
+    allowMixedContent: false,
     captureInput: true,
     webContentsDebuggingEnabled: false,
     loggingBehavior: 'none',

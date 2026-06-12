@@ -3,7 +3,7 @@
 [![Release](https://img.shields.io/github/v/release/LIN4CRE/KushCloud?style=flat-square&logo=github&label=Download%20APK)](https://github.com/LIN4CRE/KushCloud/releases/latest)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
 [![Capacitor](https://img.shields.io/badge/Capacitor-8-119EFF?style=flat-square&logo=capacitor&logoColor=white)](https://capacitorjs.com)
 [![iOS Support](https://img.shields.io/badge/iOS-Ready-lightgrey?style=flat-square&logo=apple&logoColor=white)](https://github.com/LIN4CRE/KushCloud)
 [![Firebase](https://img.shields.io/badge/Firebase-FFA320?style=flat-square&logo=firebase&logoColor=white)](https://firebase.google.com)

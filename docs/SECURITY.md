@@ -4,6 +4,7 @@
 
 | Version | Supported          |
 |---------|--------------------|
+| 2.3.x   | :white_check_mark: |
 | 2.0.x   | :white_check_mark: |
 | < 2.0   | :x:                |
 
@@ -40,4 +41,3 @@ Instead, please report vulnerabilities via one of the following:
 - Use environment variables for sensitive configuration
 - Keep dependencies updated
 - Follow the principle of least privilege
->>>>>>> aadf37b (wd)

@@ -11,6 +11,7 @@ interface Props {
   practiceMode?: boolean;
   paused: boolean;
   runId: string;
+  bestScoreBefore: number;
   onScore?: (s: number) => void;
   onCoin?: (c: number) => void;
   onNearMiss?: (n: number) => void;
@@ -66,6 +67,7 @@ export default function GameCanvas(props: Props) {
     resize();
     eng.setAccessibility(props.reducedMotion, props.highContrast);
     eng.setPracticeMode(!!props.practiceMode);
+    eng.bestScoreBefore = props.bestScoreBefore;
     eng.reset(props.runId);
 
     const ro = new ResizeObserver(resize);

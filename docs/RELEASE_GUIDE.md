@@ -4,8 +4,8 @@
 
 ```bash
 # 1. Update version
-# Edit D:\LIN4CRE\KushCloud\src\config\env.ts (app.version)
-# Edit D:\LIN4CRE\KushCloud\package.json (version field)
+# Edit src/config/env.ts (app.version field)
+# Edit package.json (version field)
 
 # 2. Update CHANGELOG.md with new version notes
 

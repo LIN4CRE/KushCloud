@@ -67,6 +67,11 @@ export class GameEngine {
   private groundOffset = 0;
   private decor: { x: number; y: number; s: number; type: number; spd: number }[] = [];
 
+  // parallax mountain layers
+  private mountains: { x: number; h: number; w: number; layer: number }[] = [];
+  // background stars (for cosmos world)
+  private stars: { x: number; y: number; s: number; blink: number }[] = [];
+
   // scoring
   score = 0;
   runCoins = 0;
@@ -90,6 +95,18 @@ export class GameEngine {
   private flashAlpha = 0;
   private shieldInvuln = 0;
   private powerUpManager = new PowerUpManager();
+
+  // squash & stretch
+  private squashX = 1;
+  private squashY = 1;
+  // near-miss slowmo
+  private slowmoTimer = 0;
+  // score milestone tracker
+  private lastMilestone = 0;
+  // speed lines
+  private speedLines: { x: number; y: number; len: number; speed: number }[] = [];
+  // new best indicator
+  bestScoreBefore = 0;
 
   constructor(skin: Skin, trail: Trail, world: World, cb: EngineCallbacks) {
     this.skin = skin;
@@ -129,6 +146,8 @@ export class GameEngine {
 
   private initDecor() {
     this.decor = [];
+    this.mountains = [];
+    this.stars = [];
     const n = 6;
     for (let i = 0; i < n; i++) {
       this.decor.push({
@@ -137,6 +156,27 @@ export class GameEngine {
         s: 0.5 + Math.random() * 1.2,
         type: Math.floor(Math.random() * 3),
         spd: 0.15 + Math.random() * 0.3,
+      });
+    }
+    // parallax mountain silhouettes (3 layers)
+    for (let layer = 0; layer < 3; layer++) {
+      const count = 4 + layer * 2;
+      for (let i = 0; i < count; i++) {
+        this.mountains.push({
+          x: (i / count) * (this.w + 200) - 100,
+          h: (60 + Math.random() * 80) * this.sc * (1 - layer * 0.25),
+          w: (80 + Math.random() * 120) * this.sc,
+          layer,
+        });
+      }
+    }
+    // stars for cosmos world
+    for (let i = 0; i < 50; i++) {
+      this.stars.push({
+        x: Math.random() * this.w,
+        y: Math.random() * this.h * 0.7,
+        s: 0.5 + Math.random() * 2,
+        blink: Math.random() * Math.PI * 2,
       });
     }
   }
@@ -169,6 +209,12 @@ export class GameEngine {
     this.shieldInvuln = 0;
     this.powerUpManager.reset();
     this.world = worldForScore(0);
+    this.squashX = 1;
+    this.squashY = 1;
+    this.slowmoTimer = 0;
+    this.lastMilestone = 0;
+    this.speedLines = [];
+    this.bestScoreBefore = 0;
     this.cb.onWorld?.(this.world);
     this.cb.onStateChange?.(this.state);
   }
@@ -185,6 +231,8 @@ export class GameEngine {
       this.vy = this.flapV * this.sc;
       this.flaps++;
       this.wingPhase = 0;
+      this.squashX = 0.75;
+      this.squashY = 1.3;
       audio.flap();
       this.emitFlapPuff();
       navigator.vibrate?.(8);
@@ -193,6 +241,9 @@ export class GameEngine {
     this.vy = this.flapV * this.sc;
     this.flaps++;
     this.wingPhase = 0;
+    // squash & stretch: stretch vertically on flap
+    this.squashX = 0.8;
+    this.squashY = 1.25;
     audio.flap();
     this.powerUpManager.resetDoubleJump();
     this.emitFlapPuff();
@@ -302,8 +353,25 @@ export class GameEngine {
 
   update(dt: number) {
     dt = Math.min(dt, 0.033); // clamp for stability
+
+    // near-miss slowmo effect: briefly slow time
+    if (this.slowmoTimer > 0) {
+      this.slowmoTimer -= dt;
+      dt *= 0.35; // time moves at 35% speed during slowmo
+    }
+
     this.groundOffset = (this.groundOffset + this.speed * dt) % (40 * this.sc);
     this.wingPhase += dt * 18;
+
+    // squash & stretch recovery
+    this.squashX += (1 - this.squashX) * Math.min(1, dt * 12);
+    this.squashY += (1 - this.squashY) * Math.min(1, dt * 12);
+
+    // parallax mountains scroll
+    for (const m of this.mountains) {
+      m.x -= this.speed * (0.05 + m.layer * 0.06) * dt;
+      if (m.x + m.w < -20) m.x = this.w + 20 + Math.random() * 80;
+    }
 
     // decor parallax
     for (const d of this.decor) {
@@ -347,6 +415,28 @@ export class GameEngine {
     this.vy += effGravity * dt;
     this.by += this.vy * dt;
     this.rot = Math.max(-0.5, Math.min(1.2, this.vy / (700 * this.sc)));
+
+    // squash when falling fast (stretch horizontally, compress vertically)
+    if (this.vy > 300 * this.sc && this.squashX >= 0.99) {
+      const fallFactor = Math.min(0.12, (this.vy - 300 * this.sc) / 3000);
+      this.squashX = 1 + fallFactor;
+      this.squashY = 1 - fallFactor * 0.7;
+    }
+
+    // speed lines at high speed
+    if (this.score > 15 && !this.reducedMotion && Math.random() < dt * (this.score > 40 ? 25 : 10)) {
+      this.speedLines.push({
+        x: this.w + 10,
+        y: Math.random() * this.h * 0.8 + this.h * 0.1,
+        len: (30 + Math.random() * 60) * this.sc,
+        speed: this.speed * (1.5 + Math.random()),
+      });
+    }
+    // update speed lines
+    for (let i = this.speedLines.length - 1; i >= 0; i--) {
+      this.speedLines[i].x -= this.speedLines[i].speed * dt;
+      if (this.speedLines[i].x + this.speedLines[i].len < 0) this.speedLines.splice(i, 1);
+    }
 
     this.emitTrail(dt);
 
@@ -409,6 +499,7 @@ export class GameEngine {
           this.addFloat(this.bx, this.by - 40 * this.sc, "PERFECT!", "#60a5fa", 22);
           this.cb.onPerfectPass?.(this.perfectPasses);
           this.shake = 5;
+          navigator.vibrate?.([10, 30, 10]);
         } else {
           this.score += this.multiplier;
           audio.score();
@@ -417,6 +508,26 @@ export class GameEngine {
         this.updateMultiplier();
         this.addFloat(this.bx + 20 * this.sc, this.by - 30 * this.sc, `+${isPerfect ? this.multiplier * 2 : this.multiplier}`, "#ffffff", 18);
         this.cb.onScore?.(this.score);
+        // score milestone celebrations
+        const milestones = [10, 25, 50, 75, 100, 150, 200];
+        for (const m of milestones) {
+          if (this.score >= m && this.lastMilestone < m) {
+            this.lastMilestone = m;
+            this.shake = 8;
+            this.flashAlpha = 0.5;
+            this.burst(this.w / 2, this.h / 2, "#ffd24a", 30, 300, "spark");
+            this.burst(this.w / 2, this.h / 2, "#ff6b6b", 20, 250, "spark");
+            this.burst(this.w / 2, this.h / 2, "#60a5fa", 20, 250, "spark");
+            this.addFloat(this.w / 2, this.h * 0.3, `🎉 ${m}!`, "#ffd24a", 28);
+            audio.milestone();
+            navigator.vibrate?.([20, 40, 20]);
+          }
+        }
+        // new best indicator
+        if (this.bestScoreBefore > 0 && this.score > this.bestScoreBefore && this.score === this.bestScoreBefore + 1) {
+          this.addFloat(this.w / 2, this.h * 0.22, "🏆 NEW BEST!", "#ffd24a", 24);
+          this.burst(this.w / 2, this.h * 0.22, "#ffd24a", 15, 200, "spark");
+        }
         // world transition
         const nw = worldForScore(this.score);
         if (nw.id !== this.world.id) {
@@ -424,6 +535,7 @@ export class GameEngine {
           this.flashAlpha = 0.6;
           this.cb.onWorld?.(nw);
           this.addFloat(this.w / 2, this.h * 0.35, nw.name + "!", nw.accent, 22);
+          audio.worldChange();
         }
       }
       // near miss check (once, as pipe edge passes bird)
@@ -441,6 +553,7 @@ export class GameEngine {
           this.score += this.multiplier;
           audio.nearMiss();
           this.shake = 4;
+          this.slowmoTimer = 0.18; // brief slowmo on near miss
           navigator.vibrate?.(15);
           this.burst(this.bx + this.radius, this.by, "#7dffb0", 10, 170, "spark");
           this.burst(this.bx + this.radius, this.by, "#ffffff", 6, 100, "puff");
@@ -504,12 +617,29 @@ export class GameEngine {
     if (this.state !== "playing") return;
     this.state = "dead";
     this.vy = -200 * this.sc;
+    this.squashX = 1.4;
+    this.squashY = 0.6;
     audio.hit();
-    this.shake = 12;
-    this.flashAlpha = 0.7;
-    navigator.vibrate?.(50);
-    this.burst(this.bx, this.by, "#ff6b6b", 22, 280, "spark");
-    this.burst(this.bx, this.by, "#ffd24a", 14, 220, "spark");
+    this.shake = 14;
+    this.flashAlpha = 0.8;
+    navigator.vibrate?.([30, 30, 50]);
+    // dramatic death burst — many colored fragments
+    this.burst(this.bx, this.by, "#ff6b6b", 25, 320, "spark");
+    this.burst(this.bx, this.by, "#ffd24a", 18, 260, "spark");
+    this.burst(this.bx, this.by, this.skin.accent, 15, 200, "leaf");
+    this.burst(this.bx, this.by, "#ffffff", 10, 180, "puff");
+    // ring burst effect
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const sp = 200;
+      this.particles.push({
+        x: this.bx, y: this.by,
+        vx: Math.cos(angle) * sp, vy: Math.sin(angle) * sp,
+        life: 0.8, maxLife: 0.8,
+        size: 3 * this.sc, color: this.skin.body,
+        kind: "spark", rot: 0, vr: 0,
+      });
+    }
 
     const result: RunResult = {
       runId: this.runId,
@@ -558,7 +688,24 @@ export class GameEngine {
     }
 
     this.drawBackground(ctx);
+    this.drawMountains(ctx);
+    this.drawStars(ctx);
     this.drawDecor(ctx);
+
+    // speed lines
+    if (this.speedLines.length > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.5 * this.sc;
+      for (const sl of this.speedLines) {
+        ctx.beginPath();
+        ctx.moveTo(sl.x, sl.y);
+        ctx.lineTo(sl.x + sl.len, sl.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
 
     // pipes
     for (const p of this.pipes) this.drawPipe(ctx, p);
@@ -625,6 +772,41 @@ export class GameEngine {
     ctx.fillRect(0, 0, this.w, this.h);
   }
 
+  private drawMountains(ctx: CanvasRenderingContext2D) {
+    if (this.highContrast) return;
+    const groundY = this.h - this.groundH;
+    // Draw 3 layers of mountain silhouettes, back to front
+    for (let layer = 0; layer < 3; layer++) {
+      const alpha = 0.08 + layer * 0.06;
+      const layerMountains = this.mountains.filter(m => m.layer === layer);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = this.world.accent;
+      for (const m of layerMountains) {
+        ctx.beginPath();
+        ctx.moveTo(m.x, groundY);
+        ctx.quadraticCurveTo(m.x + m.w * 0.5, groundY - m.h, m.x + m.w, groundY);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  private drawStars(ctx: CanvasRenderingContext2D) {
+    if (this.highContrast || this.world.id !== "cosmos") return;
+    const now = performance.now();
+    ctx.save();
+    for (const s of this.stars) {
+      const blink = 0.3 + Math.sin(now / 600 + s.blink) * 0.4;
+      ctx.globalAlpha = blink;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.s, 0, 7);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   private drawDecor(ctx: CanvasRenderingContext2D) {
     ctx.save();
     ctx.globalAlpha = this.highContrast ? 0.15 : 0.45;
@@ -681,37 +863,81 @@ export class GameEngine {
       g.addColorStop(1, dark);
       ctx.fillStyle = g;
       ctx.fillRect(p.x, y, p.w, height);
-      // jar/bong glass highlight
-      ctx.fillStyle = "rgba(255,255,255,0.18)";
-      ctx.fillRect(p.x + p.w * 0.2, y, p.w * 0.12, height);
+      // jar/bong glass highlight — wider, more visible
+      ctx.fillStyle = "rgba(255,255,255,0.22)";
+      ctx.fillRect(p.x + p.w * 0.18, y, p.w * 0.14, height);
+      // secondary highlight on right
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(p.x + p.w * 0.7, y, p.w * 0.08, height);
+      // inner glass reflection stripe
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      ctx.fillRect(p.x + p.w * 0.35, y, p.w * 0.3, height);
       // lip
       ctx.fillStyle = dark;
       ctx.fillRect(p.x - lipOver, lipY, p.w + lipOver * 2, lipH);
       ctx.fillStyle = main;
       ctx.fillRect(p.x - lipOver + 3 * this.sc, lipY + 3 * this.sc, p.w + lipOver * 2 - 6 * this.sc, lipH - 6 * this.sc);
+      // lip highlight
+      ctx.fillStyle = "rgba(255,255,255,0.15)";
+      ctx.fillRect(p.x - lipOver + 3 * this.sc, lipY + 3 * this.sc, p.w + lipOver * 2 - 6 * this.sc, 2 * this.sc);
     };
     // top pipe (lip at bottom)
     drawSeg(0, topEdge - lipH, topEdge - lipH);
     // bottom pipe (lip at top)
     drawSeg(botEdge + lipH, this.h - this.groundH - botEdge - lipH, botEdge);
 
+    // gap edge glow — subtle light along the jar opening edges
+    if (!this.highContrast) {
+      ctx.save();
+      const glowGrad = ctx.createLinearGradient(p.x, topEdge - 4 * this.sc, p.x, topEdge + 8 * this.sc);
+      glowGrad.addColorStop(0, "rgba(255,255,255,0)");
+      glowGrad.addColorStop(0.5, "rgba(255,255,255,0.08)");
+      glowGrad.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(p.x - lipOver, topEdge - 4 * this.sc, p.w + lipOver * 2, 12 * this.sc);
+      const glowGrad2 = ctx.createLinearGradient(p.x, botEdge - 8 * this.sc, p.x, botEdge + 4 * this.sc);
+      glowGrad2.addColorStop(0, "rgba(255,255,255,0)");
+      glowGrad2.addColorStop(0.5, "rgba(255,255,255,0.08)");
+      glowGrad2.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = glowGrad2;
+      ctx.fillRect(p.x - lipOver, botEdge - 8 * this.sc, p.w + lipOver * 2, 12 * this.sc);
+      ctx.restore();
+    }
+
     // coin
     if (p.coin && !p.coin.taken) {
       const cx = p.x + p.w / 2;
       const cy = p.coin.y + Math.sin(p.coin.bob) * 6 * this.sc;
       const cr = 13 * this.sc;
+      // spinning coin effect — squash horizontally over time
+      const spinScale = Math.abs(Math.cos(p.coin.bob * 1.5));
       ctx.save();
       ctx.shadowColor = "#ffd24a";
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 16;
+      // outer glow ring
+      ctx.fillStyle = "rgba(255,210,74,0.15)";
+      ctx.beginPath();
+      ctx.arc(cx, cy, cr * 1.6, 0, 7);
+      ctx.fill();
+      // main coin
+      ctx.translate(cx, cy);
+      ctx.scale(Math.max(0.3, spinScale), 1);
       ctx.fillStyle = "#ffd24a";
       ctx.beginPath();
-      ctx.arc(cx, cy, cr, 0, 7);
+      ctx.arc(0, 0, cr, 0, 7);
       ctx.fill();
+      // coin highlight
+      ctx.fillStyle = "rgba(255,255,255,0.3)";
+      ctx.beginPath();
+      ctx.arc(-cr * 0.2, -cr * 0.2, cr * 0.5, 0, 7);
+      ctx.fill();
+      // leaf emoji on coin face
+      ctx.scale(Math.max(0.3, 1 / Math.max(0.3, spinScale)), 1);
       ctx.fillStyle = "#c98a16";
       ctx.font = `900 ${15 * this.sc}px system-ui`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("🍁", cx, cy + 1);
+      ctx.fillText("🍁", 0, 1);
       ctx.restore();
       ctx.textBaseline = "alphabetic";
     }
@@ -727,6 +953,39 @@ export class GameEngine {
     for (let x = -this.groundOffset; x < this.w; x += step) {
       ctx.fillRect(x, gy, step / 2, this.groundH);
     }
+    // world-specific ground decorations
+    if (!this.highContrast) {
+      if (this.world.id === "dispensary" || this.world.id === "grow") {
+        // grass tufts
+        ctx.fillStyle = "rgba(34,197,94,0.3)";
+        for (let x = -this.groundOffset % 30; x < this.w; x += 30 * this.sc) {
+          ctx.beginPath();
+          ctx.moveTo(x, gy);
+          ctx.lineTo(x + 3 * this.sc, gy - 6 * this.sc);
+          ctx.lineTo(x + 6 * this.sc, gy);
+          ctx.fill();
+        }
+      } else if (this.world.id === "smoke" || this.world.id === "festival") {
+        // smoke wisps along ground
+        ctx.save();
+        ctx.globalAlpha = 0.15;
+        for (let x = -this.groundOffset % 60; x < this.w; x += 60 * this.sc) {
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(x, gy + 8 * this.sc, 12 * this.sc, 0, 7);
+          ctx.fill();
+        }
+        ctx.restore();
+      } else if (this.world.id === "cosmos") {
+        // glowing ground line
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = "#a78bfa";
+        ctx.fillRect(0, gy, this.w, 2 * this.sc);
+        ctx.restore();
+      }
+    }
+    // top highlight
     ctx.fillStyle = "rgba(255,255,255,0.18)";
     ctx.fillRect(0, gy, this.w, 4 * this.sc);
   }
@@ -763,15 +1022,18 @@ export class GameEngine {
     ctx.save();
     ctx.translate(this.bx, this.by);
     ctx.rotate(this.rot);
+    // apply squash & stretch
+    ctx.scale(this.squashX, this.squashY);
 
-    // combo aura — expands with multiplier
+    // combo aura — expands with multiplier, gets fiery at high combos
     if (this.multiplier > 1 && !this.highContrast) {
       const intensity = Math.min(0.5, this.multiplier * 0.05);
       const auraR = r * (1.2 + this.multiplier * 0.08);
       const ag = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, auraR);
-      ag.addColorStop(0, `rgba(74,222,128,0)`);
-      ag.addColorStop(0.4 + Math.sin(performance.now() / 500) * 0.1, `rgba(74,222,128,${intensity * 0.3})`);
-      ag.addColorStop(1, `rgba(74,222,128,0)`);
+      const auraColor = this.multiplier >= 5 ? "255,107,53" : this.multiplier >= 3 ? "251,191,36" : "74,222,128";
+      ag.addColorStop(0, `rgba(${auraColor},0)`);
+      ag.addColorStop(0.4 + Math.sin(performance.now() / 500) * 0.1, `rgba(${auraColor},${intensity * 0.3})`);
+      ag.addColorStop(1, `rgba(${auraColor},0)`);
       ctx.fillStyle = ag;
       ctx.beginPath();
       ctx.arc(0, 0, auraR, 0, 7);
@@ -812,21 +1074,37 @@ export class GameEngine {
     ctx.ellipse(-r * 0.2, r * 0.1 + wingY, r * 0.5, r * 0.32, -0.3, 0, 7);
     ctx.fill();
 
-    // eye
+    // eye with periodic blink
+    const blinkCycle = (performance.now() / 100) % 40;
+    const isBlinking = blinkCycle > 38.5; // brief blink every ~4 seconds
     ctx.fillStyle = "#fff";
     ctx.beginPath();
-    ctx.arc(r * 0.4, -r * 0.2, r * 0.32, 0, 7);
-    ctx.fill();
-    ctx.fillStyle = this.skin.eye;
-    ctx.beginPath();
-    ctx.arc(r * 0.5, -r * 0.2, r * 0.16, 0, 7);
-    ctx.fill();
-    // chill half-lids
-    ctx.strokeStyle = this.skin.eye;
-    ctx.lineWidth = 2 * this.sc;
-    ctx.beginPath();
-    ctx.arc(r * 0.4, -r * 0.2, r * 0.32, Math.PI * 1.05, Math.PI * 1.9);
-    ctx.stroke();
+    if (isBlinking) {
+      // closed eye — thin line
+      ctx.strokeStyle = this.skin.eye;
+      ctx.lineWidth = 2.5 * this.sc;
+      ctx.moveTo(r * 0.1, -r * 0.2);
+      ctx.lineTo(r * 0.7, -r * 0.2);
+      ctx.stroke();
+    } else {
+      ctx.arc(r * 0.4, -r * 0.2, r * 0.32, 0, 7);
+      ctx.fill();
+      ctx.fillStyle = this.skin.eye;
+      ctx.beginPath();
+      ctx.arc(r * 0.5, -r * 0.2, r * 0.16, 0, 7);
+      ctx.fill();
+      // eye highlight
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.beginPath();
+      ctx.arc(r * 0.42, -r * 0.28, r * 0.08, 0, 7);
+      ctx.fill();
+      // chill half-lids
+      ctx.strokeStyle = this.skin.eye;
+      ctx.lineWidth = 2 * this.sc;
+      ctx.beginPath();
+      ctx.arc(r * 0.4, -r * 0.2, r * 0.32, Math.PI * 1.05, Math.PI * 1.9);
+      ctx.stroke();
+    }
 
     // smile
     ctx.strokeStyle = this.skin.eye;
@@ -834,6 +1112,15 @@ export class GameEngine {
     ctx.beginPath();
     ctx.arc(r * 0.25, r * 0.25, r * 0.35, 0.1, Math.PI - 0.4);
     ctx.stroke();
+
+    // cheek blush (cute!)
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = "#ff9999";
+    ctx.beginPath();
+    ctx.ellipse(r * 0.5, r * 0.15, r * 0.2, r * 0.12, 0, 0, 7);
+    ctx.fill();
+    ctx.restore();
 
     // shield visual — pulsing ring
     const shieldActive = this.powerUpManager.getShieldHits() > 0 || this.shieldInvuln > 0;

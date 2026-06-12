@@ -8,6 +8,14 @@
 - Firebase DB rules fix: period validation accepts 'all' to match client code
 - Score submission optimized: only submits on period change or new personal best
 - TypeScript/lint/build/test (92/92) all clean
+- Production-readiness audit: lint fixes, version sync, security hardening, documentation
+- ESLint: React version auto-detection, service worker excluded, all warnings resolved
+- Android versionCode/versionName synced to 2.3.0 (was 4/2.0.0)
+- Capacitor: allowMixedContent disabled for production security
+- SECURITY.md: removed git merge artifact, updated supported versions
+- RELEASE_GUIDE.md: removed Windows-specific path references
+- Added: ARCHITECTURE.md, GOVERNANCE.md, CODEOWNERS, RELEASE_NOTES.md, HEALTH_REPORT.md
+- Added: .github/ISSUE_TEMPLATE/config.yml (blank issues disabled, security contact link)
 
 ## 2.2.0 (2026-06-12)
 - Version visibility polish across all screens (Menu badge, Game Over watermark, Settings footer)

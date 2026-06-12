@@ -14,10 +14,17 @@ export default tseslint.config(
       "react-hooks/exhaustive-deps": "warn",
     },
   },
+  {
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
+  },
   reactPlugin.configs.flat.recommended,
   reactPlugin.configs.flat["jsx-runtime"],
   {
-    ignores: ["dist/**", "android/**", "ios/**", "builds/**", "node_modules/**", "test-app.js"],
+    ignores: ["dist/**", "android/**", "ios/**", "builds/**", "node_modules/**", "test-app.js", "public/sw.js"],
   },
   {
     rules: {

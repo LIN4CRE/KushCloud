@@ -15,6 +15,19 @@ interface Props {
   loginAvailable: boolean;
 }
 
+const DAILY_TIPS = [
+  "Skim jar edges for near-miss combo points! 🎯",
+  "Perfect passes through the center give 2× score! ✨",
+  "Login daily to build your streak and earn more coins! 🔥",
+  "Higher combos mean higher multipliers — chain those passes! 📈",
+  "Try practice mode to learn the gaps without pressure! 🌿",
+  "Coins respawn in jar gaps — aim for the leaf! 🍁",
+  "The shop has powerful trails that make you look epic! ✨",
+  "Worlds get harder as you score higher — stay focused! 🌍",
+  "Loot crates can drop legendary and mythic cosmetics! 🎁",
+  "Dust duplicate items and craft the rarity you want! 💎",
+];
+
 function MiniBird({ skinId, trailId }: { skinId: string; trailId: string }) {
   const skin = SKINS.find((s) => s.id === skinId) || SKINS[0];
   const trail = TRAILS.find((t) => t.id === trailId) || TRAILS[0];
@@ -50,9 +63,12 @@ function MiniBird({ skinId, trailId }: { skinId: string; trailId: string }) {
   );
 }
 
+const dailyTipIndex = Math.floor(Date.now() / 86400000) % DAILY_TIPS.length;
+
 export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal, loginAvailable }: Props) {
   const lvl = levelFromXp(save.xp);
   const title = TITLES.find((t) => t.id === save.equippedTitle);
+  const dailyTip = DAILY_TIPS[dailyTipIndex];
 
   return (
     <div className="flex h-full flex-col animate-screen-enter">
@@ -146,6 +162,12 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
             <div className="mt-1.5 flex justify-between items-center">
               <span className="text-[9px] font-bold text-white/30">{save.seasonalXp.toLocaleString()} / {(SEASON_1_REWARDS.find(r => r.xp > save.seasonalXp)?.xp || 50000).toLocaleString()} XP</span>
             </div>
+          </div>
+
+          {/* Daily tip */}
+          <div className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.07] px-4 py-2.5 text-center">
+            <p className="text-[10px] font-bold text-white/30 uppercase tracking-wider">💡 Daily Tip</p>
+            <p className="text-[11px] font-semibold text-white/55 mt-0.5">{dailyTip}</p>
           </div>
         </div>
       </div>

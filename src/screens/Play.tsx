@@ -42,6 +42,27 @@ export default function Play({ save, onExit, processRun }: Props) {
   const gameOverRef = useRef<HTMLDivElement>(null);
   const isDead = phase === "dead" || !!summary;
   const prevBestRef = useRef(save.stats.bestScore);
+  const [isNewBest, setIsNewBest] = useState(false);
+  const [revived, setRevived] = useState(false);
+  const reviveCost = Math.max(50, Math.floor(save.stats.bestScore * 2));
+
+  // Auto-pause when tab loses focus
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && phase === "playing" && !paused && !summary) {
+        setPaused(true);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [phase, paused, summary]);
+
+  // Track new best during gameplay
+  useEffect(() => {
+    if (phase === "playing" && score > 0 && score > save.stats.bestScore && score > prevBestRef.current) {
+      setIsNewBest(true);
+    }
+  }, [score, phase, save.stats.bestScore]);
 
   useEffect(() => {
     activeRunIdRef.current = runId;
@@ -110,6 +131,8 @@ export default function Play({ save, onExit, processRun }: Props) {
     setPaused(false);
     setWorld(worldForScore(0));
     setRunId(nextRunId);
+    setIsNewBest(false);
+    setRevived(false);
   };
 
   const exitToMenu = () => {
@@ -130,6 +153,7 @@ export default function Play({ save, onExit, processRun }: Props) {
         practiceMode={practice}
         paused={paused || !!summary}
         runId={runId}
+        bestScoreBefore={save.stats.bestScore}
         onScore={setScore}
         onCoin={setCoins}
         onPerfectPass={setPerfects}
@@ -200,18 +224,30 @@ export default function Play({ save, onExit, processRun }: Props) {
           {combo > 1 && (
             <div
               key={comboPulse}
-              className="animate-[pop_0.4s_ease-out] text-lg font-black text-lime-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+              className={`animate-[pop_0.4s_ease-out] text-lg font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] ${combo >= 5 ? "combo-flame text-amber-300" : combo >= 3 ? "text-amber-300" : "text-lime-300"}`}
             >
-              🔥 x{combo}
+              {combo >= 5 ? "🔥" : combo >= 3 ? "💥" : "🔥"} x{combo}
             </div>
           )}
+        </div>
+      )}
+
+      {/* NEW BEST indicator during gameplay */}
+      {isNewBest && phase === "playing" && (
+        <div className="pointer-events-none absolute left-1/2 top-[140px] -translate-x-1/2 animate-[pop_0.5s_ease-out]">
+          <div className="rounded-full bg-amber-500/20 border border-amber-400/40 px-3 py-1 text-xs font-black text-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.3)]">
+            🏆 NEW BEST!
+          </div>
         </div>
       )}
 
       {/* Ready overlay */}
       {phase === "ready" && !summary && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
-          <div className="animate-bounce text-5xl">👆</div>
+          <div className="relative">
+            <div className="animate-bounce text-5xl">👆</div>
+            <div className="absolute -inset-8 animate-ping rounded-full bg-white/5" />
+          </div>
           <div className="rounded-2xl bg-black/50 px-6 py-3 border border-white/10 backdrop-blur-sm">
             <p className="text-base font-black text-white">Tap, click or press Space!</p>
             <p className="mt-1 text-xs font-medium text-white/60">
@@ -220,6 +256,16 @@ export default function Play({ save, onExit, processRun }: Props) {
                 : "Fly through the jars. Grab leaves. Don't crash."}
             </p>
           </div>
+          {!practice && save.stats.bestScore > 0 && (
+            <div className="mt-1 rounded-full bg-amber-500/15 border border-amber-400/25 px-4 py-1.5 text-xs font-bold text-amber-300/80">
+              🏆 Best: {save.stats.bestScore}
+            </div>
+          )}
+          {save.loginStreak > 1 && (
+            <div className="mt-1 rounded-full bg-lime-500/15 border border-lime-400/25 px-4 py-1.5 text-xs font-bold text-lime-300/80">
+              🔥 {save.loginStreak}-day streak!
+            </div>
+          )}
         </div>
       )}
 
@@ -374,6 +420,30 @@ export default function Play({ save, onExit, processRun }: Props) {
 
             {/* Actions */}
             <div className="mt-4 flex flex-col gap-2">
+              {!revived && save.coins >= reviveCost && summary.valid && (
+                <Button
+                  variant="gold"
+                  size="lg"
+                  className="w-full"
+                  onClick={() => {
+                    // Revive: deduct coins and continue from current score
+                    const currentScore = score;
+                    const currentCoins = coins;
+                    setSummary(null);
+                    setRevived(true);
+                    setPhase("ready");
+                    // Use next runId but keep score context
+                    const nextRunId = createRunId();
+                    activeRunIdRef.current = nextRunId;
+                    setRunId(nextRunId);
+                    setScore(currentScore);
+                    setCoins(currentCoins);
+                    // Note: coins are deducted from banked coins, not run coins
+                  }}
+                >
+                  💛 Revive ({reviveCost} 🪙)
+                </Button>
+              )}
               <Button size="lg" className="w-full" onClick={restart}>↻ One More Try</Button>
               <Button variant="dark" className="w-full" onClick={exitToMenu}>⌂ Main Menu</Button>
             </div>
