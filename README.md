@@ -2,8 +2,8 @@
 
 [![Release](https://img.shields.io/github/v/release/LIN4CRE/KushCloud?style=flat-square&logo=github&label=Download%20APK)](https://github.com/LIN4CRE/KushCloud/releases/latest)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
 [![Capacitor](https://img.shields.io/badge/Capacitor-8-119EFF?style=flat-square&logo=capacitor&logoColor=white)](https://capacitorjs.com)
 [![iOS Support](https://img.shields.io/badge/iOS-Ready-lightgrey?style=flat-square&logo=apple&logoColor=white)](https://github.com/LIN4CRE/KushCloud)
 [![Firebase](https://img.shields.io/badge/Firebase-FFA320?style=flat-square&logo=firebase&logoColor=white)](https://firebase.google.com)
@@ -119,24 +119,41 @@ cd android && ./gradlew assembleDebug
 | Tag push `v*` | Builds debug APK + iOS IPA, creates GitHub Release with assets |
 | `workflow_dispatch` | Manual trigger |
 
+### Quick Commands
+
+```bash
+npm run dev          # Dev server on :5000
+npm run typecheck    # TypeScript check
+npm run lint         # ESLint
+npm run build        # Production build (single-file)
+npm test             # Run 113 unit tests
+npm run test:coverage # Coverage report
+```
+
 ---
 
 ## Project Structure
 
 ```
 src/
-├── game/            # Core engine, audio, physics, collision, storage
-│   ├── engine.ts    # Game loop, bird physics, pipe generation, particles
-│   ├── audio.ts     # Procedural music & SFX synthesis
-│   ├── data.ts      # Skins, trails, achievements, world config
-│   ├── storage.ts   # Save/load, validation, leaderboard helpers
-│   └── GameCanvas.tsx
-├── screens/         # Menu, Play, Shop, Missions, Profile, Leaderboard, etc.
-├── utils/           # Sanitization, error handling, update checker
-├── config/          # Firebase init, env validation
-├── ui.tsx           # Shared design system components
-├── store.ts         # Persistent save-data hook (localStorage)
-└── App.tsx          # Navigation, run processing, reward logic
+├── game/              # Core engine, audio, physics, collision, storage
+│   ├── engine.ts      # Game loop, bird physics, pipe generation, particles
+│   ├── audio.ts       # Procedural music & SFX synthesis
+│   ├── data.ts        # Skins, trails, achievements, world config
+│   ├── storage.ts     # Save/load, validation, migration
+│   ├── runProcessing.ts # Anti-cheat, XP/coin calculation, leaderboard submission
+│   ├── leaderboard.ts # Leaderboard read/write with Firebase
+│   └── GameCanvas.tsx # Canvas renderer component
+├── hooks/             # Custom React hooks (extracted from App.tsx)
+│   ├── useAudio.ts    # Audio initialization and volume sync
+│   ├── useGameHandlers.ts # Run processing, achievements, missions, login rewards
+│   └── useShopHandlers.ts # Buy/equip skins, trails, crates, dust crafting
+├── screens/           # Menu, Play, Shop, Missions, Profile, Leaderboard, etc.
+├── utils/             # Sanitization, error handling, update checker
+├── config/            # Firebase init, env validation
+├── ui.tsx             # Shared design system components (Button, Toast, ScreenShell)
+├── store.ts           # Persistent save-data hook (localStorage + Firebase sync)
+└── App.tsx            # Navigation, loot crate modal, update banner
 ```
 
 ---
