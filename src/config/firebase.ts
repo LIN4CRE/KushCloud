@@ -133,7 +133,7 @@ export async function submitScore(
       };
       return profile;
     });
-  } catch { /* Firebase unavailable */ }
+  } catch (err) { if (import.meta.env.DEV) console.warn("[Firebase] submitScore failed:", err); }
 }
 
 export function subscribeLeaderboard(

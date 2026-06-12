@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import { SaveData } from "../game/storage";
 import { ScreenShell, Button, Panel, ProgressBar } from "../ui";
 import { subscribeFriends, addFriend, removeFriend, findUser, getUID } from "../game/leaderboard";
 import { UserProfile } from "../config/firebase";
 import { audio } from "../game/audio";
 
 interface Props {
-  save: SaveData;
   onBack: () => void;
 }
 

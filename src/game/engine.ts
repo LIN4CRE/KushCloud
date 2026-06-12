@@ -183,6 +183,7 @@ export class GameEngine {
     if (this.vy > 0 && this.powerUpManager.isDoubleJumpAvailable()) {
       this.powerUpManager.useDoubleJump();
       this.vy = this.flapV * this.sc;
+      this.flaps++;
       this.wingPhase = 0;
       audio.flap();
       this.emitFlapPuff();
@@ -448,8 +449,12 @@ export class GameEngine {
         }
       }
     }
-    // cull
-    this.pipes = this.pipes.filter((p) => p.x + p.w > -20);
+    // cull pipes off-screen
+    let write = 0;
+    for (let i = 0; i < this.pipes.length; i++) {
+      if (this.pipes[i].x + this.pipes[i].w > -20) this.pipes[write++] = this.pipes[i];
+    }
+    this.pipes.length = write;
 
     // collisions
     let dead = false;
@@ -506,9 +511,6 @@ export class GameEngine {
     this.burst(this.bx, this.by, "#ff6b6b", 22, 280, "spark");
     this.burst(this.bx, this.by, "#ffd24a", 14, 220, "spark");
 
-    // Save high score to localStorage
-    try { localStorage.setItem("kushcloud_highscore", String(this.score)); } catch { /* ignore */ }
-
     const result: RunResult = {
       runId: this.runId,
       score: this.score,
@@ -532,9 +534,19 @@ export class GameEngine {
       else { p.vy -= 15 * dt; }
       p.life -= dt;
     }
-    this.particles = this.particles.filter((p) => p.life > 0);
+    // In-place removal to avoid array allocation churn at 60fps
+    let write = 0;
+    for (let i = 0; i < this.particles.length; i++) {
+      if (this.particles[i].life > 0) this.particles[write++] = this.particles[i];
+    }
+    this.particles.length = write;
+
     for (const f of this.floats) { f.y += f.vy * dt; f.life -= dt * 1.1; }
-    this.floats = this.floats.filter((f) => f.life > 0);
+    write = 0;
+    for (let i = 0; i < this.floats.length; i++) {
+      if (this.floats[i].life > 0) this.floats[write++] = this.floats[i];
+    }
+    this.floats.length = write;
   }
 
   // ============ RENDER ============

@@ -1,4 +1,4 @@
-import { ReactNode, ButtonHTMLAttributes, useState, useEffect, useCallback } from "react";
+import { ReactNode, ButtonHTMLAttributes, useState, useEffect, useCallback, useRef } from "react";
 import { audio } from "./game/audio";
 import { RARITY, type Rarity } from "./game/data";
 
@@ -123,9 +123,16 @@ export function Stat({ label, value, icon, variant = "default" }: { label: strin
 }
 
 export function ProgressBar({ value, max, className, barClass, animate = true }: { value: number; max: number; className?: string; barClass?: string; animate?: boolean }) {
-  const pct = Math.max(0, Math.min(100, (value / max) * 100));
+  const safeMax = max || 1;
+  const pct = Math.max(0, Math.min(100, (value / safeMax) * 100));
   return (
-    <div className={cx("h-2 w-full overflow-hidden rounded-full bg-black/40 border border-white/5", className)}>
+    <div
+      className={cx("h-2 w-full overflow-hidden rounded-full bg-black/40 border border-white/5", className)}
+      role="progressbar"
+      aria-valuenow={Math.round(value)}
+      aria-valuemin={0}
+      aria-valuemax={Math.round(max)}
+    >
       <div
         className={cx(
           "h-full rounded-full bg-gradient-to-r from-emerald-400 to-lime-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]",
@@ -192,10 +199,12 @@ export function Tabs({ tabs, active, onChange }: {
   onChange: (key: string) => void;
 }) {
   return (
-    <div className="flex gap-1 rounded-xl bg-black/25 p-1 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+    <div className="flex gap-1 rounded-xl bg-black/25 p-1 overflow-x-auto" role="tablist" style={{ scrollbarWidth: "none" }}>
       {tabs.map((t) => (
         <button
           key={t.key}
+          role="tab"
+          aria-selected={active === t.key}
           onClick={() => onChange(t.key)}
           className={cx(
             "flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all duration-200",
@@ -204,7 +213,7 @@ export function Tabs({ tabs, active, onChange }: {
               : "text-white/50 hover:text-white/70 active:scale-95",
           )}
         >
-          {t.icon && <span>{t.icon}</span>}
+          {t.icon && <span aria-hidden="true">{t.icon}</span>}
           {t.label}
         </button>
       ))}
@@ -214,8 +223,10 @@ export function Tabs({ tabs, active, onChange }: {
 
 /* Modal overlay */
 export function Modal({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
+  const modalRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (open) {
+      modalRef.current?.focus();
       const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
       window.addEventListener("keydown", handler);
       return () => window.removeEventListener("keydown", handler);
@@ -225,7 +236,14 @@ export function Modal({ open, onClose, children }: { open: boolean; onClose: () 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-[fade-in_150ms_ease-out]" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div className="relative z-10 w-full max-w-sm animate-[scale-in_250ms_cubic-bezier(0.16,1,0.3,1)_both]" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        className="relative z-10 w-full max-w-sm animate-[scale-in_250ms_cubic-bezier(0.16,1,0.3,1)_both] outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
         {children}
       </div>
     </div>
@@ -310,6 +328,7 @@ export function FloatingLeaf({ className }: { className?: string }) {
   }));
   return (
     <span
+      aria-hidden="true"
       className={cx("pointer-events-none absolute text-lg opacity-20 animate-leaf-drift", className)}
       style={style}
     >
@@ -341,7 +360,7 @@ export function ToastContainer() {
     return () => { toastListeners = toastListeners.filter((fn) => fn !== addToast); };
   }, [addToast]);
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none" role="status" aria-live="polite">
       {toasts.map((t) => (
         <div
           key={t.id}

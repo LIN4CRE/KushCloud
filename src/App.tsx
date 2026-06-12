@@ -156,7 +156,7 @@ export default function App() {
           />
         )}
         {screen === "friends" && (
-          <Friends save={save} onBack={() => setScreen("menu")} />
+          <Friends onBack={() => setScreen("menu")} />
         )}
         {screen === "chat" && (
           <Chat save={save} onBack={() => setScreen("menu")} />

@@ -58,11 +58,13 @@ export function getRunLog(): readonly RunLogEntry[] {
 function logRun(entry: RunLogEntry) {
   _runLog.push(entry);
   if (_runLog.length > MAX_LOG_SIZE) _runLog.shift();
-  console.log(
-    `[RunTracker] ${entry.action.toUpperCase()}: runId=${entry.runId.slice(0, 8)}... ` +
-    `score=${entry.score} totalGames=${entry.totalGames}` +
-    (entry.reason ? ` reason="${entry.reason}"` : "")
-  );
+  if (import.meta.env.DEV) {
+    console.log(
+      `[RunTracker] ${entry.action.toUpperCase()}: runId=${entry.runId.slice(0, 8)}... ` +
+      `score=${entry.score} totalGames=${entry.totalGames}` +
+      (entry.reason ? ` reason="${entry.reason}"` : "")
+    );
+  }
 }
 
 function emptySummary(status: RunProcessStatus, valid: boolean): RunSummary {

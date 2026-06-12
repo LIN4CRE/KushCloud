@@ -236,12 +236,16 @@ export default function Statistics({ save, onBack }: Props) {
                 variant="dark"
                 className="w-full"
                 onClick={() => {
-                  const syncData = {
-                    ...save,
-                    lastSync: Date.now(),
-                  };
-                  localStorage.setItem("kushcloud_save_v1", JSON.stringify(syncData));
-                  alert("Progress synced locally!");
+                  try {
+                    const syncData = {
+                      ...save,
+                      lastSync: Date.now(),
+                    };
+                    localStorage.setItem("kushcloud_save_v1", JSON.stringify(syncData));
+                    alert("Progress synced locally!");
+                  } catch {
+                    alert("Failed to sync — storage may be full.");
+                  }
                 }}
               >
                 💾 Sync Now

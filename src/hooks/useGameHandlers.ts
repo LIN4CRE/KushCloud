@@ -31,11 +31,13 @@ export function useGameHandlers(save: SaveData, update: UpdateFn, setScreen: (s:
         submitPlayerScore(currentSave.playerName, submission.score, submission.period).catch(() => {});
       }
       const rank = await getRank("daily", result.rankScore);
-      console.log(
-        `[RunProcessor] Run ${r.runId.slice(0, 8)}... completed: ` +
-        `status=${result.summary.status} score=${r.score} ` +
-        `totalGames=${currentSave.stats.totalGames} dailyPlays=${currentSave.dailyPlays}`
-      );
+      if (import.meta.env.DEV) {
+        console.log(
+          `[RunProcessor] Run ${r.runId.slice(0, 8)}... completed: ` +
+          `status=${result.summary.status} score=${r.score} ` +
+          `totalGames=${currentSave.stats.totalGames} dailyPlays=${currentSave.dailyPlays}`
+        );
+      }
       return { ...result.summary, rank };
     } catch (error) {
       console.error("[RunProcessor] Error processing run:", error);

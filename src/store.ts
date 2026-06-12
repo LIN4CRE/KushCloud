@@ -50,18 +50,18 @@ export function useSave() {
             // Auto-merge: Pick the one with more XP
             const migratedCloud = migrateSave(cloudSave);
             if (migratedCloud.xp > saveRef.current.xp) {
-              console.log("Using cloud save (more XP)");
+              if (import.meta.env.DEV) console.log("Using cloud save (more XP)");
               setSave(migratedCloud);
               writeSave(migratedCloud);
             } else if (saveRef.current.xp > migratedCloud.xp) {
-              console.log("Local save is ahead, pushing to cloud");
+              if (import.meta.env.DEV) console.log("Local save is ahead, pushing to cloud");
               pushToCloud(saveRef.current, u.uid);
             } else {
               setSyncStatus("synced");
             }
           } else {
             // New user or no cloud save, push local
-            console.log("No cloud save found, pushing local progress");
+            if (import.meta.env.DEV) console.log("No cloud save found, pushing local progress");
             pushToCloud(saveRef.current, u.uid);
           }
         } catch (err) {

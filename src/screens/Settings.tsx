@@ -123,7 +123,7 @@ export default function Settings({ save, onBack, onChange, onReset }: Props) {
         </Button>
 
         <p className="pb-2 pt-1 text-center text-[10px] font-semibold text-white/20">
-          KushCloud v1.0 · Made with 🌿 & ☁️
+          KushCloud {import.meta.env.VITE_APP_VERSION || "2.1.0"} · Made with 🌿 & ☁️
         </p>
       </div>
     </ScreenShell>

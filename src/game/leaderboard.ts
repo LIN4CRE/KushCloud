@@ -102,7 +102,10 @@ export function subscribeFriends(callback: (friendUids: string[]) => void): () =
   const uid = getUID();
   const unsub = subscribeFriendsDb(uid, callback);
   unsubscribers.push(unsub);
-  return unsub;
+  return () => {
+    unsub();
+    unsubscribers = unsubscribers.filter((u) => u !== unsub);
+  };
 }
 
 export async function findUser(uid: string): Promise<UserProfile | null> {

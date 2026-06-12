@@ -6,10 +6,6 @@ export interface MissionProgress {
   id: string; progress: number; claimed: boolean;
 }
 
-export interface OwnedItem {
-  id: string; obtained: number; // timestamp
-}
-
 export interface EventSaveState {
   objectives: Record<string, number>;
   claimedObjectives: string[];

@@ -143,7 +143,6 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
           />
           <div className="mt-1.5 flex justify-between items-center">
             <span className="text-[9px] font-bold text-white/30">{save.seasonalXp.toLocaleString()} / {(SEASON_1_REWARDS.find(r => r.xp > save.seasonalXp)?.xp || 50000).toLocaleString()} XP</span>
-            <button className="text-[9px] font-black uppercase text-indigo-400 hover:text-indigo-300 transition-colors">View Track ›</button>
           </div>
         </div>
       </div>
