@@ -15,7 +15,7 @@ function validateEnv(key: string, required = true): string {
 export const env = {
   app: {
     name: "KushCloud",
-    version: "2.0.1",
+    version: "2.1.0",
     isDev: import.meta.env.DEV,
     isProd: import.meta.env.PROD,
   },
