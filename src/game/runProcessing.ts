@@ -191,7 +191,10 @@ export function applyCompletedRun(save: SaveData, run: RunResult): RunProcessRes
     else if (achievement.stat === "ownedEffects") value = save.ownedEffects.length;
     else if (achievement.stat === "ownedBadges") value = save.ownedBadges.length;
     else if (achievement.stat === "ownedTitles") value = save.ownedTitles.length;
-    else value = (save.stats as any)[achievement.stat] ?? 0;
+    else {
+      // achievement.stat is keyof PlayerStats
+      value = save.stats[achievement.stat as keyof typeof save.stats];
+    }
     if (value >= achievement.goal) {
       save.unlockedAchievements.push(achievement.id);
       achievements.push(achievement.name);

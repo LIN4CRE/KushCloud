@@ -13,7 +13,7 @@ export interface RunResult {
   flaps: number;
 }
 
-type GameState = "ready" | "playing" | "dead";
+export type GameState = "ready" | "playing" | "dead";
 
 interface Pipe {
   x: number;

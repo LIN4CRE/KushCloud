@@ -15,7 +15,7 @@ class AudioEngine {
   init() {
     if (this.ctx) return;
     try {
-      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new Ctx();
       this.master = this.ctx.createGain();
       this.master.gain.value = 1;

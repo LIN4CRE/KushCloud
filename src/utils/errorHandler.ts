@@ -23,11 +23,11 @@ export class AppError extends Error {
 }
 
 export const logger = {
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (import.meta.env.DEV) console.debug("[KushCloud]", ...args);
   },
-  info: (...args: any[]) => console.info("[KushCloud]", ...args),
-  warn: (...args: any[]) => console.warn("[KushCloud]", ...args),
+  info: (...args: unknown[]) => console.info("[KushCloud]", ...args),
+  warn: (...args: unknown[]) => console.warn("[KushCloud]", ...args),
   error: (err: Error | string, context?: string) => {
     const msg = err instanceof Error ? err.message : err;
     console.error(`[KushCloud]${context ? ` [${context}]` : ""} ERROR:`, msg);

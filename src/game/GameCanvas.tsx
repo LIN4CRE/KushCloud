@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { GameEngine, RunResult } from "./engine";
+import { GameEngine, RunResult, GameState } from "./engine";
 import { Skin, Trail, World, worldForScore } from "./data";
 import { audio } from "./audio";
 
@@ -18,7 +18,7 @@ interface Props {
   onCombo?: (m: number) => void;
   onWorld?: (w: World) => void;
   onDeath?: (r: RunResult) => void;
-  onStateChange?: (s: string) => void;
+  onStateChange?: (s: GameState) => void;
 }
 
 export default function GameCanvas(props: Props) {
@@ -42,7 +42,7 @@ export default function GameCanvas(props: Props) {
       onCombo: (m: number) => propsRef.current.onCombo?.(m),
       onWorld: (w: World) => propsRef.current.onWorld?.(w),
       onDeath: (r: RunResult) => propsRef.current.onDeath?.(r),
-      onStateChange: (st: string) => propsRef.current.onStateChange?.(st),
+      onStateChange: (st: GameState) => propsRef.current.onStateChange?.(st),
     };
     const eng = new GameEngine(props.skin, props.trail, worldForScore(0), cb);
     engineRef.current = eng;

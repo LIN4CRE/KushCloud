@@ -8,10 +8,18 @@ interface Props {
   onClaim: (id: string) => void;
 }
 
+const ACHIEVEMENT_STAT_KEYS = [
+  "totalGames", "totalScore", "totalCoins", "totalNearMiss",
+  "totalPerfectPasses", "bestCombo", "totalFlaps", "bestScore",
+] as const;
+
 export default function Achievements({ save, onBack, onClaim }: Props) {
   const statVal = (stat: string) => {
     if (stat === "score" || stat === "bestScore") return save.stats.bestScore;
-    return (save.stats as any)[stat] ?? 0;
+    if (ACHIEVEMENT_STAT_KEYS.includes(stat as typeof ACHIEVEMENT_STAT_KEYS[number])) {
+      return save.stats[stat as keyof typeof save.stats];
+    }
+    return 0;
   };
   const done = save.unlockedAchievements.length;
   const total = ACHIEVEMENTS.length;

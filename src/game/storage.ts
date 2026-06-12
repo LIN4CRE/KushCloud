@@ -126,10 +126,12 @@ export function normalizePlayerName(name: string, fallback = randomName()): stri
   return trimmed || fallback;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- migration function handles arbitrary unvalidated input
 export function migrateSave(data: Record<string, any>): SaveData {
   const def = defaultSave();
-  if (data.stats && data.stats.totalPerfectPasses === undefined) {
-    data.stats.totalPerfectPasses = 0;
+  const stats = data.stats as Partial<PlayerStats> | undefined;
+  if (stats && stats.totalPerfectPasses === undefined) {
+    stats.totalPerfectPasses = 0;
   }
   if (!data.version || data.version < 2) {
     data.dust ??= 0;

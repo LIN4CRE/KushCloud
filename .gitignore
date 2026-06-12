@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .env
+coverage/
 
 # Android build outputs
 android/.gradle/

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { SaveData } from "../game/storage";
 import { ScreenShell, Tabs, cx } from "../ui";
-import { subscribeToLeaderboard, submitPlayerScore } from "../game/leaderboard";
+import { subscribeToLeaderboard, submitPlayerScore, type LeaderboardServiceEntry } from "../game/leaderboard";
 
 interface Props {
   save: SaveData;
@@ -11,7 +11,7 @@ interface Props {
 export default function Leaderboard({ save, onBack }: Props) {
   const [period, setPeriod] = useState<"daily" | "weekly" | "all">("daily");
   const [friends, setFriends] = useState(false);
-  const [list, setList] = useState<any[]>([]);
+  const [list, setList] = useState<LeaderboardServiceEntry[]>([]);
   const [isOnline, setIsOnline] = useState(false);
 
   useEffect(() => {

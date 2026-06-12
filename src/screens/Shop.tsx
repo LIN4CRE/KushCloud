@@ -38,7 +38,7 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
   ];
 
   const renderItemCard = (
-    item: { id: string; name: string; desc: string; cost?: number; rarity: Rarity },
+    item: { id: string; name: string; desc: string; cost?: number; rarity: Rarity; unlockLevel?: number },
     owned: boolean,
     equipped: boolean,
     locked: boolean,
@@ -62,7 +62,7 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onBuyCrate, 
         <div className="my-1.5 text-center text-[10px] font-medium text-white/40 leading-tight">{item.desc}</div>
         {locked ? (
           <div className="mt-auto rounded-xl bg-black/30 py-1.5 text-center text-xs font-semibold text-white/40">
-            🔒 Level {(item as any).unlockLevel}
+            🔒 Level {item.unlockLevel}
           </div>
         ) : equipped ? (
           <div className="mt-auto rounded-xl bg-emerald-500/20 border border-emerald-400/30 py-1.5 text-center text-xs font-black text-emerald-300">

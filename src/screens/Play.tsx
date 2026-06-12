@@ -114,7 +114,7 @@ export default function Play({ save, onExit, processRun }: Props) {
           setComboPulse((p) => p + 1);
         }}
         onWorld={setWorld}
-        onStateChange={(s) => setPhase(s as any)}
+        onStateChange={(s) => setPhase(s)}
         onDeath={handleDeath}
       />
 
