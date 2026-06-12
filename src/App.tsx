@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSave, type Screen } from "./store";
 import { audio } from "./game/audio";
-import { checkForUpdate } from "./utils/updateChecker";
-import type { UpdateInfo } from "./utils/updateChecker";
 import { env } from "./config/env";
+import { useUpdateChecker } from "./hooks/useUpdateChecker";
 import {
   SKINS, TRAILS, TITLES, BADGES, EFFECTS, type LootCrate, type LootDrop, type Skin, type Badge,
 } from "./game/data";
@@ -32,7 +31,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>(save.seenTutorial ? "menu" : "tutorial");
   const [lootCrateOpen, setLootCrateOpen] = useState<LootCrate | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const updateCtx = useUpdateChecker(env.app.version);
 
   const {
     buySkin, buyTrail, buyCrate, claimCrateDrops, buyPowerUp, buyDustItem,
@@ -60,10 +59,6 @@ export default function App() {
       window.removeEventListener("error", handleError);
       window.removeEventListener("unhandledrejection", handleRejection);
     };
-  }, []);
-
-  useEffect(() => {
-    checkForUpdate(env.app.version).then(setUpdateInfo);
   }, []);
 
   if (error) {
@@ -196,26 +191,52 @@ export default function App() {
           </div>
         )}
 
-        {/* Update banner */}
-        {updateInfo && (
-          <div className="absolute bottom-4 left-4 right-4 z-40">
-            <a
-              href={updateInfo.downloadUrl || updateInfo.releaseUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-400/30 px-4 py-3 backdrop-blur hover:from-amber-500/30 hover:to-orange-500/30 transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-lg">📦</span>
-                <div>
-                  <div className="text-sm font-bold text-amber-300">
-                    {updateInfo.latestVersion} available
+        {/* Update modal */}
+        {updateCtx.show && updateCtx.update && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md" onClick={updateCtx.dismiss}>
+            <div className="relative w-full max-w-sm animate-[scale-in_0.3s_ease-out]" onClick={(e) => e.stopPropagation()}>
+              <div className="rounded-3xl bg-gradient-to-b from-slate-800 to-slate-900 border border-amber-500/20 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <span className="text-4xl">📦</span>
+                  <h2 className="text-lg font-black text-white">Update Available</h2>
+                  <p className="text-sm text-amber-300 font-bold">{updateCtx.update.latestVersion}</p>
+                  <p className="text-xs text-white/50 leading-relaxed">
+                    {updateCtx.installType === "pwa"
+                      ? "A new version is available. Installed PWAs update on next launch after refresh. Tap the button below to get the latest build."
+                      : updateCtx.installType === "android"
+                        ? "A new APK build is ready. Download from the release page and install manually (your progress is saved locally)."
+                        : "A new version has been released. Refresh to get the latest changes."}
+                  </p>
+
+                  <div className="mt-2 flex flex-col gap-2 w-full">
+                    <a
+                      href={updateCtx.update.releaseUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full rounded-2xl bg-gradient-to-b from-amber-400 to-amber-600 text-amber-950 font-bold px-5 py-2.5 text-sm shadow-[0_4px_0_#92400e] hover:from-amber-300 active:translate-y-px"
+                    >
+                      <span>⬇</span>
+                      <span>{updateCtx.installType === "pwa" ? "Refresh & Update" : "Go to Release"}</span>
+                    </a>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={updateCtx.dismiss}
+                        className="flex-1 rounded-xl bg-white/8 border border-white/10 px-4 py-2 text-xs font-bold text-white/60 hover:text-white hover:bg-white/13 transition-all"
+                      >
+                        Remind Later
+                      </button>
+                      <button
+                        onClick={updateCtx.skip}
+                        className="flex-1 rounded-xl bg-white/8 border border-white/10 px-4 py-2 text-xs font-bold text-white/60 hover:text-white hover:bg-white/13 transition-all"
+                      >
+                        Skip v{updateCtx.update.latestVersion.replace(/^v/, "")}
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-amber-400/60">Tap to download</div>
                 </div>
               </div>
-              <span className="text-white/40 text-lg">↗</span>
-            </a>
+            </div>
           </div>
         )}
 

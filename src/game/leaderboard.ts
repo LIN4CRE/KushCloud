@@ -5,11 +5,12 @@ import {
   searchUserByUid
 } from "../config/firebase";
 import type { LeaderboardEntry } from "../config/firebase";
-import { seededScores, FRIEND_NAMES } from "./storage";
+import { seededScores } from "./storage";
 import { calculateRank } from "./leaderboardModel";
 
 let currentUID: string | null = null;
 let unsubscribers: (() => void)[] = [];
+let friendCache: string[] = [];
 
 export function getUID(): string {
   if (!currentUID) {
@@ -59,13 +60,13 @@ export function subscribeToLeaderboard(
 ): () => void {
   const uid = getUID();
 
-  const emit = (entries: LeaderboardEntry[]) => {
+  const emit = (entries: LeaderboardEntry[], friendUids: string[]) => {
     const mapped: LeaderboardServiceEntry[] = entries.map((e) => ({
       uid: e.uid,
       name: e.name,
       score: e.score,
       you: e.uid === uid,
-      friend: false,
+      friend: friendUids.includes(e.uid),
     }));
     const myEntry = mapped.find((e) => e.you);
     if (myEntry) {
@@ -73,21 +74,25 @@ export function subscribeToLeaderboard(
         myEntry.score = playerScore;
         sortServiceEntries(mapped);
       }
+      myEntry.friend = false;
     } else {
-      mapped.push({ uid, name: playerName, score: playerScore, you: true });
+      mapped.push({ uid, name: playerName, score: playerScore, you: true, friend: false });
       sortServiceEntries(mapped);
     }
     const finalList = friendsOnly
-      ? mapped.filter((e) => e.you || FRIEND_NAMES.includes(e.name))
+      ? mapped.filter((e) => e.you || e.friend)
       : mapped;
     callback(finalList.slice(0, 50));
   };
 
+  const friendUnsub = subscribeFriends((friendUids) => {
+    friendCache = friendUids;
+  });
+
   const unsub = subscribeLeaderboard(period, (entries) => {
     if (entries.length > 0) {
-      emit(entries);
+      emit(entries, friendCache);
     } else {
-      // Firebase unavailable or empty — use local seeded scores
       const localEntries: LeaderboardEntry[] = seededScores(period).map((s) => ({
         uid: s.name,
         name: s.name,
@@ -95,14 +100,15 @@ export function subscribeToLeaderboard(
         timestamp: Date.now(),
         period,
       }));
-      emit(localEntries);
+      emit(localEntries, friendCache);
     }
   });
 
-  unsubscribers.push(unsub);
+  unsubscribers.push(unsub, friendUnsub);
   return () => {
     unsub();
-    unsubscribers = unsubscribers.filter((u) => u !== unsub);
+    friendUnsub();
+    unsubscribers = unsubscribers.filter((u) => u !== unsub && u !== friendUnsub);
   };
 }
 
@@ -169,9 +175,12 @@ export async function getLeaderboard(
 
       const unsub = subscribeToLeaderboard(period, playerName, playerScore, friendsOnly, (list) => {
         clearTimeout(timeout);
-        resolve(list);
-        unsub(); // One-time get for this function
+        callback(list);
+        unsub();
       });
+      function callback(list: LeaderboardServiceEntry[]) {
+        resolve(list);
+      }
     });
   } catch {
     return getLocalLeaderboard(period, playerName, playerScore, friendsOnly);
@@ -201,7 +210,9 @@ export function getLocalLeaderboard(
 ): LeaderboardServiceEntry[] {
   const list = seededScores(period);
   const all = sortServiceEntries([...list, { uid: getUID(), name: playerName, score: playerScore, you: true }]);
-  return friendsOnly ? all.filter((e) => e.name === playerName || FRIEND_NAMES.includes(e.name)) : all;
+  return friendsOnly
+    ? all.filter((e) => e.you || friendCache.includes(e.uid!))
+    : all;
 }
 
 function getLocalRank(period: LeaderboardPeriod, playerScore: number): number {

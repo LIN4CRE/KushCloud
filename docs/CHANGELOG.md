@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.0 (2026-06-12)
+- Update modal with install-type detection (PWA/Android/web), dismiss/skip persistence, hourly recheck
+- PWA foundation: manifest.json, service worker (network-first), icon.svg
+- Leaderboard rewrite: loading skeleton, player stats bar, offline indicator, refresh timestamp, friend stars
+- Leaderboard friend filtering now uses Firebase friends list instead of hardcoded names
+- Firebase DB rules fix: period validation accepts 'all' to match client code
+- Score submission optimized: only submits on period change or new personal best
+- TypeScript/lint/build/test (92/92) all clean
+
 ## 2.2.0 (2026-06-12)
 - Version visibility polish across all screens (Menu badge, Game Over watermark, Settings footer)
 - Fix leaderboard offline fallback — seeded scores when Firebase unavailable

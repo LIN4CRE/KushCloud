@@ -14,7 +14,7 @@
           "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 32" },
           "score": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000 && (!data.child('score').exists() || newData.val() >= data.child('score').val())" },
           "timestamp": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
-          "period": { ".validate": "newData.val() === $period && (newData.val() === 'global' || newData.val() === 'daily' || newData.val() === 'weekly')" },
+          "period": { ".validate": "newData.val() === $period && (newData.val() === 'all' || newData.val() === 'daily' || newData.val() === 'weekly')" },
           "$other": { ".validate": false }
         }
       }

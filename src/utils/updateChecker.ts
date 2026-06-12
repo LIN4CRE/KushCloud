@@ -2,6 +2,9 @@ const REPO = "LIN4CRE/KushCloud";
 const API = `https://api.github.com/repos/${REPO}/releases/latest`;
 const CACHE_KEY = "kc_update_check";
 const CACHE_TTL = 3_600_000;
+const DISMISS_KEY = "kc_update_dismissed";
+const SKIP_KEY = "kc_update_skip";
+const DISMISS_TTL = 86_400_000;
 
 export interface UpdateInfo {
   latestVersion: string;
@@ -9,6 +12,8 @@ export interface UpdateInfo {
   releaseUrl: string;
   publishedAt: string;
 }
+
+export type InstallType = "pwa" | "android" | "web";
 
 function parseVersion(tag: string): number[] {
   return tag.replace(/^v/, "").split(".").map(Number);
@@ -23,6 +28,24 @@ function isNewer(latest: string, current: string): boolean {
     if (a !== b) return a > b;
   }
   return false;
+}
+
+function isStandalone(): boolean {
+  try {
+    return matchMedia("(display-mode: standalone)").matches || !!(navigator as unknown as Record<string, boolean>).standalone;
+  } catch {
+    return false;
+  }
+}
+
+export function detectInstallType(): InstallType {
+  if (isStandalone()) {
+    return "pwa";
+  }
+  if (navigator.userAgent.includes("Android") && !navigator.userAgent.includes("wv")) {
+    return "android";
+  }
+  return "web";
 }
 
 export async function checkForUpdate(currentVersion: string): Promise<UpdateInfo | null> {
@@ -55,4 +78,28 @@ export async function checkForUpdate(currentVersion: string): Promise<UpdateInfo
   } catch {
     return null;
   }
+}
+
+export function isVersionDismissed(version: string): boolean {
+  try {
+    const raw = localStorage.getItem(DISMISS_KEY);
+    if (!raw) return false;
+    const { v, at } = JSON.parse(raw);
+    if (v !== version) return false;
+    return Date.now() - at < DISMISS_TTL;
+  } catch {
+    return false;
+  }
+}
+
+export function dismissUpdate(version: string) {
+  localStorage.setItem(DISMISS_KEY, JSON.stringify({ v: version, at: Date.now() }));
+}
+
+export function isVersionSkipped(version: string): boolean {
+  return localStorage.getItem(SKIP_KEY) === version;
+}
+
+export function skipVersion(version: string) {
+  localStorage.setItem(SKIP_KEY, version);
 }

@@ -4,8 +4,13 @@ import "./index.css";
 import App from "./App";
 import { setupGlobalErrorHandling } from "./utils/errorHandler";
 
-// Initialise global error handling first
 setupGlobalErrorHandling();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js", { scope: "./" });
+  });
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
