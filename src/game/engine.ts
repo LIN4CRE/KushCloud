@@ -176,7 +176,7 @@ export class GameEngine {
   resize(w: number, h: number) {
     this.w = w;
     this.h = h;
-    this.sc = Math.max(0.7, Math.min(1.4, h / 640));
+    this.sc = Math.max(0.7, Math.min(1.8, h / 640));
     this.radius = 17 * this.sc;
     this.bx = w * 0.3;
     if (this.state === "ready") this.by = h * 0.45;
