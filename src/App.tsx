@@ -104,6 +104,7 @@ export default function App() {
           <Play
             save={save}
             onExit={() => setScreen("menu")}
+            onNav={setScreen}
             processRun={processRun}
             reviveRun={reviveRun}
           />

@@ -105,11 +105,10 @@ export async function submitScore(
     await runTransaction(leaderboardRef, (current) => {
       const currentEntry = toLeaderboardEntry(current, uid, period);
       if (!currentEntry) return entry;
-      if (currentEntry.score > score) return current;
-      if (currentEntry.score === score) {
+      if (currentEntry.score > score) {
         return { ...currentEntry, name: safeName, timestamp: currentEntry.timestamp };
       }
-      return entry;
+      return { ...entry, name: safeName };
     });
 
     const profileRef = ref(_db, `users/${uid}`);

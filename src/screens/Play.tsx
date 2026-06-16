@@ -7,6 +7,8 @@ import { SKINS, TRAILS, World, worldForScore, levelFromXp } from "../game/data";
 import { Button, CoinPill, cx } from "../ui";
 import { audio } from "../game/audio";
 import { env } from "../config/env";
+import { subscribeToLeaderboard, type LeaderboardServiceEntry } from "../game/leaderboard";
+import type { Screen } from "../store";
 
 function createRunId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -18,12 +20,13 @@ function createRunId(): string {
 interface Props {
   save: SaveData;
   onExit: () => void;
+  onNav: (screen: Screen) => void;
   processRun: (r: RunResult) => Promise<RunSummary>;
   /** Deducts the revive cost from banked coins; returns false if unaffordable. */
   reviveRun: (cost: number) => boolean;
 }
 
-export default function Play({ save, onExit, processRun, reviveRun }: Props) {
+export default function Play({ save, onExit, onNav, processRun, reviveRun }: Props) {
   const skin = SKINS.find((s) => s.id === save.equippedSkin) || SKINS[0];
   const trail = TRAILS.find((t) => t.id === save.equippedTrail) || TRAILS[0];
 
@@ -54,6 +57,7 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
   const [reviveRunId, setReviveRunId] = useState("");
   // Revive costs more each time within a run; once-per-run keeps it from trivializing scores.
   const reviveCost = Math.max(50, Math.floor(save.stats.bestScore * 2));
+  const [lbEntries, setLbEntries] = useState<LeaderboardServiceEntry[]>([]);
 
   // Auto-pause when tab loses focus
   useEffect(() => {
@@ -89,6 +93,11 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
     prevBestRef.current = save.stats.bestScore;
     return () => window.clearTimeout(deadTimer.current);
   }, [save.stats.bestScore]);
+
+  useEffect(() => {
+    const unsub = subscribeToLeaderboard("daily", save.playerName, save.stats.bestScore, false, setLbEntries);
+    return unsub;
+  }, [save.playerName, save.stats.bestScore]);
 
   const handleDeath = (r: RunResult) => {
     if (processedRunIdsRef.current.has(r.runId)) return;
@@ -156,6 +165,21 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
   };
 
   const lvl = levelFromXp(save.xp);
+  const top3 = lbEntries.slice(0, 3);
+  const myEntry = lbEntries.find((e) => e.you);
+  const myRank = myEntry ? lbEntries.indexOf(myEntry) + 1 : null;
+  const leaderTaunt = (): string => {
+    if (!top3.length || !myEntry) return "";
+    if (myEntry.score === 0) return "No score yet — show em how! 🚀";
+    const leader = top3[0];
+    if (myRank === 1) return "🥇 WORLD #1 — can't touch this!";
+    const gap = leader.score - myEntry.score;
+    if (gap <= 0) return "🥇 YOU'RE #1!";
+    if (myRank === 2) return `🥈 ${gap.toLocaleString()} behind ${leader.name} — go!`;
+    if (myRank === 3) return `🥉 ${gap.toLocaleString()} behind ${leader.name} — climb!`;
+    if (myRank && myRank <= 10) return `#${myRank} · ${gap.toLocaleString()} to #1!`;
+    return `#${myRank} · ${leader.name} is ${gap.toLocaleString()} ahead!`;
+  };
 
   return (
     <div className="relative h-full w-full overflow-hidden animate-screen-enter">
@@ -533,6 +557,7 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
                 </Button>
               )}
               <Button size="lg" className="w-full" onClick={restart}>↻ One More Try</Button>
+              <Button variant="premium" className="w-full" onClick={() => { activeRunIdRef.current = ""; onNav("leaderboard"); }}>🏆 Leaderboard</Button>
               <Button variant="dark" className="w-full" onClick={exitToMenu}>⌂ Main Menu</Button>
             </div>
 
@@ -542,6 +567,26 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
               </p>
               <p className="text-[8px] font-semibold text-white/15 mt-1">{env.app.name} v{env.app.version}</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leaderboard taunt widget */}
+      {!summary && !paused && !practice && (phase === "ready" || phase === "playing") && lbEntries.length > 1 && (
+        <div className="pointer-events-none absolute bottom-3 inset-x-0 flex justify-center z-10">
+          <div className="rounded-xl bg-black/50 backdrop-blur-sm border border-white/[0.06] px-2.5 py-1.5 min-w-[200px]">
+            {top3.map((e, i) => (
+              <div key={e.uid || i} className="flex items-center gap-1.5 text-[11px] leading-tight">
+                <span className="shrink-0">{["🥇", "🥈", "🥉"][i]}</span>
+                <span className="font-bold text-white/90 truncate">{e.name}</span>
+                <span className="ml-auto tabular-nums text-white/50">{e.score.toLocaleString()}</span>
+              </div>
+            ))}
+            {myEntry && (
+              <div className="mt-1 pt-1 border-t border-white/[0.06] text-center">
+                <span className="text-[9px] font-bold text-amber-300/70">{leaderTaunt()}</span>
+              </div>
+            )}
           </div>
         </div>
       )}
