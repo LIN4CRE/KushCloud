@@ -127,7 +127,7 @@ export async function submitScore(
       };
       return profile;
     });
-  } catch (err) { if (import.meta.env.DEV) console.warn("[Firebase] submitScore failed:", err); }
+  } catch (err) { console.warn("[Firebase] submitScore failed:", err); }
 }
 
 export function subscribeLeaderboard(
@@ -138,7 +138,11 @@ export function subscribeLeaderboard(
     callback([]);
     return () => {};
   }
-  const _db = guardDb();
+  let _db: Database;
+  try { _db = guardDb(); } catch {
+    callback([]);
+    return () => {};
+  }
   const q = query(ref(_db, `leaderboards/${period}`), orderByChild("score"), limitToLast(100));
   return onValue(q, (snapshot) => {
     const entries: LeaderboardEntry[] = [];
@@ -147,6 +151,9 @@ export function subscribeLeaderboard(
       if (entry) entries.push(entry);
     });
     callback(normalizeLeaderboardEntries(entries, period));
+  }, (error) => {
+    console.warn("[Firebase] subscribeLeaderboard error:", error);
+    callback([]);
   });
 }
 
@@ -155,9 +162,16 @@ export function subscribeUserProfile(uid: string, callback: (profile: UserProfil
     callback(null);
     return () => {};
   }
-  const _db = guardDb();
+  let _db: Database;
+  try { _db = guardDb(); } catch {
+    callback(null);
+    return () => {};
+  }
   return onValue(ref(_db, `users/${uid}`), (snapshot) => {
     callback(snapshot.val() as UserProfile | null);
+  }, (error) => {
+    console.warn("[Firebase] subscribeUserProfile error:", error);
+    callback(null);
   });
 }
 
@@ -194,10 +208,17 @@ export function subscribeFriends(uid: string, callback: (friendUids: string[]) =
     callback([]);
     return () => {};
   }
-  const _db = guardDb();
+  let _db: Database;
+  try { _db = guardDb(); } catch {
+    callback([]);
+    return () => {};
+  }
   return onValue(ref(_db, `friends/${uid}`), (snapshot) => {
     const data = snapshot.val();
     callback(data ? Object.keys(data) : []);
+  }, (error) => {
+    console.warn("[Firebase] subscribeFriends error:", error);
+    callback([]);
   });
 }
 
