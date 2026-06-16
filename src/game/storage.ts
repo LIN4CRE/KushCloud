@@ -234,29 +234,6 @@ export function validateRun(score: number, durationMs: number, flaps: number, co
   return { valid: true };
 }
 
-export interface LeaderEntry { name: string; score: number; you?: boolean; friend?: boolean; }
-
-const BOT_NAMES = [
-  "GanjaGuru", "BluntForce", "MissMary", "HighKing", "PuffDaddy420", "ChronicChris", "DabQueen",
-  "StonerSam", "KushKween", "HazeHazel", "ReeferRick", "BongBella", "NugNomad", "TokeTitan",
-  "GreenGoblin", "VapeViper", "SmokeShadow", "LeafLord", "BudBaron", "ZenZara", "CloudChaser",
-  "TrichomeTara", "DankDuke", "PineappleP", "GrapeApe", "SourD", "OGOscar", "WaxWilly", "EdibleEd",
-  "FrostyFinn", "MellowMia",
-];
-
-export function seededScores(period: "daily" | "weekly" | "all"): LeaderEntry[] {
-  const seedBase = period === "daily" ? dayNumber() : period === "weekly" ? Math.floor(dayNumber() / 7) : 777;
-  let s = seedBase * 7919 + 13;
-  const rnd = () => ((s = (s * 1103515245 + 12345) % 2147483648) / 2147483648);
-  const max = period === "daily" ? 55 : period === "weekly" ? 90 : 140;
-  return BOT_NAMES.map((name, i) => {
-    const base = Math.floor(rnd() * max) + Math.floor((BOT_NAMES.length - i) * (rnd() * 1.5));
-    return { name, score: Math.max(2, base) };
-  });
-}
-
-export const FRIEND_NAMES = ["GanjaGuru", "DabQueen", "MellowMia", "ZenZara", "FrostyFinn"];
-
 export function trackEventMetric(
   metric: EventMetric,
   value: number,

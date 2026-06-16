@@ -1,5 +1,5 @@
 import { initializeApp, type FirebaseApp } from "firebase/app";
-import { getDatabase, ref, set, push, onValue, query, orderByChild, limitToLast, get, runTransaction, update, type Database } from "firebase/database";
+import { getDatabase, ref, set, onValue, query, orderByChild, limitToLast, get, runTransaction, update, type Database } from "firebase/database";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from "firebase/auth";
 import { env } from "./env";
 import {
@@ -57,14 +57,9 @@ export { onAuthStateChanged, type User };
 export type { LeaderboardEntry, LeaderboardPeriod };
 
 const MAX_NAME_LENGTH = 32;
-const MAX_CHAT_LENGTH = 500;
 
 function sanitizeName(name: string): string {
   return name.trim().replace(/\s+/g, " ").slice(0, MAX_NAME_LENGTH) || "Anonymous";
-}
-
-function sanitizeChatText(text: string): string {
-  return text.trim().slice(0, MAX_CHAT_LENGTH);
 }
 
 export interface UserProfile {
@@ -209,46 +204,6 @@ export function subscribeFriends(uid: string, callback: (friendUids: string[]) =
 
 export async function searchUserByUid(uid: string): Promise<UserProfile | null> {
   return getUserProfile(uid);
-}
-
-export interface ChatMessage {
-  id: string;
-  uid: string;
-  name: string;
-  text: string;
-  timestamp: number;
-}
-
-export async function sendMessage(uid: string, name: string, text: string): Promise<void> {
-  if (!isFirebaseAvailable) return;
-  const safeUid = uid.trim();
-  const safeName = sanitizeName(name);
-  const safeText = sanitizeChatText(text);
-  if (!safeUid || !safeText) return;
-
-  const _db = guardDb();
-  const newMessageRef = push(ref(_db, "chat"));
-  await set(newMessageRef, {
-    uid: safeUid,
-    name: safeName,
-    text: safeText,
-    timestamp: Date.now(),
-  });
-}
-
-export function subscribeChat(callback: (messages: ChatMessage[]) => void): () => void {
-  if (!isFirebaseAvailable) {
-    callback([]);
-    return () => {};
-  }
-  const _db = guardDb();
-  return onValue(query(ref(_db, "chat"), orderByChild("timestamp"), limitToLast(50)), (snapshot) => {
-    const messages: ChatMessage[] = [];
-    snapshot.forEach((child) => {
-      messages.push({ id: child.key!, ...child.val() } as ChatMessage);
-    });
-    callback(messages);
-  });
 }
 
 export function generateUID(): string {

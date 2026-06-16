@@ -180,12 +180,11 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
 
         <div className="mt-2 grid grid-cols-4 gap-2">
           <NavBtn icon="🛍️" label="Shop" onClick={() => onNav("shop")} />
-          <NavBtn icon="💬" label="Chat" onClick={() => onNav("chat")} />
           <NavBtn icon="🏆" label="Ranks" onClick={() => onNav("leaderboard")} />
           <NavBtn icon="🏅" label="Awards" onClick={() => onNav("achievements")} />
+          <NavBtn icon="👥" label="Friends" onClick={() => onNav("friends")} />
         </div>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          <NavBtn icon="👥" label="Friends" onClick={() => onNav("friends")} wide />
           <NavBtn
             icon="📋"
             label="Daily Missions"
@@ -193,11 +192,11 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
             badge={loginAvailable ? "!" : missionsDone < missionsTotal ? String(missionsTotal - missionsDone) : undefined}
             wide
           />
+          <NavBtn icon="📊" label="Stats" onClick={() => onNav("statistics")} wide />
         </div>
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          <NavBtn icon="📊" label="Stats" onClick={() => onNav("statistics")} />
-          <NavBtn icon="⚙️" label="Settings" onClick={() => onNav("settings")} />
-          <NavBtn icon="❓" label="Help" onClick={() => onNav("tutorial")} />
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <NavBtn icon="⚙️" label="Settings" onClick={() => onNav("settings")} wide />
+          <NavBtn icon="❓" label="Help" onClick={() => onNav("tutorial")} wide />
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { ref, set, get } from "firebase/database";
 
 export type Screen =
   | "menu" | "play" | "shop" | "leaderboard"
-  | "achievements" | "missions" | "profile" | "statistics" | "settings" | "tutorial" | "friends" | "chat";
+  | "achievements" | "missions" | "profile" | "statistics" | "settings" | "tutorial" | "friends";
 
 export function useSave() {
   const [save, setSave] = useState<SaveData>(() => rollDaily(loadSave()));

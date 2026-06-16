@@ -32,8 +32,6 @@ describe("PowerUpManager", () => {
     const mods = mgr.getModifiers();
     expect(mods).toEqual({
       coinMult: 1,
-      speedMult: 1,
-      gravityMult: 1,
       magnetRadius: 0,
       shieldHits: 0,
       doubleJumpAvailable: false,
@@ -59,20 +57,6 @@ describe("PowerUpManager", () => {
     expect(mgr.activate("pu_coin")).toBe(true);
     expect(mgr.activate("pu_coin")).toBe(false);
     expect(mgr.getActive()).toHaveLength(1);
-  });
-
-  it("applies slow motion to speed and gravity", () => {
-    mgr.activate("pu_slow");
-    const mods = mgr.getModifiers();
-    expect(mods.speedMult).toBeCloseTo(0.5);
-    expect(mods.gravityMult).toBeCloseTo(0.6);
-  });
-
-  it("applies extreme slow motion for pu_slow2", () => {
-    mgr.activate("pu_slow2");
-    const mods = mgr.getModifiers();
-    expect(mods.speedMult).toBeCloseTo(0.3);
-    expect(mods.gravityMult).toBeCloseTo(0.4);
   });
 
   it("sets magnet radius when magnet power-up is active", () => {

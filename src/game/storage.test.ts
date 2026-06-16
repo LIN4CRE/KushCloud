@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   dayNumber, normalizePlayerName, migrateSave, loadSave, writeSave,
-  rollDaily, currentMissions, validateRun, seededScores, trackEventMetric,
+  rollDaily, currentMissions, validateRun, trackEventMetric,
   DEFAULT_STATS,
 } from "./storage";
 
@@ -204,24 +204,6 @@ describe("validateRun", () => {
 
   it("rejects out of bounds score", () => {
     expect(validateRun(100001, 50000000, 500, 50).valid).toBe(false);
-  });
-});
-
-describe("seededScores", () => {
-  beforeEach(() => { vi.useFakeTimers(); });
-
-  it("returns 31 entries", () => {
-    vi.setSystemTime(new Date("2024-06-15T12:00:00Z"));
-    const scores = seededScores("daily");
-    expect(scores).toHaveLength(31);
-  });
-
-  it("each entry has name and score", () => {
-    const scores = seededScores("daily");
-    for (const entry of scores) {
-      expect(typeof entry.name).toBe("string");
-      expect(entry.score).toBeGreaterThanOrEqual(2);
-    }
   });
 });
 

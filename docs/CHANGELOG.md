@@ -1,5 +1,30 @@
 # Changelog
 
+## 3.0.0 (2026-06-16)
+
+### Major Leaderboard Overhaul
+- **Real Firebase credentials** — leaderboard now connects to the live Firebase RTDB at `europe-west1`. Scores submit, rankings populate, friends sync — no more placeholders.
+- **Removed seeded bot players** — `BOT_NAMES`, `seededScores()`, and `FRIEND_NAMES` deleted. Leaderboard shows only real players. No more fake filler scores.
+- **Friends list** now uses real Firebase friends data instead of hardcoded names.
+- **Leaderboard performance** — `indexOn: ["score"]` rule enforced; 100-entry limit on subscriptions.
+
+### Gameplay Stability
+- **Slow-motion removed** — eliminated near-miss/clutch time dilation (`slowmoTimer`, `0.35× dt` scaling) and slow-motion power-ups (`pu_slow`, `pu_slow2`). Game no longer drags on every near-miss.
+- **Speed rebalanced** — base speed increased from 130→180, difficulty scaling from +80→+100 per level. Game feels noticeably faster.
+- **Power-up cleanup** — `speedMult` and `gravityMult` fields removed from `PowerUpModifiers`. No more hidden speed/gravity modifiers.
+- **Chat removed** — `Chat.tsx` screen, `sendMessage()`, `subscribeChat()`, `MAX_CHAT_LENGTH`, `sanitizeChatText()` deleted entirely. Cleaner app, fewer Firebase reads.
+
+### Build & Tooling
+- **`.env` now properly configured** — Firebase API key, auth domain, database URL, project ID, and app ID set to live values.
+- **Dependency audit** — `.gitignore` modernised, unused `push` import removed from Firebase module.
+- TypeScript 6, Vite 8, React 19 — all dependencies up to date.
+
+### Testing
+- Removed `seededScores` tests (31 entries, deterministic seeding) — no longer relevant without bot players.
+- Removed slow-motion power-up unit tests (`pu_slow`, `pu_slow2`).
+- Removed `speedMult`/`gravityMult` assertions from power-up tests.
+- All remaining 113 tests pass clean.
+
 ## 2.6.0 (2026-06-12)
 
 ### Merge & Audit Release

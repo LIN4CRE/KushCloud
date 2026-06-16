@@ -6,7 +6,7 @@ import { PowerUpManager } from "./powerups";
 // no shields here so the dramatic shield save stays a deliberate shop purchase).
 const PICKUP_POOL: { id: string; color: string }[] = [
   { id: "pu_coin", color: "#c084fc" },
-  { id: "pu_slow", color: "#7dd3fc" },
+  { id: "pu_coin2", color: "#f472b6" },
   { id: "pu_magnet", color: "#34d399" },
   { id: "pu_double", color: "#fbbf24" },
 ];
@@ -128,8 +128,7 @@ export class GameEngine {
   // squash & stretch
   private squashX = 1;
   private squashY = 1;
-  // near-miss slowmo
-  private slowmoTimer = 0;
+
   // score milestone tracker
   private lastMilestone = 0;
   // speed lines
@@ -251,7 +250,6 @@ export class GameEngine {
     this.world = worldForScore(0);
     this.squashX = 1;
     this.squashY = 1;
-    this.slowmoTimer = 0;
     this.lastMilestone = 0;
     this.speedLines = [];
     this.bestScoreBefore = 0;
@@ -289,7 +287,6 @@ export class GameEngine {
     this.shieldInvuln = 1.4;
     this.shake = 8;
     this.flashAlpha = 0.6;
-    this.slowmoTimer = 0.25;
     // reset the death-fall squash
     this.squashX = 1;
     this.squashY = 1;
@@ -481,12 +478,6 @@ export class GameEngine {
   update(dt: number) {
     dt = Math.min(dt, 0.033); // clamp for stability
 
-    // near-miss slowmo effect: briefly slow time
-    if (this.slowmoTimer > 0) {
-      this.slowmoTimer -= dt;
-      dt *= 0.35; // time moves at 35% speed during slowmo
-    }
-
     this.groundOffset = (this.groundOffset + this.speed * dt) % (40 * this.sc);
     this.wingPhase += dt * 18;
 
@@ -536,9 +527,9 @@ export class GameEngine {
     this.powerUpManager.update();
     if (this.shieldInvuln > 0) this.shieldInvuln = Math.max(0, this.shieldInvuln - dt);
 
-    const baseSpeed = (130 + this.difficulty * 80) * this.sc;
-    this.speed = baseSpeed * mods.speedMult;
-    const effGravity = this.gravity * this.sc * mods.gravityMult;
+    const baseSpeed = (180 + this.difficulty * 100) * this.sc;
+    this.speed = baseSpeed;
+    const effGravity = this.gravity * this.sc;
     this.vy += effGravity * dt;
     this.by += this.vy * dt;
     this.rot = Math.max(-0.5, Math.min(1.2, this.vy / (700 * this.sc)));
@@ -726,7 +717,6 @@ export class GameEngine {
             audio.clutch();
             this.shake = 9;
             this.flashAlpha = Math.max(this.flashAlpha, 0.35);
-            this.slowmoTimer = 0.4; // dramatic, longer slowmo on a clutch
             navigator.vibrate?.([10, 25, 10, 25, 40]);
             this.burst(this.bx + this.radius, this.by, "#fbbf24", 16, 220, "spark");
             this.burst(this.bx + this.radius, this.by, "#ffffff", 10, 130, "puff");
@@ -736,7 +726,6 @@ export class GameEngine {
             this.score += this.multiplier * frenzyMult;
             audio.nearMiss();
             this.shake = 4;
-            this.slowmoTimer = 0.18; // brief slowmo on near miss
             navigator.vibrate?.(15);
             this.burst(this.bx + this.radius, this.by, "#7dffb0", 10, 170, "spark");
             this.burst(this.bx + this.radius, this.by, "#ffffff", 6, 100, "puff");

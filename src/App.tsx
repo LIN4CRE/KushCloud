@@ -18,7 +18,6 @@ import Statistics from "./screens/Statistics";
 import Settings from "./screens/Settings";
 import Tutorial from "./screens/Tutorial";
 import Friends from "./screens/Friends";
-import Chat from "./screens/Chat";
 import { Button, ToastContainer } from "./ui";
 import { loginWithGoogle, logout } from "./config/firebase";
 
@@ -162,9 +161,6 @@ export default function App() {
         )}
         {screen === "friends" && (
           <Friends onBack={() => setScreen("menu")} />
-        )}
-        {screen === "chat" && (
-          <Chat save={save} onBack={() => setScreen("menu")} />
         )}
         {screen === "tutorial" && (
           <Tutorial

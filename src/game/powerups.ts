@@ -8,8 +8,6 @@ export interface ActivePowerUp {
 
 export interface PowerUpModifiers {
   coinMult: number;
-  speedMult: number;
-  gravityMult: number;
   magnetRadius: number;
   shieldHits: number;
   doubleJumpAvailable: boolean;
@@ -55,8 +53,6 @@ export class PowerUpManager {
   getModifiers(): PowerUpModifiers {
     const result: PowerUpModifiers = {
       coinMult: 1,
-      speedMult: 1,
-      gravityMult: 1,
       magnetRadius: 0,
       shieldHits: this.shieldHitsRemaining,
       doubleJumpAvailable: this.hasActiveDoubleJump(),
@@ -69,16 +65,6 @@ export class PowerUpManager {
       switch (def.effect) {
         case "coinMultiplier":
           result.coinMult = Math.max(result.coinMult, def.id === "pu_coin" ? 2 : 3);
-          break;
-        case "slowMotion":
-          result.speedMult = Math.min(
-            result.speedMult,
-            def.id === "pu_slow" ? 0.5 : 0.3
-          );
-          result.gravityMult = Math.min(
-            result.gravityMult,
-            def.id === "pu_slow" ? 0.6 : 0.4
-          );
           break;
         case "magnet":
           result.magnetRadius = 80;

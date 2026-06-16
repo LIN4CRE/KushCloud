@@ -55,10 +55,10 @@ KushCloud is a single-page application (SPA) packaged as a web app, Android APK,
 - **Anti-cheat:** `validateRun()` rejects impossible scores/timing; `processedRunIds` prevents duplicates
 
 ### Firebase Integration
-- **Optional:** App works fully offline with seeded bot leaderboards
+- **Optional:** App works fully offline (local leaderboard)
 - **Authentication:** Anonymous UID (`kushcloud_uid` in localStorage) + optional Google Sign-In
-- **Security:** Server-side rules validate score ranges, prevent writes to other users' entries, limit chat message size
-- **Rate-limiting:** Chat limited to 500 chars; scores capped at 100,000; names at 32 chars
+- **Security:** Server-side rules validate score ranges, prevent writes to other users' entries
+- **Rate-limiting:** Scores capped at 100,000; names at 32 chars
 
 ## Module Responsibilities
 
@@ -88,7 +88,8 @@ TypeScript → Vite (build) → vite-plugin-singlefile → single index.html
                                     Capacitor sync → Android/iOS native wrappers
 ```
 
-- **Target:** ES2018 (IIFE) for maximum Android WebView compatibility
+- **Target:** ES2018 (IIFE) for maximum Android WebView compatibility  
+  (TypeScript 6 source compiled down via Vite)
 - **CSS:** Tailwind CSS v4 (JIT-compiled, no config file)
 - **Bundle:** Single-file HTML (~718KB / 195KB gzip) with inline CSS+JS
 

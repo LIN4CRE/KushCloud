@@ -1,4 +1,22 @@
-# Logs
+# --- Dependencies ---
+node_modules/
+
+# --- Build output ---
+dist/
+dist-ssr/
+release-builds/
+builds/
+
+# --- Environment ---
+.env
+.env.local
+.env.*.local
+*.local
+
+# --- Test coverage ---
+coverage/
+
+# --- Logs ---
 logs
 *.log
 npm-debug.log*
@@ -7,37 +25,35 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-.env
-coverage/
-
-# Android build outputs
+# --- Android build outputs ---
 android/.gradle/
 android/app/build/
 android/captures/
 android/.externalNativeBuild/
 android/local.properties
-release-builds/
-builds/
 
-# Binary build artifacts
+# --- Binary build artifacts ---
 *.apk
 *.aab
 *.xcarchive
 
-# Capacitor
+# --- Capacitor ---
 capacitor.config.json
 
-# Editor directories and files
+# --- Editor directories and files ---
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.swp
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+
+# --- Auto-generated reports ---
+AUDIT_REPORT.md

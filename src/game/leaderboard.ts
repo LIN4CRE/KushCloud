@@ -5,7 +5,6 @@ import {
   searchUserByUid
 } from "../config/firebase";
 import type { LeaderboardEntry } from "../config/firebase";
-import { seededScores } from "./storage";
 import { calculateRank } from "./leaderboardModel";
 
 let currentUID: string | null = null;
@@ -90,18 +89,7 @@ export function subscribeToLeaderboard(
   });
 
   const unsub = subscribeLeaderboard(period, (entries) => {
-    if (entries.length > 0) {
-      emit(entries, friendCache);
-    } else {
-      const localEntries: LeaderboardEntry[] = seededScores(period).map((s) => ({
-        uid: s.name,
-        name: s.name,
-        score: s.score,
-        timestamp: Date.now(),
-        period,
-      }));
-      emit(localEntries, friendCache);
-    }
+    emit(entries, friendCache);
   });
 
   unsubscribers.push(unsub, friendUnsub);
@@ -195,28 +183,25 @@ export async function getRank(period: LeaderboardPeriod, playerScore: number): P
         resolve(calculateRank(entries, uid, playerScore));
         unsub();
       });
-      setTimeout(() => resolve(getLocalRank(period, playerScore)), 1500);
+      setTimeout(() => resolve(getLocalRank(playerScore)), 1500);
     });
   } catch {
-    return getLocalRank(period, playerScore);
+    return getLocalRank(playerScore);
   }
 }
 
 export function getLocalLeaderboard(
-  period: LeaderboardPeriod,
+  _period: LeaderboardPeriod,
   playerName: string,
   playerScore: number,
   friendsOnly: boolean
 ): LeaderboardServiceEntry[] {
-  const list = seededScores(period);
-  const all = sortServiceEntries([...list, { uid: getUID(), name: playerName, score: playerScore, you: true }]);
+  const all = [{ uid: getUID(), name: playerName, score: playerScore, you: true }];
   return friendsOnly
     ? all.filter((e) => e.you || friendCache.includes(e.uid!))
     : all;
 }
 
-function getLocalRank(period: LeaderboardPeriod, playerScore: number): number {
-  const list = seededScores(period);
-  const all = [...list.map((e) => e.score), playerScore].sort((a, b) => b - a);
-  return all.indexOf(playerScore) + 1;
+function getLocalRank(playerScore: number): number {
+  return playerScore > 0 ? 1 : 0;
 }

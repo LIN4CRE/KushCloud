@@ -3,15 +3,14 @@
 ## How to Cut a Release
 
 ```bash
-# 1. Update version
-# Edit src/config/env.ts (app.version field)
-# Edit package.json (version field)
+# 1. Update version (single source of truth)
+# Edit package.json (version field) — injected via VITE_APP_VERSION at build time
 
 # 2. Update CHANGELOG.md with new version notes
 
 # 3. Commit and tag
 git add -A
-git commit -m "chore: bump version to X.Y.Z"
+git commit -m "release: vX.Y.Z — release title"
 git tag -a "vX.Y.Z" -m "Release vX.Y.Z"
 git push origin main --tags
 ```

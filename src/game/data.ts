@@ -198,12 +198,10 @@ export const EFFECTS: Effect[] = [
 
 export const POWERUPS: PowerUp[] = [
   { id: "pu_coin", name: "Coin Magnet", desc: "2x coins for 20s", cost: 75, icon: "🧲", effect: "coinMultiplier", duration: 20 },
-  { id: "pu_slow", name: "Slow Motion", desc: "Slows game speed for 15s", cost: 150, icon: "⏱️", effect: "slowMotion", duration: 15 },
   { id: "pu_magnet", name: "Coin Vacuum", desc: "Auto-collect coins in range", cost: 100, icon: "🔄", effect: "magnet", duration: 20 },
   { id: "pu_shield", name: "Force Shield", desc: "Survive one crash", cost: 200, icon: "🛡️", effect: "shield", duration: 0 },
   { id: "pu_double", name: "Double Jump", desc: "Double jump for 15s", cost: 120, icon: "⬆️", effect: "doubleJump", duration: 15 },
   { id: "pu_coin2", name: "Coin Frenzy", desc: "3x coins for 15s", cost: 220, icon: "💰", effect: "coinMultiplier", duration: 15 },
-  { id: "pu_slow2", name: "Time Warp", desc: "Extreme slow motion", cost: 300, icon: "🐢", effect: "slowMotion", duration: 25 },
   { id: "pu_mega", name: "Mega Shield", desc: "3-hit shield", cost: 400, icon: "⛩️", effect: "shield", duration: 0 },
 ];
 
