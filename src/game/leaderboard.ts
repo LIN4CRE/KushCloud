@@ -96,6 +96,16 @@ export function subscribeToLeaderboard(
       ? mapped.filter((e) => e.you || e.friend)
       : mapped;
     callback(finalList.slice(0, 50));
+    
+    try {
+      const cache = finalList.map((e) => ({
+        uid: e.uid,
+        name: e.name,
+        score: e.score,
+        timestamp: Date.now(),
+      }));
+      localStorage.setItem("kushcloud_leaderboard_cache", JSON.stringify(cache));
+    } catch {}
   };
 
   const friendUnsub = subscribeFriends((friendUids) => {
@@ -184,7 +194,33 @@ export async function getLeaderboard(
         resolve(list);
       }
     });
-  } catch {
+  } catch (error) {
+    console.warn("[Leaderboard] getLeaderboard error:", error);
+    const localAll = getLocalAllLeaderboards();
+    if (localAll.length > 0) {
+      const mapped: LeaderboardServiceEntry[] = localAll.map((e) => ({
+        uid: e.uid,
+        name: e.name,
+        score: e.score,
+        you: e.uid === getUID(),
+        friend: friendCache.includes(e.uid),
+      }));
+      const myEntry = mapped.find((e) => e.you);
+      if (myEntry) {
+        if (playerScore > myEntry.score) {
+          myEntry.score = playerScore;
+          sortServiceEntries(mapped);
+        }
+        myEntry.friend = false;
+      } else {
+        mapped.push({ uid: getUID(), name: playerName, score: playerScore, you: true, friend: false });
+        sortServiceEntries(mapped);
+      }
+      const finalList = friendsOnly
+        ? mapped.filter((e) => e.you || e.friend)
+        : mapped;
+      return finalList.slice(0, 50);
+    }
     return getLocalLeaderboard(period, playerName, playerScore, friendsOnly);
   }
 }
@@ -199,7 +235,19 @@ export async function getRank(period: LeaderboardPeriod, playerScore: number): P
       });
       setTimeout(() => resolve(getLocalRank(playerScore)), 1500);
     });
-  } catch {
+  } catch (error) {
+    console.warn("[Leaderboard] getRank error:", error);
+    const localAll = getLocalAllLeaderboards();
+    if (localAll.length > 0) {
+      const entries = localAll.map((e) => ({
+        uid: e.uid,
+        name: e.name,
+        score: e.score,
+        timestamp: e.timestamp || Date.now(),
+        period,
+      }));
+      return calculateRank(entries, uid, playerScore);
+    }
     return getLocalRank(playerScore);
   }
 }
@@ -218,4 +266,22 @@ export function getLocalLeaderboard(
 
 function getLocalRank(playerScore: number): number {
   return playerScore > 0 ? 1 : 0;
+}
+
+function getLocalAllLeaderboards(): LeaderboardServiceEntry[] {
+  try {
+    const raw = localStorage.getItem("kushcloud_leaderboard_cache");
+    if (!raw) return [];
+    const cached: LeaderboardServiceEntry[] = JSON.parse(raw);
+    if (!Array.isArray(cached)) return [];
+    const uid = getUID();
+    const now = Date.now();
+    const validEntries = cached.filter((e) => {
+      const age = now - (e.timestamp || 0);
+      return age < 24 * 60 * 60 * 1000;
+    });
+    return validEntries.sort((a, b) => b.score - a.score);
+  } catch {
+    return [];
+  }
 }

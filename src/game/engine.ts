@@ -151,6 +151,11 @@ export class GameEngine {
   frenzyTimer = 0;
   private readonly FRENZY_STREAK_GOAL = 3; // perfects in a row to trigger
   private readonly FRENZY_DURATION = 6; // seconds
+  private readonly SPEED_CHALLENGE_SCORE = 30; // score threshold for speed challenges
+  private readonly TIME_LIMIT = 90; // seconds for normal runs
+  private readonly EXTREME_TIME_LIMIT = 45; // seconds for high scores
+  private timeRemaining = 0;
+  private timeWarningThreshold = 15; // seconds before showing warning
   clutch = 0; // count of clutch escapes this run
   private lastIntensityScore = -1;
   private lastIntensityFrenzy = false;
@@ -174,6 +179,23 @@ export class GameEngine {
 
   setPracticeMode(on: boolean) {
     this.practiceMode = on;
+    if (on) {
+      this.timeRemaining = 999999;
+    } else {
+      this.timeRemaining = this.score >= this.SPEED_CHALLENGE_SCORE ? this.EXTREME_TIME_LIMIT : this.TIME_LIMIT;
+    }
+  }
+
+  getTimeRemaining() {
+    return this.timeRemaining;
+  }
+
+  isTimeWarning() {
+    return this.timeRemaining > 0 && this.timeRemaining <= this.timeWarningThreshold;
+  }
+
+  isTimeExpired() {
+    return this.timeRemaining > 0 && this.timeRemaining <= 0;
   }
 
   setPowerUpManager(m: PowerUpManager) {
@@ -353,7 +375,28 @@ export class GameEngine {
   }
 
   private get difficulty() {
-    return Math.min(1.5, this.score / 200);
+    // More aggressive difficulty scaling with strategic thresholds
+    let d = 1 + (this.score / 150);
+    // Add difficulty spikes at key milestones
+    if (this.score >= 20 && this.score < 40) d += 0.3;
+    if (this.score >= 40 && this.score < 60) d += 0.4;
+    if (this.score >= 60 && this.score < 80) d += 0.5;
+    if (this.score >= 80 && this.score < 120) d += 0.6;
+    if (this.score >= 120 && this.score < 200) d += 0.7;
+    if (this.score >= 200) d += 0.8;
+    return Math.min(2.5, d);
+  }
+
+  private get challengeFactor() {
+    // Dynamic challenge factor based on performance
+    let factor = 1.0;
+    // Higher factor for streaks (encourages consistency)
+    factor += Math.min(0.5, this.combo / 10);
+    // Lower factor for perfect runs (reward skill)
+    if (this.perfectPasses > 0 && this.nearMiss === 0) factor *= 0.8;
+    // Higher factor for clutch escapes (risk/reward)
+    factor += this.clutch * 0.1;
+    return factor;
   }
 
   private spawnPipe() {
@@ -549,6 +592,30 @@ export class GameEngine {
     const mods = this.powerUpManager.getModifiers();
     this.powerUpManager.update();
     if (this.shieldInvuln > 0) this.shieldInvuln = Math.max(0, this.shieldInvuln - dt);
+
+    // Time management - countdown for competitive play
+    if (!this.practiceMode) {
+      this.timeRemaining -= dt;
+      if (this.timeRemaining <= 0) {
+        this.timeRemaining = 0;
+        this.die();
+        return;
+      }
+    }
+
+    const baseSpeed = (180 + this.difficulty * 100) * this.sc;
+    const speedFactor = this.challengeFactor;
+    this.speed = baseSpeed * speedFactor;
+
+    // Time management - countdown for competitive play
+    if (!this.practiceMode) {
+      this.timeRemaining -= dt;
+      if (this.timeRemaining <= 0) {
+        this.timeRemaining = 0;
+        this.die();
+        return;
+      }
+    }
 
     const baseSpeed = (180 + this.difficulty * 100) * this.sc;
     this.speed = baseSpeed;
