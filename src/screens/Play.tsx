@@ -354,6 +354,18 @@ export default function Play({ save, onExit, onNav, processRun, reviveRun }: Pro
               🔥 {save.loginStreak}-day streak!
             </div>
           )}
+          {!practice && lbEntries.length > 1 && (
+            <div className="mt-1 rounded-xl bg-black/40 backdrop-blur-sm border border-white/[0.06] px-3 py-1.5">
+              <div className="text-[8px] font-bold text-white/30 uppercase tracking-wider mb-1">🏆 Top Players</div>
+              {lbEntries.slice(0, 5).map((e, i) => (
+                <div key={e.uid || i} className="flex items-center gap-1 text-[10px] leading-tight">
+                  <span className="shrink-0">{["🥇", "🥈", "🥉", "4️⃣", "5️⃣"][i]}</span>
+                  <span className="font-semibold text-white/70 truncate max-w-[80px]">{e.name}</span>
+                  <span className="ml-auto tabular-nums text-white/40">{e.score.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -526,6 +538,22 @@ export default function Play({ save, onExit, onNav, processRun, reviveRun }: Pro
               </div>
             )}
 
+            {/* Leaderboard — Top 5 (compact) */}
+            {lbEntries.length > 1 && (
+              <div className="mt-2 rounded-xl bg-white/[0.04] border border-white/[0.07] px-3 py-2">
+                <div className="text-[8px] font-bold text-white/30 uppercase tracking-wider mb-1">🏆 Leaderboard</div>
+                <div className="grid grid-cols-5 gap-1">
+                  {lbEntries.slice(0, 5).map((e, i) => (
+                    <div key={e.uid || i} className="flex flex-col items-center text-center gap-0.5">
+                      <span className="text-[10px]">{["🥇", "🥈", "🥉", "4️⃣", "5️⃣"][i]}</span>
+                      <span className="text-[8px] font-bold text-white/70 leading-tight truncate w-full">{e.name}</span>
+                      <span className="text-[7px] font-semibold text-white/40 tabular-nums">{e.score.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="mt-4 flex flex-col gap-2">
               {!revived && save.coins >= reviveCost && summary.valid && (
@@ -571,13 +599,13 @@ export default function Play({ save, onExit, onNav, processRun, reviveRun }: Pro
         </div>
       )}
 
-      {/* Leaderboard taunt widget */}
-      {!summary && !paused && !practice && (phase === "ready" || phase === "playing") && lbEntries.length > 1 && (
+      {/* Leaderboard taunt widget — only during gameplay (not on ready overlay) */}
+      {!summary && !paused && !practice && phase === "playing" && lbEntries.length > 1 && (
         <div className="pointer-events-none absolute bottom-3 inset-x-0 flex justify-center z-10">
-          <div className="rounded-xl bg-black/50 backdrop-blur-sm border border-white/[0.06] px-2.5 py-1.5 min-w-[200px]">
-            {top3.map((e, i) => (
+          <div className="rounded-xl bg-black/50 backdrop-blur-sm border border-white/[0.06] px-2.5 py-1.5 min-w-[240px]">
+            {lbEntries.slice(0, 5).map((e, i) => (
               <div key={e.uid || i} className="flex items-center gap-1.5 text-[11px] leading-tight">
-                <span className="shrink-0">{["🥇", "🥈", "🥉"][i]}</span>
+                <span className="shrink-0">{["🥇", "🥈", "🥉", "4️⃣", "5️⃣"][i]}</span>
                 <span className="font-bold text-white/90 truncate">{e.name}</span>
                 <span className="ml-auto tabular-nums text-white/50">{e.score.toLocaleString()}</span>
               </div>

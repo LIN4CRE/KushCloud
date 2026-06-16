@@ -2,6 +2,7 @@ import { SaveData } from "../game/storage";
 import { SKINS, TRAILS, TITLES, levelFromXp, SEASON_1_REWARDS } from "../game/data";
 import { Button, ProgressBar, CoinPill, FloatingLeaf, cx } from "../ui";
 import { KushLogo } from "../components/KushLogo";
+import TopPlayers from "../components/TopPlayers";
 import { type Screen } from "../store";
 import { audio } from "../game/audio";
 import { env } from "../config/env";
@@ -163,6 +164,9 @@ export default function Menu({ save, onPlay, onNav, missionsDone, missionsTotal,
               <span className="text-[9px] font-bold text-white/30">{save.seasonalXp.toLocaleString()} / {(SEASON_1_REWARDS.find(r => r.xp > save.seasonalXp)?.xp || 50000).toLocaleString()} XP</span>
             </div>
           </div>
+
+          {/* Leaderboard — Top 5 */}
+          <TopPlayers save={save} variant="compact" />
 
           {/* Daily tip */}
           <div className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.07] px-4 py-2.5 text-center">
