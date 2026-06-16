@@ -3,6 +3,7 @@ import { useSave, type Screen } from "./store";
 import { audio } from "./game/audio";
 import { env } from "./config/env";
 import { useUpdateChecker } from "./hooks/useUpdateChecker";
+import { usePwaInstall } from "./hooks/usePwaInstall";
 import {
   SKINS, TRAILS, TITLES, BADGES, EFFECTS, type LootCrate, type LootDrop, type Skin, type Badge,
 } from "./game/data";
@@ -40,6 +41,7 @@ export default function App() {
   const { processRun, reviveRun, claimAchievement, claimMission, claimLogin, resetProgress } =
     useGameHandlers(save, update, setScreen);
 
+  const pwaInstall = usePwaInstall();
   useAudio(save);
 
   useEffect(() => {
@@ -238,6 +240,30 @@ export default function App() {
           </div>
         )}
 
+        {pwaInstall.show && (
+          <div className="absolute bottom-0 inset-x-0 z-50 p-3">
+            <div className="rounded-2xl bg-slate-900/95 backdrop-blur-md border border-emerald-500/20 p-3 flex items-center gap-3 shadow-[0_8px_32px_rgba(0,0,0,0.6)] animate-[pop_0.35s_ease-out]">
+              <span className="text-2xl">📱</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-black text-white">Install KushCloud</div>
+                <div className="text-[10px] text-white/50">Add to home screen for the best experience</div>
+              </div>
+              <button
+                onClick={pwaInstall.install}
+                className="shrink-0 rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-600 text-white font-bold px-4 py-2 text-xs shadow-[0_3px_0_#065f46] hover:from-emerald-300 active:translate-y-px transition-all"
+              >
+                Install
+              </button>
+              <button
+                onClick={pwaInstall.dismiss}
+                className="shrink-0 text-white/40 hover:text-white/70 text-lg leading-none px-1"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
         <ToastContainer />
       </div>
     </div>

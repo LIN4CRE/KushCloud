@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadSave, writeSave, rollDaily, SaveData, migrateSave } from "./game/storage";
 import { auth, onAuthStateChanged, type User, db, isFirebaseAvailable } from "./config/firebase";
+import { setAuthUid } from "./game/leaderboard";
 import { ref, set, get } from "firebase/database";
 
 export type Screen =
@@ -39,6 +40,7 @@ export function useSave() {
     if (!isFirebaseAvailable || !auth) return;
     return onAuthStateChanged(auth, async (u) => {
       setUser(u);
+      setAuthUid(u?.uid || null);
       if (u && db) {
         setSyncStatus("syncing");
         try {

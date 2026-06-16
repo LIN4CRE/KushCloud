@@ -10,8 +10,22 @@ import { calculateRank } from "./leaderboardModel";
 let currentUID: string | null = null;
 let unsubscribers: (() => void)[] = [];
 let friendCache: string[] = [];
+let authUidOverride: string | null = null;
+
+/** Use the Firebase Auth UID (from Google sign-in) instead of the local random UID.
+ *  Call this when auth state changes so the same identity is used across platforms. */
+export function setAuthUid(uid: string | null) {
+  authUidOverride = uid;
+  if (uid) {
+    currentUID = uid;
+    localStorage.setItem("kushcloud_uid", uid);
+  } else {
+    currentUID = null;
+  }
+}
 
 export function getUID(): string {
+  if (authUidOverride) return authUidOverride;
   if (!currentUID) {
     try {
       const stored = localStorage.getItem("kushcloud_uid");
