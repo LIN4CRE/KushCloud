@@ -252,6 +252,82 @@ export async function getRank(period: LeaderboardPeriod, playerScore: number): P
   }
 }
 
+export async function bragAboutScore(
+  period: LeaderboardPeriod,
+  playerName: string,
+  playerScore: number,
+  playerRank: number,
+  friendCount: number = 0
+): Promise<string> {
+  const uid = getUID();
+  const localAll = getLocalAllLeaderboards();
+  
+  let topThree: LeaderboardServiceEntry[] = [];
+  if (localAll.length > 0) {
+    const entries = localAll.map((e) => ({
+      uid: e.uid,
+      name: e.name,
+      score: e.score,
+      timestamp: e.timestamp || Date.now(),
+      period,
+    }));
+    const normalized = normalizeLeaderboardEntries(entries, period);
+    topThree = normalized.slice(0, 3);
+  }
+  
+  const myEntry = topThree.find((e) => e.uid === uid);
+  if (!myEntry) {
+    topThree.push({
+      uid,
+      name: playerName,
+      score: playerScore,
+      timestamp: Date.now(),
+      period,
+    });
+    topThree.sort((a, b) => b.score - a.score || b.timestamp - a.timestamp);
+    topThree = topThree.slice(0, 3);
+  }
+  
+  const bragText = `🏆 I just made it to the #${playerRank} spot on the KushCloud leaderboard!
+
+`;
+  
+  const topThreeText = topThree.map((e, i) => {
+    const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉";
+    const isMe = e.uid === uid;
+    const prefix = isMe ? "👤 " : "";
+    return `${medal} ${prefix}${e.name}: ${e.score.toLocaleString()} points`;
+  }).join("\n");
+  
+  const footer = `\nPlay KushCloud and challenge me! Use code: KU${Math.random().toString(36).substring(2, 8).toUpperCase()}\n`;
+  
+  return bragText + topThreeText + footer;
+}
+
+export async function copyBragToClipboard(
+  period: LeaderboardPeriod,
+  playerName: string,
+  playerScore: number,
+  playerRank: number,
+  friendCount: number = 0
+): Promise<boolean> {
+  try {
+    const bragText = await bragAboutScore(period, playerName, playerScore, playerRank, friendCount);
+    
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(bragText);
+      return true;
+    } else {
+      console.warn("[Leaderboard] Clipboard API not available, falling back to localStorage");
+      localStorage.setItem("kushcloud_brag_text", bragText);
+      return true;
+    }
+  } catch (error) {
+    console.warn("[Leaderboard] Failed to copy brag to clipboard:", error);
+    return false;
+  }
+}
+
 export function getLocalLeaderboard(
   _period: LeaderboardPeriod,
   playerName: string,

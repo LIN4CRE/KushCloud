@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { SaveData } from "../game/storage";
 import { ScreenShell, Tabs, cx, Shimmer } from "../ui";
-import { subscribeToLeaderboard, submitPlayerScore, type LeaderboardServiceEntry } from "../game/leaderboard";
+import { subscribeToLeaderboard, submitPlayerScore, type LeaderboardServiceEntry, bragAboutScore, copyBragToClipboard } from "../game/leaderboard";
 
 interface Props {
   save: SaveData;
