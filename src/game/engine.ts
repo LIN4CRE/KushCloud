@@ -26,6 +26,8 @@ export interface RunResult {
 
 export type GameState = "ready" | "playing" | "dead";
 
+type PipePattern = "standard" | "moving";
+
 interface Pipe {
   x: number;
   gapY: number;
@@ -35,6 +37,10 @@ interface Pipe {
   nearChecked: boolean;
   coin?: { y: number; taken: boolean; bob: number };
   scored: boolean;
+  pattern: PipePattern;
+  baseGapY: number;
+  oscAmp: number;
+  oscPhase: number;
 }
 
 interface Particle {
@@ -141,11 +147,13 @@ export class GameEngine {
   private nextPickupScore = 8; // first pickup window
 
   // --- streak gate / FRENZY (double points after a perfect streak) ---
-  private perfectStreak = 0;
+  private   perfectStreak = 0;
   frenzyTimer = 0;
   private readonly FRENZY_STREAK_GOAL = 3; // perfects in a row to trigger
   private readonly FRENZY_DURATION = 6; // seconds
   clutch = 0; // count of clutch escapes this run
+  private lastIntensityScore = -1;
+  private lastIntensityFrenzy = false;
 
   constructor(skin: Skin, trail: Trail, world: World, cb: EngineCallbacks) {
     this.skin = skin;
@@ -356,6 +364,16 @@ export class GameEngine {
     const usable = Math.max(0, this.h - this.groundH - gap - margin * 2);
     const top = margin + (usable > 0 ? Math.random() * usable : margin);
     const gapY = Math.max(gap / 2 + margin, Math.min(top + gap / 2, this.h - this.groundH - gap / 2 - margin));
+
+    // Choose pipe pattern based on score (moving pipes from score 20 onward)
+    let pattern: PipePattern = "standard";
+    let oscAmp = 0;
+    const oscPhase = Math.random() * Math.PI * 2;
+    if (this.score >= 20 && Math.random() < 0.3) {
+      pattern = "moving";
+      oscAmp = (15 + Math.random() * 20) * this.sc;
+    }
+
     const pipe: Pipe = {
       x: this.w + 40,
       gapY,
@@ -364,9 +382,14 @@ export class GameEngine {
       passed: false,
       nearChecked: false,
       scored: false,
+      pattern,
+      baseGapY: gapY,
+      oscAmp,
+      oscPhase,
     };
-    // 38% chance of a coin in the gap
-    if (Math.random() < 0.38) {
+    // 38% chance of a coin (50% for moving to reward the extra challenge)
+    const coinChance = pattern === "moving" ? 0.50 : 0.38;
+    if (Math.random() < coinChance) {
       pipe.coin = { y: gapY + (Math.random() - 0.5) * gap * 0.4, taken: false, bob: Math.random() * Math.PI * 2 };
     }
     this.pipes.push(pipe);
@@ -579,6 +602,22 @@ export class GameEngine {
       else this.cb.onFrenzy?.(true, this.frenzyTimer * 1000);
     }
 
+    // Music intensity — update when score or FRENZY changes
+    const isFrenzy = this.frenzyTimer > 0;
+    if (this.score !== this.lastIntensityScore || isFrenzy !== this.lastIntensityFrenzy) {
+      audio.setMusicIntensity(this.score, isFrenzy);
+      this.lastIntensityScore = this.score;
+      this.lastIntensityFrenzy = isFrenzy;
+    }
+
+    // Update pipe patterns (moving pipes — oscillate gap)
+    for (const p of this.pipes) {
+      if (p.pattern === "moving") {
+        const age = (this.w + 40 - p.x) / (60 * this.sc);
+        p.gapY = p.baseGapY + Math.sin(age * 2.5 + p.oscPhase) * p.oscAmp;
+      }
+    }
+
     // move & collect power-up pickups
     for (const pu of this.pickups) {
       if (pu.taken) continue;
@@ -693,6 +732,7 @@ export class GameEngine {
           this.flashAlpha = 0.6;
           this.cb.onWorld?.(nw);
           this.addFloat(this.w / 2, this.h * 0.35, nw.name + "!", nw.accent, 22);
+          audio.setWorld(nw.id);
           audio.worldChange();
         }
       }

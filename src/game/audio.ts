@@ -11,6 +11,9 @@ class AudioEngine {
   private sfxVol = 0.8;
   private musicPlaying = false;
   private started = false;
+  private intensity = 0;
+  private frenzyBoost = false;
+  private activeWorld = "dispensary";
 
   init() {
     if (this.ctx) return;
@@ -145,30 +148,86 @@ class AudioEngine {
     setTimeout(() => this.tone(150, 0.2, "sawtooth", 0.15, this.sfxGain!), 120);
   }
 
-  private bass = [110, 110, 146.83, 130.81];
-  private chord = [
-    [220, 261.63, 329.63], [220, 261.63, 329.63],
-    [293.66, 349.23, 440], [261.63, 329.63, 392],
-  ];
-  private mel = [440, 523.25, 392, 440, 587.33, 523.25, 392, 329.63];
+  private beds: Record<string, { bass: number[]; chord: number[][]; mel: number[] }> = {
+    dispensary: {
+      bass: [110, 110, 146.83, 130.81],
+      chord: [[220, 261.63, 329.63], [220, 261.63, 329.63], [293.66, 349.23, 440], [261.63, 329.63, 392]],
+      mel: [440, 523.25, 392, 440, 587.33, 523.25, 392, 329.63],
+    },
+    grow: {
+      bass: [103.83, 103.83, 130.81, 116.54],
+      chord: [[207.65, 261.63, 311.13], [207.65, 261.63, 311.13], [261.63, 329.63, 392], [233.08, 293.66, 349.23]],
+      mel: [466.16, 554.37, 415.3, 466.16, 622.25, 554.37, 415.3, 349.23],
+    },
+    smoke: {
+      bass: [98, 98, 130.81, 116.54],
+      chord: [[196, 246.94, 293.66], [196, 246.94, 293.66], [261.63, 329.63, 392], [233.08, 293.66, 349.23]],
+      mel: [392, 493.88, 369.99, 392, 554.37, 493.88, 369.99, 329.63],
+    },
+    festival: {
+      bass: [110, 110, 146.83, 130.81],
+      chord: [[220, 277.18, 329.63], [220, 277.18, 329.63], [293.66, 369.99, 440], [261.63, 329.63, 392]],
+      mel: [523.25, 659.25, 493.88, 523.25, 698.46, 659.25, 493.88, 440],
+    },
+    cosmos: {
+      bass: [103.83, 103.83, 146.83, 123.47],
+      chord: [[207.65, 261.63, 311.13], [207.65, 261.63, 311.13], [293.66, 369.99, 440], [246.94, 311.13, 369.99]],
+      mel: [587.33, 739.99, 554.37, 587.33, 830.61, 739.99, 554.37, 493.88],
+    },
+  };
+
+  setMusicIntensity(score: number, isFrenzy: boolean) {
+    const i = score < 10 ? 0 : score < 20 ? 1 : score < 40 ? 2 : score < 60 ? 3 : 4;
+    if (i !== this.intensity || isFrenzy !== this.frenzyBoost) {
+      this.intensity = i;
+      this.frenzyBoost = isFrenzy;
+    }
+  }
+
+  setWorld(id: string) {
+    if (this.beds[id]) this.activeWorld = id;
+  }
 
   startMusic() {
     this.init();
     if (!this.ctx || this.musicPlaying) return;
     this.musicPlaying = true;
-    const beat = 340;
+    this.step = 0;
     const loop = () => {
       if (!this.musicPlaying || !this.ctx || !this.musicGain) return;
+      const bed = this.beds[this.activeWorld] || this.beds.dispensary;
       const bar = Math.floor(this.step / 4) % 4;
       const beatInBar = this.step % 4;
-      this.tone(this.bass[bar], 0.32, "sine", 0.5, this.musicGain, this.bass[bar]);
-      if (beatInBar === 0 || beatInBar === 2) {
-        this.chord[bar].forEach((f) => this.tone(f, 0.6, "triangle", 0.12, this.musicGain!));
+      const effInt = this.frenzyBoost ? Math.min(4, this.intensity + 1) : this.intensity;
+      const bpm = this.frenzyBoost ? 280 : 340;
+
+      // Layer 0 — bass (always)
+      this.tone(bed.bass[bar], 0.32, "sine", 0.5, this.musicGain, bed.bass[bar]);
+
+      // Layer 1 — chords (intensity >= 1)
+      if (effInt >= 1 && (beatInBar === 0 || beatInBar === 2)) {
+        bed.chord[bar].forEach((f) => this.tone(f, 0.6, "triangle", 0.12, this.musicGain!));
       }
-      const m = this.mel[this.step % this.mel.length];
-      if (this.step % 2 === 0) this.tone(m, 0.25, "square", 0.06, this.musicGain);
+
+      // Layer 2 — melody (intensity >= 2)
+      if (effInt >= 2) {
+        const m = bed.mel[this.step % bed.mel.length];
+        if (this.step % 2 === 0) this.tone(m, 0.25, "square", effInt >= 3 ? 0.09 : 0.06, this.musicGain);
+      }
+
+      // Layer 3 — counter-melody / harmony (intensity >= 3)
+      if (effInt >= 3) {
+        const h = bed.mel[(this.step + 4) % bed.mel.length] * 0.5;
+        if (this.step % 2 === 1) this.tone(h, 0.2, "triangle", 0.05, this.musicGain!);
+      }
+
+      // Layer 4 — arpeggio rush (intensity >= 4 or frenzy)
+      if (effInt >= 4) {
+        this.tone(bed.chord[bar][this.step % 3], 0.08, "square", 0.04, this.musicGain!);
+      }
+
       this.step++;
-      this.musicTimer = window.setTimeout(loop, beat);
+      this.musicTimer = window.setTimeout(loop, bpm);
     };
     loop();
   }
