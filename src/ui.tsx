@@ -1,4 +1,4 @@
-import { ReactNode, ButtonHTMLAttributes, useState, useEffect, useCallback, useRef } from "react";
+import { ReactNode, ButtonHTMLAttributes, useState, useEffect, useCallback } from "react";
 import { audio } from "./game/audio";
 import { RARITY, type Rarity } from "./game/data";
 
@@ -154,10 +154,6 @@ export function CoinPill({ coins }: { coins: number }) {
   );
 }
 
-export function SectionLabel({ children }: { children: ReactNode }) {
-  return <p className="text-[11px] font-black uppercase tracking-widest text-white/35 mb-2">{children}</p>;
-}
-
 export function RarityBadge({ rarity, size = "sm" }: { rarity: Rarity; size?: "sm" | "md" }) {
   const r = RARITY[rarity];
   if (size === "md") {
@@ -221,35 +217,6 @@ export function Tabs({ tabs, active, onChange }: {
   );
 }
 
-/* Modal overlay */
-export function Modal({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
-  const modalRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (open) {
-      modalRef.current?.focus();
-      const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-      window.addEventListener("keydown", handler);
-      return () => window.removeEventListener("keydown", handler);
-    }
-  }, [open, onClose]);
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-[fade-in_150ms_ease-out]" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        tabIndex={-1}
-        className="relative z-10 w-full max-w-sm animate-[scale-in_250ms_cubic-bezier(0.16,1,0.3,1)_both] outline-none"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
 /* Confetti burst particles */
 export function ConfettiBurst({ active }: { active: boolean }) {
   const [particles, setParticles] = useState<{ x: number; y: number; c: string; r: number }[]>([]);
@@ -286,27 +253,6 @@ export function ConfettiBurst({ active }: { active: boolean }) {
       ))}
     </div>
   );
-}
-
-/* Animated number counter */
-export function AnimatedNumber({ value, duration = 600 }: { value: number; duration?: number }) {
-  const [display, setDisplay] = useState(value);
-  useEffect(() => {
-    const start = display;
-    const diff = value - start;
-    if (diff === 0) return;
-    const startTime = performance.now();
-    let frameId: number;
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const t = Math.min(elapsed / duration, 1);
-      setDisplay(Math.round(start + diff * t * (2 - t)));
-      if (t < 1) frameId = requestAnimationFrame(animate);
-    };
-    frameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frameId);
-  }, [value, duration]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <>{display.toLocaleString()}</>;
 }
 
 /* Shimmer loading placeholder */

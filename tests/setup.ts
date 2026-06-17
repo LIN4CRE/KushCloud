@@ -19,8 +19,17 @@ Object.defineProperty(globalThis, "localStorage", {
   configurable: true,
 });
 
+// Preserve real jsdom navigator properties (e.g. userAgent) that React 19
+// depends on, while overriding onLine for test control.
+const origNav = globalThis.navigator;
 Object.defineProperty(globalThis, "navigator", {
-  value: { onLine: true },
+  value: new Proxy(origNav ?? { onLine: true }, {
+    get(target, prop) {
+      if (prop === "onLine") return true;
+      const val = (target as unknown as Record<string, unknown>)[prop as string];
+      return val;
+    },
+  }),
   writable: true,
   configurable: true,
 });

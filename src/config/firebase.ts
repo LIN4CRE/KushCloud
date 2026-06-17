@@ -157,24 +157,6 @@ export function subscribeLeaderboard(
   });
 }
 
-export function subscribeUserProfile(uid: string, callback: (profile: UserProfile | null) => void): () => void {
-  if (!isFirebaseAvailable) {
-    callback(null);
-    return () => {};
-  }
-  let _db: Database;
-  try { _db = guardDb(); } catch {
-    callback(null);
-    return () => {};
-  }
-  return onValue(ref(_db, `users/${uid}`), (snapshot) => {
-    callback(snapshot.val() as UserProfile | null);
-  }, (error) => {
-    console.warn("[Firebase] subscribeUserProfile error:", error);
-    callback(null);
-  });
-}
-
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   if (!isFirebaseAvailable) return null;
   const _db = guardDb();

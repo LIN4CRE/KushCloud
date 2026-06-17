@@ -9,8 +9,10 @@ vi.mock("../game/leaderboard", () => ({
     cb([]);
     return () => {};
   }),
-  submitPlayerScore: vi.fn(),
+  submitPlayerScore: vi.fn(async () => {}),
   copyBragToClipboard: vi.fn(),
+  encodeScoreLink: vi.fn(() => "https://example.com/score"),
+  getFriendScores: vi.fn(() => []),
   type: {} as Record<string, never>,
 }));
 

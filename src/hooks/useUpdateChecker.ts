@@ -58,18 +58,4 @@ export function useUpdateChecker(currentVersion: string) {
   return { ...state, dismiss, skip, recheck: check };
 }
 
-function isStandalone(): boolean {
-  try {
-    return matchMedia("(display-mode: standalone)").matches || !!(navigator as unknown as Record<string, boolean>).standalone;
-  } catch {
-    return false;
-  }
-}
 
-export function useIsStandalone(): boolean {
-  const [standalone, setStandalone] = useState(false);
-  useEffect(() => {
-    setStandalone(isStandalone());
-  }, []);
-  return standalone;
-}

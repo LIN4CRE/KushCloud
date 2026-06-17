@@ -55,10 +55,6 @@ interface RunLogEntry {
 const _runLog: RunLogEntry[] = [];
 const MAX_LOG_SIZE = 200;
 
-export function getRunLog(): readonly RunLogEntry[] {
-  return _runLog;
-}
-
 function logRun(entry: RunLogEntry) {
   _runLog.push(entry);
   if (_runLog.length > MAX_LOG_SIZE) _runLog.shift();
