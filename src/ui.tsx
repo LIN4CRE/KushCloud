@@ -1,52 +1,23 @@
-import { ReactNode, ButtonHTMLAttributes, useState, useEffect, useCallback } from "react";
-import { audio } from "./game/audio";
-import { RARITY, type Rarity } from "./game/data";
+import { type ReactNode, useEffect, useState, useCallback, createContext, useContext } from "react";
 
-export function cx(...a: (string | false | undefined | null)[]) {
-  return a.filter(Boolean).join(" ");
-}
-
-interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "ghost" | "gold" | "danger" | "dark" | "premium";
-  size?: "sm" | "md" | "lg";
-}
-export function Button({ variant = "primary", size = "md", className, children, onClick, ...rest }: BtnProps) {
-  const [pressed, setPressed] = useState(false);
-  const base =
-    "relative inline-flex items-center justify-center gap-2 font-bold rounded-2xl transition-all duration-150 active:translate-y-px active:brightness-90 disabled:opacity-35 disabled:pointer-events-none select-none tracking-wide";
-  const variants: Record<string, string> = {
-    primary:
-      "bg-gradient-to-b from-emerald-400 to-emerald-600 text-white shadow-[0_4px_0_#065f46,0_1px_3px_rgba(0,0,0,0.4)] hover:from-emerald-300",
-    gold:
-      "bg-gradient-to-b from-amber-300 to-amber-500 text-amber-950 shadow-[0_4px_0_#92400e,0_1px_3px_rgba(0,0,0,0.4)] hover:from-amber-200",
-    danger:
-      "bg-gradient-to-b from-rose-500 to-rose-700 text-white shadow-[0_4px_0_#881337,0_1px_3px_rgba(0,0,0,0.4)] hover:from-rose-400",
-    dark:
-      "bg-white/[0.08] text-white border border-white/[0.12] hover:bg-white/[0.13] backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
-    ghost: "bg-transparent text-white/70 hover:text-white hover:bg-white/5",
-    premium:
-      "bg-gradient-to-b from-violet-400 to-violet-600 text-white shadow-[0_4px_0_#5b21b6,0_1px_3px_rgba(0,0,0,0.4)] hover:from-violet-300",
-  };
-  const sizes = {
-    sm: "px-3.5 py-1.5 text-sm rounded-xl",
-    md: "px-5 py-2.5 text-[0.9375rem]",
-    lg: "px-7 py-3.5 text-lg",
+export function Button({
+  children, onClick, className = "", disabled, variant = "primary", ...rest
+}: {
+  children: ReactNode; onClick?: () => void; className?: string; disabled?: boolean;
+  variant?: "primary" | "secondary" | "ghost" | "danger";
+} & Record<string, unknown>) {
+  const base = "relative cursor-pointer select-none rounded-xl px-6 py-3 text-sm font-bold uppercase tracking-wider transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40";
+  const variants = {
+    primary:   "bg-gradient-to-b from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-900/40 hover:from-emerald-300 hover:to-emerald-500",
+    secondary: "bg-gradient-to-b from-slate-600 to-slate-700 text-slate-200 shadow-lg shadow-slate-900/40 hover:from-slate-500 hover:to-slate-600",
+    ghost:     "bg-transparent text-slate-300 hover:bg-white/5",
+    danger:    "bg-gradient-to-b from-red-500 to-red-700 text-white shadow-lg shadow-red-900/40 hover:from-red-400 hover:to-red-600",
   };
   return (
     <button
-      className={cx(
-        base,
-        variants[variant] || variants.primary,
-        sizes[size],
-        pressed && "animate-press",
-        className,
-      )}
-      onClick={(e) => {
-        audio.click();
-        setPressed(true);
-        setTimeout(() => setPressed(false), 200);
-        onClick?.(e);
-      }}
+      onClick={onClick}
+      disabled={disabled}
+      className={`${base} ${variants[variant]} ${className}`}
       {...rest}
     >
       {children}
@@ -54,272 +25,150 @@ export function Button({ variant = "primary", size = "md", className, children, 
   );
 }
 
-export function Panel({ children, className }: { children: ReactNode; className?: string }) {
+export function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div
-      className={cx(
-        "rounded-3xl bg-white/[0.07] backdrop-blur-md border border-white/[0.1] shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.07)] transition-all duration-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.4)] hover:bg-white/[0.09]",
-        className,
-      )}
-    >
+    <div className={`rounded-2xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-sm ${className}`}>
       {children}
     </div>
   );
 }
 
-export function ScreenShell({
-  title,
-  onBack,
-  children,
-  right,
-  subtitle,
-}: {
-  title: string;
-  onBack: () => void;
-  children: ReactNode;
-  right?: ReactNode;
-  subtitle?: string;
+export function ScreenShell({ children, title, onBack }: {
+  children: ReactNode; title?: string; onBack?: () => void;
 }) {
   return (
-    <div className="flex h-full flex-col animate-screen-enter">
-      <div className="shrink-0 px-4 pt-5 pb-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => { audio.click(); onBack(); }}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.08] text-white border border-white/[0.1] hover:bg-white/[0.13] active:scale-90 transition-all duration-150"
-            aria-label="Back"
-          >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M11 4L6 9L11 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+    <div className="flex h-full w-full flex-col">
+      <header className="flex shrink-0 items-center gap-3 border-b border-white/5 px-4 py-3">
+        {onBack && (
+          <button onClick={onBack} className="flex size-9 items-center justify-center rounded-xl bg-white/5 text-lg hover:bg-white/10 active:scale-90">
+            ←
           </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black text-white tracking-tight">{title}</h1>
-            {subtitle && <p className="text-[11px] font-semibold text-white/40 mt-0.5">{subtitle}</p>}
-          </div>
-          {right && <div className="ml-auto">{right}</div>}
-        </div>
-        <div className="mt-3 h-px bg-gradient-to-r from-white/0 via-white/10 to-white/0" />
-      </div>
-      <div className="flex-1 overflow-y-auto px-4 pb-8 [scrollbar-width:thin]">{children}</div>
-    </div>
-  );
-}
-
-export function Stat({ label, value, icon, variant = "default" }: { label: string; value: ReactNode; icon?: string; variant?: "default" | "highlight" | "danger" | "gold" }) {
-  const variants = {
-    default: "bg-white/[0.07] border-white/[0.09] text-white",
-    highlight: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
-    danger: "bg-rose-500/10 border-rose-500/20 text-rose-400",
-    gold: "bg-amber-400/10 border-amber-300/20 text-amber-300",
-  };
-  return (
-    <div className={cx("rounded-2xl border p-3 text-center flex flex-col items-center gap-0.5 transition-all duration-300 hover:scale-[1.04] hover:brightness-110 active:scale-[0.97]", variants[variant])}>
-      {icon && <div className="text-xl leading-none mb-0.5 drop-shadow-sm transition-transform duration-300 group-hover:scale-110">{icon}</div>}
-      <div className="text-lg font-black leading-tight tabular-nums">{value}</div>
-      <div className="text-[10px] uppercase tracking-wider opacity-50 font-black">{label}</div>
-    </div>
-  );
-}
-
-export function ProgressBar({ value, max, className, barClass, animate = true }: { value: number; max: number; className?: string; barClass?: string; animate?: boolean }) {
-  const safeMax = max || 1;
-  const pct = Math.max(0, Math.min(100, (value / safeMax) * 100));
-  return (
-    <div
-      className={cx("h-2 w-full overflow-hidden rounded-full bg-black/40 border border-white/5", className)}
-      role="progressbar"
-      aria-valuenow={Math.round(value)}
-      aria-valuemin={0}
-      aria-valuemax={Math.round(max)}
-    >
-      <div
-        className={cx(
-          "h-full rounded-full bg-gradient-to-r from-emerald-400 to-lime-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]",
-          animate && "transition-all duration-1000 ease-out",
-          barClass,
         )}
-        style={{ width: pct + "%" }}
-      />
-    </div>
-  );
-}
-
-export function CoinPill({ coins }: { coins: number }) {
-  return (
-    <div className="flex items-center gap-1.5 rounded-full bg-amber-400/15 border border-amber-300/25 px-3 py-1 font-bold text-amber-200 text-sm shadow-[inset_0_1px_0_rgba(251,191,36,0.1)] transition-all duration-300 hover:bg-amber-400/20 animate-breathe">
-      <span className="text-base leading-none">🪙</span>
-      <span className="tabular-nums">{coins.toLocaleString()}</span>
-    </div>
-  );
-}
-
-export function RarityBadge({ rarity, size = "sm" }: { rarity: Rarity; size?: "sm" | "md" }) {
-  const r = RARITY[rarity];
-  if (size === "md") {
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider uppercase"
-        style={{ background: r.bg, border: `1px solid ${r.border}`, color: r.color }}
-      >
-        <span className="w-1.5 h-1.5 rounded-full" style={{ background: r.color, boxShadow: `0 0 4px ${r.color}` }} />
-        {r.label}
-      </span>
-    );
-  }
-  return (
-    <span className="text-[9px] font-black tracking-wider uppercase" style={{ color: r.color }}>
-      {r.label}
-    </span>
-  );
-}
-
-export function RarityGlow({ rarity, children }: { rarity: Rarity; children: ReactNode }) {
-  const r = RARITY[rarity];
-  return (
-    <div
-      className="rounded-2xl p-[1px]"
-      style={{ background: `linear-gradient(135deg, ${r.color}40, transparent, ${r.color}20)` }}
-    >
-      <div className="rounded-2xl bg-slate-900/95 h-full" style={{ boxShadow: `inset 0 0 20px ${r.glow}` }}>
+        {title && <h1 className="text-lg font-bold tracking-wider text-white">{title}</h1>}
+      </header>
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         {children}
       </div>
     </div>
   );
 }
 
-/* Tabs component */
+export function Stat({ label, value, className = "" }: { label: string; value: string | number; className?: string }) {
+  return (
+    <div className={`flex flex-col items-center ${className}`}>
+      <span className="text-xs uppercase tracking-widest text-slate-400">{label}</span>
+      <span className="text-xl font-bold text-white">{value}</span>
+    </div>
+  );
+}
+
+export function ProgressBar({ value, max, className = "" }: { value: number; max: number; className?: string }) {
+  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  return (
+    <div className={`h-2 overflow-hidden rounded-full bg-slate-700 ${className}`}>
+      <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-300 transition-all duration-500" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+export function CoinPill({ amount, className = "" }: { amount: number; className?: string }) {
+  const compact = amount >= 1000000 ? `${(amount / 1000000).toFixed(1)}M` :
+    amount >= 1000 ? `${(amount / 1000).toFixed(1)}K` : String(amount);
+  return (
+    <div className={`inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-500/20 px-3 py-1 text-sm font-bold text-amber-300 ${className}`}>
+      <span>🪙</span>
+      <span>{compact}</span>
+    </div>
+  );
+}
+
 export function Tabs({ tabs, active, onChange }: {
-  tabs: { key: string; label: string; icon?: string }[];
+  tabs: { id: string; label: string }[];
   active: string;
-  onChange: (key: string) => void;
+  onChange: (id: string) => void;
 }) {
   return (
-    <div className="flex gap-1 rounded-xl bg-black/25 p-1 overflow-x-auto" role="tablist" style={{ scrollbarWidth: "none" }}>
-      {tabs.map((t) => (
+    <div className="flex gap-1 rounded-xl bg-slate-800/60 p-1">
+      {tabs.map((tab) => (
         <button
-          key={t.key}
-          role="tab"
-          aria-selected={active === t.key}
-          onClick={() => onChange(t.key)}
-          className={cx(
-            "flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all duration-200",
-            active === t.key
-              ? "bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.4)] scale-[1.02]"
-              : "text-white/50 hover:text-white/70 active:scale-95",
-          )}
+          key={tab.id}
+          onClick={() => onChange(tab.id)}
+          className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider transition-all ${
+            active === tab.id
+              ? "bg-emerald-600 text-white shadow-lg"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
         >
-          {t.icon && <span aria-hidden="true">{t.icon}</span>}
-          {t.label}
+          {tab.label}
         </button>
       ))}
     </div>
   );
 }
 
-/* Confetti burst particles */
-export function ConfettiBurst({ active }: { active: boolean }) {
-  const [particles, setParticles] = useState<{ x: number; y: number; c: string; r: number }[]>([]);
-  useEffect(() => {
-    if (!active) { setParticles([]); return; }
-    const colors = ["#fbbf24", "#f472b6", "#60a5fa", "#4ade80", "#a78bfa", "#fb923c"];
-    const p = Array.from({ length: 30 }, () => ({
-      x: Math.random() * 100,
-      y: -10 - Math.random() * 40,
-      c: colors[Math.floor(Math.random() * colors.length)],
-      r: 2 + Math.random() * 4,
-    }));
-    setParticles(p);
-    const timer = setTimeout(() => setParticles([]), 1500);
-    return () => clearTimeout(timer);
-  }, [active]);
-  if (particles.length === 0) return null;
+export function Shimmer({ className = "" }: { className?: string }) {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {particles.map((p, i) => (
-        <div
-          key={i}
-          className="absolute rounded-full animate-[confetti_1.5s_ease-out_forwards]"
-          style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: p.r,
-            height: p.r,
-            background: p.c,
-            boxShadow: `0 0 4px ${p.c}`,
-            animationDelay: `${i * 20}ms`,
-          }}
-        />
-      ))}
-    </div>
+    <div className={`animate-pulse rounded-lg bg-slate-700 ${className}`} />
   );
 }
 
-/* Shimmer loading placeholder */
-export function Shimmer({ className }: { className?: string }) {
+export function FloatingLeaf({ className = "" }: { className?: string }) {
   return (
-    <div
-      className={cx("animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-white/5 via-white/10 to-white/5 bg-[length:200%_100%] rounded-2xl", className)}
-    />
+    <span className={`inline-block animate-bounce text-xs ${className}`}>🌿</span>
   );
 }
 
-/* Floating leaf decorative animation (cannabis-style) */
-export function FloatingLeaf({ className }: { className?: string }) {
-  const [style] = useState(() => ({
-    left: `${5 + Math.random() * 90}%`,
-    top: `${Math.random() * 100}%`,
-    animationDelay: `${Math.random() * 3}s`,
-    animationDuration: `${3 + Math.random() * 2}s`,
-  }));
-  return (
-    <span
-      aria-hidden="true"
-      className={cx("pointer-events-none absolute text-lg opacity-20 animate-leaf-drift", className)}
-      style={style}
-    >
-      🍃
-    </span>
-  );
+interface Toast {
+  id: number; message: string; type: "success" | "error" | "info";
 }
 
-/* Toast notification with auto-dismiss */
-interface ToastData {
-  id: number;
-  message: string;
-  type?: "success" | "error" | "info";
+interface ToastCtx {
+  show: (message: string, type?: Toast["type"]) => void;
 }
-let toastId = 0;
-let toastListeners: ((t: ToastData) => void)[] = [];
-export function showToast(message: string, type: "success" | "error" | "info" = "info") {
-  const t: ToastData = { id: ++toastId, message, type };
-  toastListeners.forEach((fn) => fn(t));
+
+const Ctx = createContext<ToastCtx>({ show: () => {} });
+
+export function showToast(message: string, type: Toast["type"] = "info") {
+  Ctx?._currentValue?.show?.(message, type);
 }
+showToast._ctx = Ctx;
+
 export function ToastContainer() {
-  const [toasts, setToasts] = useState<ToastData[]>([]);
-  const addToast = useCallback((t: ToastData) => {
-    setToasts((prev) => [...prev, t]);
-    setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== t.id)), 2400);
-  }, []);
-  useEffect(() => {
-    toastListeners.push(addToast);
-    return () => { toastListeners = toastListeners.filter((fn) => fn !== addToast); };
-  }, [addToast]);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const idRef = useState(0);
+
+  const show = useCallback((message: string, type: Toast["type"] = "info") => {
+    const id = idRef[0]++;
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3000);
+  }, [idRef]);
+
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none" role="status" aria-live="polite">
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          className={cx(
-            "pointer-events-auto rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-2xl animate-[slide-down_300ms_var(--ease-spring)_both]",
-            t.type === "success" && "bg-gradient-to-r from-emerald-500 to-emerald-700",
-            t.type === "error" && "bg-gradient-to-r from-rose-500 to-rose-700",
-            t.type === "info" && "bg-gradient-to-r from-blue-500 to-blue-700",
-          )}
-        >
-          {t.message}
-        </div>
-      ))}
-    </div>
+    <Ctx.Provider value={{ show }}>
+      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 mx-auto flex max-w-md flex-col items-center gap-2 px-4">
+        {toasts.map((toast) => {
+          const colors = {
+            success: "bg-emerald-800/90 border-emerald-500 text-emerald-200",
+            error: "bg-red-800/90 border-red-500 text-red-200",
+            info: "bg-slate-800/90 border-slate-500 text-slate-200",
+          };
+          return (
+            <div
+              key={toast.id}
+              className={`animate-in slide-in-from-bottom-2 rounded-xl border px-4 py-2 text-sm font-medium shadow-xl backdrop-blur-sm ${colors[toast.type]}`}
+            >
+              {toast.message}
+            </div>
+          );
+        })}
+      </div>
+      {toasts.length === 0 && <span style={{ display: "none" }} />}
+    </Ctx.Provider>
   );
+}
+
+export function useToast(): ToastCtx {
+  return useContext(Ctx);
 }

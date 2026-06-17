@@ -1,477 +1,112 @@
-// ===== Game content & progression data =====
-
 export type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary" | "mythic";
 
-export const RARITY: Record<Rarity, { color: string; glow: string; bg: string; border: string; label: string; dropRate: number; dustValue: number }> = {
-  common:    { color: "#9ca3af", glow: "#9ca3af40", bg: "rgba(156,163,175,0.12)", border: "rgba(156,163,175,0.3)", label: "Common",    dropRate: 0.40, dustValue: 3 },
-  uncommon:  { color: "#4ade80", glow: "#4ade8060", bg: "rgba(74,222,128,0.10)", border: "rgba(74,222,128,0.3)", label: "Uncommon",  dropRate: 0.25, dustValue: 8 },
-  rare:      { color: "#60a5fa", glow: "#60a5fa60", bg: "rgba(96,165,250,0.10)", border: "rgba(96,165,250,0.3)", label: "Rare",      dropRate: 0.18, dustValue: 20 },
-  epic:      { color: "#a78bfa", glow: "#a78bfa70", bg: "rgba(167,139,250,0.10)", border: "rgba(167,139,250,0.3)", label: "Epic",      dropRate: 0.12, dustValue: 50 },
-  legendary: { color: "#fbbf24", glow: "#fbbf2480", bg: "rgba(251,191,36,0.10)", border: "rgba(251,191,36,0.3)", label: "Legendary", dropRate: 0.04, dustValue: 150 },
-  mythic:    { color: "#f472b6", glow: "#f472b690", bg: "rgba(244,114,182,0.10)", border: "rgba(244,114,182,0.3)", label: "Mythic",    dropRate: 0.01, dustValue: 400 },
+export const RARITY: Record<Rarity, {
+  color: string; glow: string; bg: string; border: string; label: string;
+}> = {
+  common:    { color: "text-gray-200",      glow: "shadow-gray-400/30",    bg: "bg-gray-800/60",    border: "border-gray-600",     label: "Common" },
+  uncommon:  { color: "text-green-300",     glow: "shadow-green-400/30",  bg: "bg-green-900/40",   border: "border-green-600",    label: "Uncommon" },
+  rare:      { color: "text-blue-300",      glow: "shadow-blue-400/30",   bg: "bg-blue-900/40",    border: "border-blue-600",     label: "Rare" },
+  epic:      { color: "text-purple-300",    glow: "shadow-purple-400/30", bg: "bg-purple-900/40",  border: "border-purple-600",   label: "Epic" },
+  legendary: { color: "text-amber-300",     glow: "shadow-amber-400/30",  bg: "bg-amber-900/40",   border: "border-amber-600",    label: "Legendary" },
+  mythic:    { color: "text-rose-300",      glow: "shadow-rose-400/30",   bg: "bg-rose-900/40",    border: "border-rose-600",     label: "Mythic" },
 };
 
 export interface Skin {
-  id: string; name: string; desc: string; cost: number; body: string; accent: string; eye: string;
-  unlockLevel?: number; emoji: string; rarity: Rarity;
-}
-
-export interface Trail {
-  id: string; name: string; desc: string; cost: number; color: string; glow: string;
-  kind: "puff" | "spark" | "leaf" | "rainbow" | "star" | "flame" | "crystal" | "ghost" | "aurora" | "none";
-  rarity: Rarity;
-}
-
-export interface World {
-  id: string; name: string; minScore: number; sky: [string, string]; pipe: string;
-  pipeDark: string; ground: string; accent: string;
-}
-
-export interface Title {
-  id: string; name: string; desc: string; rarity: Rarity;
-}
-
-export interface Badge {
-  id: string; name: string; desc: string; rarity: Rarity; icon: string;
-}
-
-export interface Effect {
-  id: string; name: string; desc: string; rarity: Rarity;
-  kind: "spawn" | "ambient" | "death"; color: string; secondary?: string;
-}
-
-export interface PowerUp {
-  id: string; name: string; desc: string; cost: number; icon: string;
-  effect: "coinMultiplier" | "slowMotion" | "magnet" | "shield" | "doubleJump";
-  duration: number;
-}
-
-export interface LootCrate {
-  id: string; name: string; desc: string; cost: number; icon: string;
-  minRolls: number; maxRolls: number;
-  rarities: Rarity[];
-  guaranteed?: Rarity;
-}
-
-export type LootDrop = Skin | Trail | Title | Badge | Effect;
-
-export interface Achievement {
-  id: string; name: string; desc: string; reward: number;
-  stat: keyof PlayerStats | "score" | "ownedSkins" | "ownedTrails" | "ownedEffects" | "ownedBadges" | "ownedTitles";
-  goal: number;
-}
-
-export interface Mission {
-  id: string; text: string; goal: number; reward: number; rewardType?: "coins" | "crate";
-  metric: "runScore" | "runCoins" | "runNearMiss" | "plays" | "totalCoins";
-}
-
-export interface PlayerStats {
-  totalGames: number; totalScore: number; totalCoins: number; totalNearMiss: number;
-  totalPerfectPasses: number; bestCombo: number; totalFlaps: number; bestScore: number;
+  id: string; name: string; rarity: Rarity; cost: number;
+  image: string; bodyColor: string; wingColor: string; crestColor: string;
 }
 
 export const SKINS: Skin[] = [
-  { id: "bud", name: "Buddy", desc: "The classic floating bud.", cost: 0, body: "#5fbf5f", accent: "#3d8b3d", eye: "#1a1a1a", emoji: "🌿", rarity: "common" },
-  { id: "nug", name: "Lil Nug", desc: "A frosty little nugget.", cost: 120, body: "#8fd98f", accent: "#5aa85a", eye: "#162216", emoji: "🍀", rarity: "common" },
-  { id: "joint", name: "Sir Spliff", desc: "A dapper rolled gentleman.", cost: 250, body: "#f4ead0", accent: "#c9a063", eye: "#2a2a2a", emoji: "🚬", rarity: "uncommon" },
-  { id: "purple", name: "Purple Haze", desc: "Smooth and mellow violet.", cost: 400, body: "#a878e0", accent: "#7048a8", eye: "#1a1030", emoji: "🍇", rarity: "uncommon" },
-  { id: "gummy", name: "Gummy Bear", desc: "Edible and adorable.", cost: 600, body: "#ff7eb0", accent: "#e0407d", eye: "#330018", emoji: "🐻", rarity: "rare" },
-  { id: "cosmic", name: "Cosmic Kush", desc: "Out-of-this-world strain.", cost: 1000, body: "#3ad6e0", accent: "#9b5fff", eye: "#001a22", unlockLevel: 8, emoji: "🌌", rarity: "rare" },
-  { id: "golden", name: "Golden OG", desc: "24-karat dankness.", cost: 2000, body: "#ffd24a", accent: "#c98a16", eye: "#2a1c00", unlockLevel: 15, emoji: "👑", rarity: "epic" },
-  { id: "ember", name: "Ember Phoenix", desc: "Rising from the ash.", cost: 0, body: "#ff6b35", accent: "#d63031", eye: "#1a0500", emoji: "🔥", rarity: "rare" },
-  { id: "frost", name: "Frost Spirit", desc: "Chilled to perfection.", cost: 0, body: "#74d4fa", accent: "#4a90d9", eye: "#002244", emoji: "❄️", rarity: "rare" },
-  { id: "shadow", name: "Shadow Blur", desc: "A mysterious silhouette.", cost: 0, body: "#2d3436", accent: "#636e72", eye: "#ff6b6b", emoji: "🌑", rarity: "epic" },
-  { id: "bloom", name: "Cherry Bloom", desc: "Sakura in the wind.", cost: 0, body: "#ffb7c5", accent: "#ff8a9e", eye: "#4a0020", emoji: "🌸", rarity: "uncommon" },
-  { id: "toad", name: "Shroom Toad", desc: "A fun-guy to be around.", cost: 0, body: "#e17055", accent: "#00b894", eye: "#2d1b00", emoji: "🍄", rarity: "rare" },
-  { id: "wizard", name: "Kush Wizard", desc: "Magic in every puff.", cost: 0, body: "#6c5ce7", accent: "#a29bfe", eye: "#0a0030", emoji: "🔮", rarity: "epic" },
-  { id: "mecha", name: "Mecha Bird", desc: "Beep boop, fly high.", cost: 0, body: "#dfe6e9", accent: "#0984e3", eye: "#fdcb6e", emoji: "🤖", rarity: "rare" },
-  { id: "sunset", name: "Sunset Glow", desc: "Golden hour forever.", cost: 0, body: "#fdcb6e", accent: "#e17055", eye: "#2d1000", emoji: "🌅", rarity: "uncommon" },
-  { id: "void", name: "Void Walker", desc: "From the endless dark.", cost: 0, body: "#0a0a0a", accent: "#2d0050", eye: "#bb86fc", emoji: "🕳️", rarity: "legendary" },
-  { id: "dragon", name: "Drake", desc: "Ancient fire breather.", cost: 0, body: "#e74c3c", accent: "#c0392b", eye: "#f1c40f", emoji: "🐉", rarity: "legendary" },
-  { id: "angel", name: "Seraphim", desc: "Wings of pure light.", cost: 0, body: "#ffffff", accent: "#ffeaa7", eye: "#74b9ff", emoji: "👼", rarity: "legendary" },
-  { id: "neko", name: "Neko-Chan", desc: "Super kawaii mode.", cost: 0, body: "#fd79a8", accent: "#e84393", eye: "#00cec9", emoji: "🐱", rarity: "mythic" },
-  { id: "cosmo", name: "Cosmo King", desc: "Ruler of the galaxy.", cost: 0, body: "#2d1b69", accent: "#6c5ce7", eye: "#fdcb6e", emoji: "👾", rarity: "mythic" },
-  { id: "phoenix", name: "Solaris", desc: "Eternal sun spirit.", cost: 0, body: "#ff9f43", accent: "#ee5253", eye: "#222f3e", emoji: "☀️", rarity: "mythic" },
+  { id: "bud",       name: "Bud",       rarity: "common",    cost: 0,    image: "🪻", bodyColor: "#a3e635", wingColor: "#84cc16", crestColor: "#65a30d" },
+  { id: "ember",     name: "Ember",     rarity: "uncommon",  cost: 500,  image: "🔥", bodyColor: "#f97316", wingColor: "#ea580c", crestColor: "#c2410c" },
+  { id: "frost",     name: "Frost",     rarity: "uncommon",  cost: 500,  image: "❄️", bodyColor: "#67e8f9", wingColor: "#22d3ee", crestColor: "#0891b2" },
+  { id: "shadow",    name: "Shadow",    rarity: "rare",      cost: 1500, image: "🌑", bodyColor: "#6b7280", wingColor: "#4b5563", crestColor: "#374151" },
+  { id: "cosmic",    name: "Cosmic",    rarity: "epic",      cost: 3000, image: "🌌", bodyColor: "#a855f7", wingColor: "#7e22ce", crestColor: "#581c87" },
+  { id: "golden",    name: "Golden",    rarity: "legendary", cost: 5000, image: "👑", bodyColor: "#fbbf24", wingColor: "#d97706", crestColor: "#b45309" },
+  { id: "nebula",    name: "Nebula",    rarity: "mythic",    cost: 10000,image: "🪐", bodyColor: "#ec4899", wingColor: "#be185d", crestColor: "#9d174d" },
+  { id: "midnight",  name: "Midnight",  rarity: "rare",      cost: 1500, image: "🌙", bodyColor: "#1e293b", wingColor: "#334155", crestColor: "#475569" },
+  { id: "sunset",    name: "Sunset",    rarity: "epic",      cost: 3000, image: "🌅", bodyColor: "#f43f5e", wingColor: "#e11d48", crestColor: "#be123c" },
+  { id: "toxic",     name: "Toxic",     rarity: "uncommon",  cost: 500,  image: "☢️", bodyColor: "#84cc16", wingColor: "#65a30d", crestColor: "#4d7c0f" },
+  { id: "ghost",     name: "Ghost",     rarity: "rare",      cost: 1500, image: "👻", bodyColor: "#cbd5e1", wingColor: "#94a3b8", crestColor: "#64748b" },
+  { id: "lava",      name: "Lava",      rarity: "epic",      cost: 3000, image: "🌋", bodyColor: "#dc2626", wingColor: "#b91c1c", crestColor: "#991b1b" },
+  { id: "aurora",    name: "Aurora",    rarity: "legendary", cost: 5000, image: "🌈", bodyColor: "#06b6d4", wingColor: "#0891b2", crestColor: "#0e7490" },
+  { id: "void",      name: "Void",      rarity: "mythic",    cost: 10000,image: "🕳️", bodyColor: "#000000", wingColor: "#111827", crestColor: "#1f2937" },
+  { id: "pastel",    name: "Pastel",    rarity: "common",    cost: 100,  image: "🌸", bodyColor: "#f9a8d4", wingColor: "#f472b6", crestColor: "#ec4899" },
+  { id: "ocean",     name: "Ocean",     rarity: "uncommon",  cost: 500,  image: "🌊", bodyColor: "#3b82f6", wingColor: "#2563eb", crestColor: "#1d4ed8" },
+  { id: "royal",     name: "Royal",     rarity: "epic",      cost: 3000, image: "💎", bodyColor: "#8b5cf6", wingColor: "#7c3aed", crestColor: "#6d28d9" },
+  { id: "inferno",   name: "Inferno",   rarity: "legendary", cost: 5000, image: "💥", bodyColor: "#ef4444", wingColor: "#dc2626", crestColor: "#b91c1c" },
+  { id: "crystal",   name: "Crystal",   rarity: "rare",      cost: 1500, image: "💠", bodyColor: "#99f6e4", wingColor: "#2dd4bf", crestColor: "#14b8a6" },
+  { id: "candy",     name: "Candy",     rarity: "common",    cost: 100,  image: "🍬", bodyColor: "#fb923c", wingColor: "#f97316", crestColor: "#ea580c" },
+  { id: "moonlight", name: "Moonlight", rarity: "epic",      cost: 3000, image: "🌙", bodyColor: "#e2e8f0", wingColor: "#cbd5e1", crestColor: "#94a3b8" },
+  { id: "blaze",     name: "Blaze",     rarity: "rare",      cost: 1500, image: "⚡", bodyColor: "#facc15", wingColor: "#eab308", crestColor: "#ca8a04" },
+  { id: "fairy",     name: "Fairy",     rarity: "uncommon",  cost: 500,  image: "🧚", bodyColor: "#f0abfc", wingColor: "#d946ef", crestColor: "#c026d3" },
+  { id: "dragon",    name: "Dragon",    rarity: "legendary", cost: 5000, image: "🐉", bodyColor: "#f97316", wingColor: "#ea580c", crestColor: "#9a3412" },
 ];
+
+export interface Trail {
+  id: string; name: string; rarity: Rarity; cost: number;
+  particles: string; color: string; size: number; lifetime: number;
+}
 
 export const TRAILS: Trail[] = [
-  { id: "none", name: "No Trail", desc: "Clean and simple.", cost: 0, color: "#ffffff", glow: "#ffffff", kind: "none", rarity: "common" },
-  { id: "puff", name: "Smoke Puff", desc: "Classic mellow clouds.", cost: 80, color: "#dfe7df", glow: "#bfeabf", kind: "puff", rarity: "common" },
-  { id: "spark", name: "Sparkles", desc: "Crystal trichome sparkle.", cost: 200, color: "#fff4b0", glow: "#ffe066", kind: "spark", rarity: "uncommon" },
-  { id: "leaf", name: "Leaf Storm", desc: "Trailing tiny leaves.", cost: 350, color: "#74d774", glow: "#3fae3f", kind: "leaf", rarity: "uncommon" },
-  { id: "rainbow", name: "Rainbow Road", desc: "Taste the rainbow.", cost: 800, color: "#ff6ec7", glow: "#6ec7ff", kind: "rainbow", rarity: "rare" },
-  { id: "star", name: "Stardust", desc: "Wishes trailing behind.", cost: 0, color: "#ffeaa7", glow: "#fdcb6e", kind: "star", rarity: "rare" },
-  { id: "flame", name: "Flame Trail", desc: "Burning bright.", cost: 0, color: "#e74c3c", glow: "#ff6b35", kind: "flame", rarity: "rare" },
-  { id: "crystal", name: "Crystal Ice", desc: "Frozen in time.", cost: 0, color: "#74d4fa", glow: "#4a90d9", kind: "crystal", rarity: "epic" },
-  { id: "ghost", name: "Ghostly Wisp", desc: "Ethereal vapor trail.", cost: 0, color: "#a29bfe", glow: "#6c5ce7", kind: "ghost", rarity: "epic" },
-  { id: "aurora", name: "Northern Lights", desc: "Borealis beauty.", cost: 0, color: "#00cec9", glow: "#6c5ce7", kind: "aurora", rarity: "legendary" },
-  { id: "magma", name: "Magma Flow", desc: "Molten fury.", cost: 0, color: "#e17055", glow: "#d63031", kind: "flame", rarity: "rare" },
-  { id: "bubble", name: "Bubble Pop", desc: "Light as air.", cost: 0, color: "#81ecec", glow: "#00cec9", kind: "spark", rarity: "uncommon" },
-  { id: "neon", name: "Neon Pulse", desc: "Synthwave dreams.", cost: 0, color: "#fd79a8", glow: "#e84393", kind: "rainbow", rarity: "epic" },
-  { id: "lightning", name: "Storm Charge", desc: "Electric avenue.", cost: 0, color: "#f9ca24", glow: "#f0932b", kind: "star", rarity: "legendary" },
-  { id: "cosmicdust", name: "Cosmic Dust", desc: "Stardust from the beyond.", cost: 0, color: "#dfe6e9", glow: "#b2bec3", kind: "ghost", rarity: "mythic" },
-  { id: "solar", name: "Solar Flare", desc: "Blazing sun trail.", cost: 0, color: "#ff9f43", glow: "#feca57", kind: "flame", rarity: "mythic" },
+  { id: "none",     name: "None",      rarity: "common",    cost: 0,    particles: "none",     color: "",          size: 0,  lifetime: 0 },
+  { id: "puff",     name: "Puff",      rarity: "common",    cost: 100,  particles: "circle",   color: "#a3e635",   size: 3,  lifetime: 400 },
+  { id: "spark",    name: "Spark",     rarity: "uncommon",  cost: 500,  particles: "star",     color: "#fbbf24",   size: 4,  lifetime: 500 },
+  { id: "leaf",     name: "Leaf",      rarity: "common",    cost: 100,  particles: "leaf",     color: "#84cc16",   size: 5,  lifetime: 600 },
+  { id: "rainbow",  name: "Rainbow",   rarity: "rare",      cost: 1500, particles: "circle",   color: "#ec4899",   size: 4,  lifetime: 700 },
+  { id: "frost",    name: "Frost",     rarity: "uncommon",  cost: 500,  particles: "diamond",  color: "#67e8f9",   size: 3,  lifetime: 600 },
+  { id: "flame",    name: "Flame",     rarity: "rare",      cost: 1500, particles: "circle",   color: "#ef4444",   size: 5,  lifetime: 500 },
+  { id: "cosmic",   name: "Cosmic",    rarity: "epic",      cost: 3000, particles: "star",     color: "#a855f7",   size: 6,  lifetime: 800 },
+  { id: "shadow",   name: "Shadow",    rarity: "uncommon",  cost: 500,  particles: "circle",   color: "#6b7280",   size: 4,  lifetime: 400 },
+  { id: "gold",     name: "Gold",      rarity: "epic",      cost: 3000, particles: "circle",   color: "#fbbf24",   size: 5,  lifetime: 700 },
+  { id: "glow",     name: "Glow",      rarity: "rare",      cost: 1500, particles: "circle",   color: "#22d3ee",   size: 6,  lifetime: 600 },
+  { id: "embers",   name: "Embers",    rarity: "epic",      cost: 3000, particles: "circle",   color: "#f97316",   size: 4,  lifetime: 900 },
+  { id: "nebula",   name: "Nebula",    rarity: "legendary", cost: 5000, particles: "star",     color: "#ec4899",   size: 7,  lifetime: 1000 },
+  { id: "holy",     name: "Holy",      rarity: "legendary", cost: 5000, particles: "diamond",  color: "#fef08a",   size: 6,  lifetime: 900 },
+  { id: "void",     name: "Void",      rarity: "mythic",    cost: 10000,particles: "circle",   color: "#000000",   size: 8,  lifetime: 1200 },
 ];
 
-export const TITLES: Title[] = [
-  { id: "t_novice", name: "Novice Toker", desc: "Just starting the journey.", rarity: "common" },
-  { id: "t_cloud", name: "Cloud Chaser", desc: "Always reaching higher.", rarity: "common" },
-  { id: "t_streak", name: "Streak Master", desc: "Never misses a day.", rarity: "uncommon" },
-  { id: "t_coin", name: "Dank Banker", desc: "Coins stack high.", rarity: "uncommon" },
-  { id: "t_combo", name: "Combo King", desc: "Chain master.", rarity: "rare" },
-  { id: "t_nearmiss", name: "Edge Lord", desc: "Living on the edge.", rarity: "rare" },
-  { id: "t_grinder", name: "The Grinder", desc: "Relentless dedication.", rarity: "rare" },
-  { id: "t_eternal", name: "Eternal Flame", desc: "Legendary persistence.", rarity: "epic" },
-  { id: "t_mvp", name: "MVP", desc: "Top of the leaderboard.", rarity: "epic" },
-  { id: "t_hoarder", name: "Hoarder Supreme", desc: "Collector of all things.", rarity: "epic" },
-  { id: "t_whale", name: "Crypto Whale", desc: "Unlimited coins.", rarity: "legendary" },
-  { id: "t_myth", name: "Living Myth", desc: "A true legend.", rarity: "legendary" },
-  { id: "t_champ", name: "Champion", desc: "Undisputed best.", rarity: "legendary" },
-  { id: "t_god", name: "Kush God", desc: "Beyond mortal limits.", rarity: "mythic" },
-  { id: "t_one", name: "The One", desc: "Chosen by the cloud.", rarity: "mythic" },
-];
-
-export const BADGES: Badge[] = [
-  { id: "b_first", name: "First Flight", desc: "Completed your first game.", icon: "🌟", rarity: "common" },
-  { id: "b_10games", name: "Regular", desc: "Played 10 games.", icon: "🎮", rarity: "common" },
-  { id: "b_50games", name: "Dedicated", desc: "Played 50 games.", icon: "🎯", rarity: "uncommon" },
-  { id: "b_100games", name: "Veteran", desc: "Played 100 games.", icon: "💪", rarity: "uncommon" },
-  { id: "b_score50", name: "Sky High", desc: "Scored 50 points.", icon: "☁️", rarity: "rare" },
-  { id: "b_score100", name: "Legendary", desc: "Scored 100 points.", icon: "🏆", rarity: "rare" },
-  { id: "b_score200", name: "Godlike", desc: "Scored 200 points.", icon: "👑", rarity: "epic" },
-  { id: "b_collector", name: "Collector", desc: "Own 10+ skins.", icon: "🛍️", rarity: "epic" },
-  { id: "b_combo20", name: "Combo God", desc: "x20 combo achieved.", icon: "🔥", rarity: "epic" },
-  { id: "b_leet", name: "1337", desc: "Score exactly 1337 total.", icon: "💻", rarity: "legendary" },
-  { id: "b_perfect", name: "Perfect Run", desc: "Complete a run with 0 misses.", icon: "✨", rarity: "legendary" },
-  { id: "b_mythic", name: "Mythic Seeker", desc: "Unlock a mythic item.", icon: "🌈", rarity: "mythic" },
-  // Podium badges — boasting rights for placing on the daily leaderboard.
-  { id: "b_bronze", name: "Bronze Tier", desc: "Finished 3rd on the daily leaderboard.", icon: "🥉", rarity: "rare" },
-  { id: "b_silver", name: "Silver Tier", desc: "Finished 2nd on the daily leaderboard.", icon: "🥈", rarity: "epic" },
-  { id: "b_gold", name: "Gold Tier", desc: "Finished 1st on the daily leaderboard.", icon: "🥇", rarity: "legendary" },
-];
-
-/** Badges that are auto-awarded by gameplay (skill/milestone), with their unlock test. */
-export const SKILL_BADGE_RULES: { id: string; test: (ctx: BadgeContext) => boolean }[] = [
-  { id: "b_first", test: (c) => c.totalGames >= 1 },
-  { id: "b_10games", test: (c) => c.totalGames >= 10 },
-  { id: "b_50games", test: (c) => c.totalGames >= 50 },
-  { id: "b_100games", test: (c) => c.totalGames >= 100 },
-  { id: "b_score50", test: (c) => c.bestScore >= 50 },
-  { id: "b_score100", test: (c) => c.bestScore >= 100 },
-  { id: "b_score200", test: (c) => c.bestScore >= 200 },
-  { id: "b_collector", test: (c) => c.ownedSkins >= 10 },
-  { id: "b_combo20", test: (c) => c.bestCombo >= 20 },
-  { id: "b_perfect", test: (c) => c.runScore > 0 && c.runNearMiss === 0 && c.runPerfectPasses > 0 },
-];
-
-export interface BadgeContext {
-  totalGames: number;
-  bestScore: number;
-  bestCombo: number;
-  ownedSkins: number;
-  runScore: number;
-  runNearMiss: number;
-  runPerfectPasses: number;
+export interface World {
+  id: string; name: string; minScore: number;
+  sky: [string, string]; pipe: string; pipeDark: string; ground: string; accent: string;
 }
-
-/** Maps a daily leaderboard rank (1-based) to the podium badge id, if any. */
-export function podiumBadgeForRank(rank: number): string | null {
-  if (rank === 1) return "b_gold";
-  if (rank === 2) return "b_silver";
-  if (rank === 3) return "b_bronze";
-  return null;
-}
-
-export const EFFECTS: Effect[] = [
-  { id: "e_none", name: "No Effect", desc: "Clean gameplay.", rarity: "common", kind: "ambient", color: "#ffffff" },
-  { id: "e_spores", name: "Spores", desc: "Floating spores around the bird.", rarity: "common", kind: "ambient", color: "#bfeabf", secondary: "#74d774" },
-  { id: "e_embers", name: "Embers", desc: "Tiny embers float upward.", rarity: "uncommon", kind: "ambient", color: "#ff6b35", secondary: "#e74c3c" },
-  { id: "e_butterfly", name: "Butterflies", desc: "Butterflies follow you.", rarity: "uncommon", kind: "spawn", color: "#fd79a8", secondary: "#ffeaa7" },
-  { id: "e_glow", name: "Glow Aura", desc: "Soft glow around the bird.", rarity: "rare", kind: "ambient", color: "#60a5fa", secondary: "#a78bfa" },
-  { id: "e_stars", name: "Star Shower", desc: "Stars rain down.", rarity: "rare", kind: "spawn", color: "#fbbf24", secondary: "#ffeaa7" },
-  { id: "e_petals", name: "Cherry Petals", desc: "Sakura petals in the wind.", rarity: "epic", kind: "ambient", color: "#ffb7c5", secondary: "#ff8a9e" },
-  { id: "e_shadow", name: "Dark Aura", desc: "Sinister shadow effect.", rarity: "epic", kind: "ambient", color: "#2d3436", secondary: "#636e72" },
-  { id: "e_galaxy", name: "Galaxy Swirl", desc: "A cosmos revolves around you.", rarity: "legendary", kind: "ambient", color: "#6c5ce7", secondary: "#2d1b69" },
-  { id: "e_rainbow", name: "Prism Aura", desc: "All colors of the spectrum.", rarity: "mythic", kind: "ambient", color: "#ff6ec7", secondary: "#00cec9" },
-];
-
-export const POWERUPS: PowerUp[] = [
-  { id: "pu_coin", name: "Coin Magnet", desc: "2x coins for 20s", cost: 75, icon: "🧲", effect: "coinMultiplier", duration: 20 },
-  { id: "pu_magnet", name: "Coin Vacuum", desc: "Auto-collect coins in range", cost: 100, icon: "🔄", effect: "magnet", duration: 20 },
-  { id: "pu_shield", name: "Force Shield", desc: "Survive one crash", cost: 200, icon: "🛡️", effect: "shield", duration: 0 },
-  { id: "pu_double", name: "Double Jump", desc: "Double jump for 15s", cost: 120, icon: "⬆️", effect: "doubleJump", duration: 15 },
-  { id: "pu_coin2", name: "Coin Frenzy", desc: "3x coins for 15s", cost: 220, icon: "💰", effect: "coinMultiplier", duration: 15 },
-  { id: "pu_mega", name: "Mega Shield", desc: "3-hit shield", cost: 400, icon: "⛩️", effect: "shield", duration: 0 },
-];
-
-export const LOOT_CRATES: LootCrate[] = [
-  { id: "crate_basic", name: "Basic Crate", desc: "A simple crate with common goods.", cost: 100, icon: "📦", minRolls: 1, maxRolls: 1, rarities: ["common", "uncommon"] },
-  { id: "crate_premium", name: "Premium Crate", desc: "Better stuff inside!", cost: 300, icon: "🎁", minRolls: 1, maxRolls: 2, rarities: ["uncommon", "rare", "epic"], guaranteed: "uncommon" },
-  { id: "crate_mega", name: "Mega Crate", desc: "High-tier loot guaranteed.", cost: 600, icon: "💎", minRolls: 1, maxRolls: 3, rarities: ["rare", "epic", "legendary", "mythic"], guaranteed: "rare" },
-  { id: "crate_mythic", name: "Mythic Crate", desc: "The ultimate crate. Legends await.", cost: 1500, icon: "🌟", minRolls: 2, maxRolls: 4, rarities: ["epic", "legendary", "mythic"], guaranteed: "epic" },
-];
 
 export const WORLDS: World[] = [
-  { id: "dispensary", name: "Dispensary District", minScore: 0, sky: ["#7ed0ff", "#bdeeff"], pipe: "#4caf50", pipeDark: "#388e3c", ground: "#caa472", accent: "#2e7d32" },
-  { id: "grow", name: "Grow Room", minScore: 12, sky: ["#2a1a4a", "#7a3fb0"], pipe: "#9b59b6", pipeDark: "#6c3483", ground: "#3a2a5a", accent: "#d29bff" },
-  { id: "smoke", name: "Smoke Clouds", minScore: 28, sky: ["#5a6b7a", "#aab9c6"], pipe: "#7f8c8d", pipeDark: "#566061", ground: "#6b7682", accent: "#dfe9f0" },
-  { id: "festival", name: "Festival Zone", minScore: 48, sky: ["#ff7e5f", "#feb47b"], pipe: "#e74c3c", pipeDark: "#b03a2e", ground: "#c0392b", accent: "#ffe066" },
-  { id: "cosmos", name: "Cosmic Galaxy", minScore: 75, sky: ["#0b0b2a", "#3a1a6a"], pipe: "#5f4bb6", pipeDark: "#3a2a7a", ground: "#1a1040", accent: "#9b5fff" },
+  { id: "dispensary", name: "Meadow",    minScore: 0,   sky: ["#38bdf8","#bbf7d0"], pipe: "#22c55e", pipeDark: "#15803d", ground: "#15803d", accent: "#86efac" },
+  { id: "sunset",     name: "Sunset",    minScore: 25,  sky: ["#fb923c","#f9a8d4"], pipe: "#f97316", pipeDark: "#c2410c", ground: "#92400e", accent: "#fdba74" },
+  { id: "night",      name: "Night",     minScore: 50,  sky: ["#1e293b","#312e81"], pipe: "#6366f1", pipeDark: "#4338ca", ground: "#1e293b", accent: "#818cf8" },
+  { id: "arctic",     name: "Arctic",    minScore: 80,  sky: ["#67e8f9","#e0f2fe"], pipe: "#06b6d4", pipeDark: "#0891b2", ground: "#0f766e", accent: "#22d3ee" },
+  { id: "volcanic",   name: "Volcanic",  minScore: 120, sky: ["#dc2626","#f97316"], pipe: "#dc2626", pipeDark: "#991b1b", ground: "#450a0a", accent: "#fca5a5" },
+  { id: "cosmos",     name: "Cosmic",    minScore: 180, sky: ["#2e1065","#6b21a8"], pipe: "#a855f7", pipeDark: "#7e22ce", ground: "#2e1065", accent: "#c084fc" },
+  { id: "heaven",     name: "Celestial", minScore: 250, sky: ["#fef08a","#fef9c3"], pipe: "#facc15", pipeDark: "#ca8a04", ground: "#854d0e", accent: "#fde047" },
+  { id: "neon",       name: "Neon",      minScore: 350, sky: ["#86198f","#be185d"], pipe: "#d946ef", pipeDark: "#a21caf", ground: "#4a044e", accent: "#f0abfc" },
 ];
-
-export const ACHIEVEMENTS: Achievement[] = [
-  { id: "first", name: "First Toke", desc: "Score your first point.", reward: 20, goal: 1, stat: "bestScore" },
-  { id: "score10", name: "Getting Lifted", desc: "Reach a score of 10.", reward: 50, goal: 10, stat: "bestScore" },
-  { id: "score25", name: "Cloud Surfer", desc: "Reach a score of 25.", reward: 120, goal: 25, stat: "bestScore" },
-  { id: "score50", name: "Sky High", desc: "Reach a score of 50.", reward: 300, goal: 50, stat: "bestScore" },
-  { id: "score100", name: "Legendary Toker", desc: "Reach a score of 100.", reward: 800, goal: 100, stat: "bestScore" },
-  { id: "score200", name: "Kush Cloud God", desc: "Reach a score of 200.", reward: 2000, goal: 200, stat: "bestScore" },
-  { id: "games10", name: "Regular Customer", desc: "Play 10 games.", reward: 40, goal: 10, stat: "totalGames" },
-  { id: "games50", name: "Frequent Flyer", desc: "Play 50 games.", reward: 150, goal: 50, stat: "totalGames" },
-  { id: "games100", name: "Dedicated Stoner", desc: "Play 100 games.", reward: 500, goal: 100, stat: "totalGames" },
-  { id: "coins100", name: "Coin Collector", desc: "Collect 100 kush coins.", reward: 80, goal: 100, stat: "totalCoins" },
-  { id: "coins1000", name: "Dank Banker", desc: "Collect 1000 kush coins.", reward: 400, goal: 1000, stat: "totalCoins" },
-  { id: "coins5000", name: "Crypto Kush Whale", desc: "Collect 5000 kush coins.", reward: 1500, goal: 5000, stat: "totalCoins" },
-  { id: "near50", name: "Daredevil", desc: "Pull off 50 near-misses.", reward: 200, goal: 50, stat: "totalNearMiss" },
-  { id: "near200", name: "Edge Lord", desc: "Pull off 200 near-misses.", reward: 600, goal: 200, stat: "totalNearMiss" },
-  { id: "combo10", name: "Combo King", desc: "Reach a x10 combo.", reward: 250, goal: 10, stat: "bestCombo" },
-  { id: "combo20", name: "Combo God", desc: "Reach a x20 combo.", reward: 800, goal: 20, stat: "bestCombo" },
-  { id: "flaps1000", name: "Wing It", desc: "Flap 1000 times.", reward: 100, goal: 1000, stat: "totalFlaps" },
-  { id: "flaps5000", name: "Hummingbird Mode", desc: "Flap 5000 times.", reward: 400, goal: 5000, stat: "totalFlaps" },
-  { id: "collect5", name: "Shopper", desc: "Own 5 skins.", reward: 200, goal: 5, stat: "ownedSkins" },
-  { id: "collect10", name: "Shopaholic", desc: "Own 10 skins.", reward: 500, goal: 10, stat: "ownedSkins" },
-  { id: "trail5", name: "Trailblazer", desc: "Own 5 trails.", reward: 250, goal: 5, stat: "ownedTrails" },
-  { id: "badge5", name: "Badge Collector", desc: "Own 5 badges.", reward: 300, goal: 5, stat: "ownedBadges" },
-  { id: "effect5", name: "Visual Master", desc: "Own 5 effects.", reward: 350, goal: 5, stat: "ownedEffects" },
-  { id: "title5", name: "Titled Elite", desc: "Own 5 titles.", reward: 300, goal: 5, stat: "ownedTitles" },
-];
-
-const MISSION_POOL: Omit<Mission, "id">[] = [
-  { text: "Score 8 points in a run", goal: 8, reward: 40, metric: "runScore" },
-  { text: "Score 15 points in a run", goal: 15, reward: 70, metric: "runScore" },
-  { text: "Score 25 points in a run", goal: 25, reward: 120, metric: "runScore" },
-  { text: "Collect 5 coins in one run", goal: 5, reward: 35, metric: "runCoins" },
-  { text: "Pull off 3 near-misses", goal: 3, reward: 45, metric: "runNearMiss" },
-  { text: "Pull off 6 near-misses", goal: 6, reward: 80, metric: "runNearMiss" },
-  { text: "Play 3 games today", goal: 3, reward: 30, metric: "plays" },
-  { text: "Play 5 games today", goal: 5, reward: 50, metric: "plays" },
-  { text: "Collect 20 coins today", goal: 20, reward: 45, metric: "totalCoins" },
-  { text: "Collect 40 coins today", goal: 40, reward: 80, metric: "totalCoins" },
-  { text: "Score 20 points in a run", goal: 20, reward: 100, metric: "runScore" },
-  { text: "Open a loot crate today", goal: 1, reward: 60, rewardType: "crate", metric: "plays" },
-];
-
-export function getDailyMissions(daySeed: number): Mission[] {
-  const out: Mission[] = [];
-  const used = new Set<number>();
-  let s = daySeed * 9301 + 49297;
-  const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
-  while (out.length < 3) {
-    const idx = Math.floor(rnd() * MISSION_POOL.length);
-    if (used.has(idx)) continue;
-    used.add(idx);
-    out.push({ ...MISSION_POOL[idx], id: `m${daySeed}_${idx}` });
-  }
-  return out;
-}
-
-export function xpForLevel(level: number): number {
-  return Math.floor(100 + (level - 1) * 60 + Math.pow(level, 1.6) * 12);
-}
-
-export function levelFromXp(totalXp: number): { level: number; into: number; need: number } {
-  let level = 1;
-  let remaining = totalXp;
-  const MAX_LEVEL = 1000;
-  while (remaining >= xpForLevel(level) && level < MAX_LEVEL) {
-    remaining -= xpForLevel(level);
-    level++;
-  }
-  return { level, into: remaining, need: xpForLevel(level) };
-}
 
 export function worldForScore(score: number): World {
-  let w = WORLDS[0];
-  for (const world of WORLDS) if (score >= world.minScore) w = world;
-  return w;
+  return [...WORLDS].reverse().find((w) => score >= w.minScore) || WORLDS[0];
 }
 
-export const LOGIN_REWARDS = [25, 40, 60, 80, 120, 160, 250];
+export interface PowerUp {
+  id: string; name: string; cost: number; duration: number;
+  description: string; gradient: string; icon: string;
+  effect: "coinMultiplier" | "slowMotion" | "magnet" | "shield" | "doubleJump";
+}
 
-export const WEEKLY_EVENTS = [
-  { name: "Frosty Friday Fest", desc: "Coins from runs are worth +50%!", icon: "❄️", coinBoost: 1.5, xpBoost: 1 },
-  { name: "Double XP Daze", desc: "Earn bonus XP on every flap!", icon: "✨", coinBoost: 1, xpBoost: 1.3 },
-  { name: "Combo Carnival", desc: "Near-misses give extra combo!", icon: "🎪", coinBoost: 1, xpBoost: 1 },
-  { name: "Loot Fever", desc: "Crates drop better loot!", icon: "🎲", coinBoost: 1, xpBoost: 1 },
-  { name: "Coin Rush", desc: "Triple coins from all sources!", icon: "🪙", coinBoost: 3, xpBoost: 1 },
+export const POWERUPS: PowerUp[] = [
+  { id: "slow",      name: "Slow Motion", cost: 300,  duration: 8,    description: "Slows time",           gradient: "from-cyan-500 to-blue-600",    icon: "⏱️", effect: "slowMotion" },
+  { id: "invincible",name: "Shield",      cost: 500,  duration: 4,    description: "Ignore one collision", gradient: "from-amber-400 to-orange-600", icon: "🛡️", effect: "shield" },
+  { id: "magnet",    name: "Magnet",      cost: 400,  duration: 8,    description: "Attract coins",         gradient: "from-pink-400 to-rose-600",    icon: "🧲", effect: "magnet" },
+  { id: "double",    name: "2x Score",    cost: 600,  duration: 8,    description: "Double score gained",   gradient: "from-violet-500 to-purple-700", icon: "✖️",  effect: "coinMultiplier" },
+  { id: "ghost",     name: "Ghost Mode",  cost: 800,  duration: 6,    description: "Pass through pipes",    gradient: "from-slate-400 to-slate-600",  icon: "👻", effect: "doubleJump" },
 ];
 
-export function currentWeekIndex(): number {
-  return Math.floor(Date.now() / (86400000 * 7));
-}
-
-/** Returns bonus crate rolls if the current weekly event is "Loot Fever". */
-export function lootFeverBonusRolls(): number {
-  const week = currentWeekIndex();
-  const ev = WEEKLY_EVENTS[week % WEEKLY_EVENTS.length];
-  return ev.name === "Loot Fever" ? 1 : 0;
-}
-
-export type EventMetric =
-  | "score" | "coins" | "nearMiss" | "combo"
-  | "gamesPlayed" | "cratesOpened" | "totalScore"
-  | "totalCoins" | "prestigeAscensions";
-
-export interface EventObjective {
-  id: string;
-  text: string;
-  goal: number;
-  metric: EventMetric;
-  reward: number;
-}
-
-export interface EventReward {
-  tier: number;
-  pointsRequired: number;
-  type: "coins" | "dust" | "crate" | "title" | "badge" | "effect";
-  id?: string;
-  amount?: number;
-  icon: string;
-}
-
-export interface EventDef {
-  id: string;
-  name: string;
-  desc: string;
-  icon: string;
-  type: "daily" | "weekly" | "seasonal";
-  startDate: number;
-  endDate: number;
-  objectives: EventObjective[];
-  rewardTrack: EventReward[];
-  coinBoost?: number;
-  xpBoost?: number;
-  analyticsId: string;
-}
-
-export interface SeasonTier {
-  xp: number;
-  reward: {
-    type: "coins" | "dust" | "skin" | "trail" | "badge";
-    id?: string;
-    amount?: number;
-  };
-  icon: string;
-}
-
-export const SEASON_1_REWARDS: SeasonTier[] = [
-  { xp: 500, reward: { type: "coins", amount: 200 }, icon: "🪙" },
-  { xp: 1200, reward: { type: "dust", amount: 50 }, icon: "💎" },
-  { xp: 2500, reward: { type: "trail", id: "spark" }, icon: "✨" },
-  { xp: 5000, reward: { type: "coins", amount: 1000 }, icon: "💰" },
-  { xp: 10000, reward: { type: "skin", id: "cosmic" }, icon: "🌌" },
-  { xp: 20000, reward: { type: "badge", id: "b_perfect" }, icon: "✨" },
-  { xp: 50000, reward: { type: "skin", id: "phoenix" }, icon: "☀️" },
-];
-
-export const EVENT_DEFS: EventDef[] = [
-  {
-    id: "e_spring_fest_2025",
-    name: "Spring Festival",
-    desc: "Celebrate spring with bonus rewards!",
-    icon: "🌸",
-    type: "seasonal",
-    startDate: 1745107200000,
-    endDate: 1747872000000,
-    objectives: [
-      { id: "sf_score", text: "Reach a score of 30", goal: 30, metric: "score", reward: 50 },
-      { id: "sf_plays", text: "Play 10 games", goal: 10, metric: "gamesPlayed", reward: 30 },
-      { id: "sf_coins", text: "Collect 200 coins", goal: 200, metric: "totalCoins", reward: 40 },
-      { id: "sf_crates", text: "Open 3 loot crates", goal: 3, metric: "cratesOpened", reward: 60 },
-      { id: "sf_combo", text: "Reach x8 combo", goal: 8, metric: "combo", reward: 80 },
-    ],
-    rewardTrack: [
-      { tier: 1, pointsRequired: 50, type: "coins", amount: 100, icon: "🪙" },
-      { tier: 2, pointsRequired: 120, type: "dust", amount: 30, icon: "💎" },
-      { tier: 3, pointsRequired: 200, type: "crate", icon: "🎁" },
-      { tier: 4, pointsRequired: 300, type: "badge", id: "b_spring", icon: "🏅" },
-    ],
-    analyticsId: "event_spring_2025",
-  },
-  {
-    id: "e_weekly_coin_rush",
-    name: "Weekly Coin Rush",
-    desc: "Extra coins from every source!",
-    icon: "🪙",
-    type: "weekly",
-    startDate: 1745798400000,
-    endDate: 1746403200000,
-    objectives: [
-      { id: "wcr_plays", text: "Play 5 games", goal: 5, metric: "gamesPlayed", reward: 20 },
-      { id: "wcr_score", text: "Reach a score of 15", goal: 15, metric: "score", reward: 30 },
-      { id: "wcr_coins", text: "Collect 100 coins", goal: 100, metric: "totalCoins", reward: 40 },
-    ],
-    rewardTrack: [
-      { tier: 1, pointsRequired: 30, type: "coins", amount: 80, icon: "🪙" },
-      { tier: 2, pointsRequired: 70, type: "dust", amount: 20, icon: "💎" },
-      { tier: 3, pointsRequired: 120, type: "coins", amount: 200, icon: "🪙" },
-    ],
-    analyticsId: "event_weekly_coin_rush",
-  },
-];
-
-export function getActiveEvents(): EventDef[] {
-  const now = Date.now();
-  return EVENT_DEFS.filter(e => now >= e.startDate && now < e.endDate);
-}
-
-export function isEventActive(event: EventDef): boolean {
-  const now = Date.now();
-  return now >= event.startDate && now < event.endDate;
-}
-
-// Loot box opening logic
-export function rollLootCrate(crate: LootCrate, ownedIds: Set<string> = new Set(), options?: { bonusRolls?: number }): { drops: LootDrop[]; dust: number } {
-  const rolls = crate.minRolls + Math.floor(Math.random() * (crate.maxRolls - crate.minRolls + 1)) + (options?.bonusRolls || 0);
-  const drops: LootDrop[] = [];
-  let dust = 0;
-  const allItems: LootDrop[] = [...SKINS.filter(s => s.id !== "bud"), ...TRAILS.filter(t => t.id !== "none"), ...TITLES, ...BADGES, ...EFFECTS.filter(e => e.id !== "e_none")];
-
-  for (let i = 0; i < rolls; i++) {
-    const rarity = rollRarity(crate);
-    let eligible = allItems.filter(item => item.rarity === rarity && !ownedIds.has(item.id));
-    if (eligible.length === 0) eligible = allItems.filter(item => item.rarity === rarity);
-    if (eligible.length > 0) {
-      drops.push(eligible[Math.floor(Math.random() * eligible.length)]);
-    } else {
-      dust += RARITY[rarity].dustValue * 2;
-    }
-  }
-
-  const dustEligible = allItems.filter(item => item.rarity === "common" && !ownedIds.has(item.id));
-  if (drops.length === 0 && dustEligible.length === 0) {
-    const fallback = allItems.filter(item => item.rarity === "common");
-    if (fallback.length > 0) drops.push(fallback[Math.floor(Math.random() * fallback.length)]);
-  } else if (drops.length === 0 && dustEligible.length > 0) {
-    drops.push(dustEligible[Math.floor(Math.random() * dustEligible.length)]);
-  }
-
-  return { drops, dust };
-}
-
-function rollRarity(crate: LootCrate): Rarity {
-  if (crate.guaranteed && Math.random() < 0.7) {
-    const idx = crate.rarities.indexOf(crate.guaranteed);
-    if (idx >= 0) return crate.rarities[Math.min(idx + Math.floor(Math.random() * Math.max(1, crate.rarities.length - idx)), crate.rarities.length - 1)] as Rarity;
-  }
-  const r = Math.random();
-  let cumulative = 0;
-  const weighted = crate.rarities.map(ra => ({ rarity: ra, weight: RARITY[ra].dropRate }));
-  const total = weighted.reduce((s, w) => s + w.weight, 0);
-  for (const w of weighted) {
-    cumulative += w.weight / total;
-    if (r <= cumulative) return w.rarity;
-  }
-  return crate.rarities[crate.rarities.length - 1] as Rarity;
+export interface PlayerStats {
+  totalGames: number;
+  totalScore: number;
+  totalCoins: number;
+  totalNearMiss: number;
+  totalPerfectPasses: number;
+  bestCombo: number;
+  totalFlaps: number;
+  bestScore: number;
 }

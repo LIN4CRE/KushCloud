@@ -29,7 +29,7 @@ interface Props {
   onClutch?: (count: number) => void;
 }
 
-export default function GameCanvas(props: Props) {
+export function GameCanvas(props: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);

@@ -1,37 +1,8 @@
-/**
- * Environment Configuration Module
- * Validates and provides type-safe access to environment variables.
- */
-
-function validateEnv(key: string, required = true): string {
-  const value = import.meta.env[key];
-  if (required && (!value || value.trim() === "")) {
-    if (typeof document !== 'undefined') {
-      console.error(`[KushCloud] Missing required environment variable: ${key}`);
-    }
-    return "";
-  }
-  return value || "";
-}
-
 export const env = {
   app: {
     name: "KushCloud",
-    // Injected from package.json at build time (vite.config.ts) so the app
-    // version is always in sync with the released package. Falls back to a
-    // literal only when the define is unavailable (e.g. some test runners).
-    version: import.meta.env.VITE_APP_VERSION || "2.6.0",
+    version: import.meta.env.VITE_APP_VERSION || "4.0.0",
     isDev: import.meta.env.DEV,
     isProd: import.meta.env.PROD,
   },
-  firebase: {
-    apiKey: validateEnv("VITE_FIREBASE_API_KEY"),
-    authDomain: validateEnv("VITE_FIREBASE_AUTH_DOMAIN"),
-    databaseURL: validateEnv("VITE_FIREBASE_DATABASE_URL"),
-    projectId: validateEnv("VITE_FIREBASE_PROJECT_ID"),
-    storageBucket: validateEnv("VITE_FIREBASE_STORAGE_BUCKET"),
-    messagingSenderId: validateEnv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
-    appId: validateEnv("VITE_FIREBASE_APP_ID"),
-  },
 } as const;
-

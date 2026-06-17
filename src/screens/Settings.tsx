@@ -1,6 +1,7 @@
-import { SaveData } from "../game/storage";
-import { ScreenShell, Button, cx } from "../ui";
-import { env } from "../config/env";
+import { useState } from "react";
+import { type SaveData } from "../game/storage";
+import { randomName } from "../game/storage";
+import { Button, Panel, ScreenShell } from "../ui";
 
 interface Props {
   save: SaveData;
@@ -9,123 +10,107 @@ interface Props {
   onReset: () => void;
 }
 
-function Slider({
-  label,
-  value,
-  onChange,
-  icon,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  icon: string;
-}) {
-  return (
-    <div className="rounded-2xl bg-white/[0.06] border border-white/[0.08] p-4">
-      <div className="flex items-center justify-between mb-3">
-        <span className="flex items-center gap-2 text-sm font-semibold text-white">
-          <span>{icon}</span> {label}
-        </span>
-        <span className="text-sm font-black text-emerald-400 tabular-nums w-10 text-right">
-          {Math.round(value * 100)}%
-        </span>
-      </div>
-      <input
-        type="range"
-        min={0}
-        max={1}
-        step={0.05}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full accent-emerald-400 cursor-pointer"
-      />
-    </div>
-  );
-}
-
-function Toggle({
-  label,
-  desc,
-  on,
-  onClick,
-  icon,
-}: {
-  label: string;
-  desc: string;
-  on: boolean;
-  onClick: () => void;
-  icon: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center gap-3.5 rounded-2xl bg-white/[0.06] border border-white/[0.08] p-4 text-left hover:bg-white/[0.09] active:scale-[0.99] transition-all"
-    >
-      <span className="text-xl shrink-0">{icon}</span>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-white">{label}</div>
-        <div className="text-[10px] font-medium text-white/40 mt-0.5">{desc}</div>
-      </div>
-      <div
-        className={cx(
-          "relative h-6 w-11 rounded-full transition-all duration-200 shrink-0",
-          on ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-white/15",
-        )}
-      >
-        <div
-          className={cx(
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200",
-            on ? "left-5" : "left-0.5",
-          )}
-        />
-      </div>
-    </button>
-  );
-}
-
 export default function Settings({ save, onBack, onChange, onReset }: Props) {
+  const [nameInput, setNameInput] = useState(save.playerName);
+
+  const handleNameSubmit = () => {
+    const trimmed = nameInput.trim().slice(0, 16);
+    if (trimmed && trimmed !== save.playerName) {
+      onChange({ playerName: trimmed });
+    }
+  };
+
   return (
     <ScreenShell title="Settings" onBack={onBack}>
-      <div className="space-y-2.5">
-        <p className="text-[11px] font-black uppercase tracking-widest text-white/30 mb-1">Audio</p>
-        <Slider icon="🎵" label="Music" value={save.musicVol} onChange={(v) => onChange({ musicVol: v })} />
-        <Slider icon="🔊" label="Sound Effects" value={save.sfxVol} onChange={(v) => onChange({ sfxVol: v })} />
-
-        <p className="text-[11px] font-black uppercase tracking-widest text-white/30 pt-2 mb-1">Accessibility</p>
-        <Toggle
-          icon="🌀"
-          label="Reduced Motion"
-          desc="Fewer particles and no screen shake."
-          on={save.reducedMotion}
-          onClick={() => onChange({ reducedMotion: !save.reducedMotion })}
-        />
-        <Toggle
-          icon="🎨"
-          label="High Contrast"
-          desc="Bolder colors for better visibility."
-          on={save.highContrast}
-          onClick={() => onChange({ highContrast: !save.highContrast })}
-        />
-
-        <p className="text-[11px] font-black uppercase tracking-widest text-white/30 pt-2 mb-1">Data</p>
-        <div className="rounded-2xl bg-white/[0.06] border border-white/[0.08] p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-base">☁️</span>
-            <span className="text-sm font-semibold text-white/70">Cloud save</span>
-            <span className="ml-auto text-xs font-black text-emerald-400">Active</span>
+      <div className="space-y-4">
+        <Panel>
+          <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-300">Player Name</h3>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              maxLength={16}
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              className="flex-1 rounded-xl border border-white/10 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
+              placeholder="Enter name..."
+            />
+            <Button onClick={handleNameSubmit} className="text-xs px-3 py-2">
+              Save
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                const newName = randomName();
+                setNameInput(newName);
+                onChange({ playerName: newName });
+              }}
+              className="text-xs px-3 py-2"
+            >
+              Random
+            </Button>
           </div>
-          <p className="text-[10px] font-medium text-white/30 ml-6">
-            Last synced {new Date(save.lastSync).toLocaleTimeString()}
-          </p>
-        </div>
+        </Panel>
 
-        <Button variant="danger" className="w-full mt-1" onClick={onReset}>
-          🗑 Reset All Progress
-        </Button>
+        <Panel>
+          <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-300">Audio</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">Music Volume</label>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={save.musicVol}
+                onChange={(e) => onChange({ musicVol: parseFloat(e.target.value) })}
+                className="w-full accent-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">SFX Volume</label>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={save.sfxVol}
+                onChange={(e) => onChange({ sfxVol: parseFloat(e.target.value) })}
+                className="w-full accent-emerald-500"
+              />
+            </div>
+          </div>
+        </Panel>
 
-        <p className="pb-2 pt-1 text-center text-[10px] font-semibold text-white/20">
-          {env.app.name} v{env.app.version} · Made with 🌿 & ☁️
-        </p>
+        <Panel>
+          <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-300">Accessibility</h3>
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={save.reducedMotion}
+                onChange={(e) => onChange({ reducedMotion: e.target.checked })}
+                className="accent-emerald-500"
+              />
+              <span className="text-sm text-slate-200">Reduced Motion</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={save.highContrast}
+                onChange={(e) => onChange({ highContrast: e.target.checked })}
+                className="accent-emerald-500"
+              />
+              <span className="text-sm text-slate-200">High Contrast Mode</span>
+            </label>
+          </div>
+        </Panel>
+
+        <Panel>
+          <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-300">Data</h3>
+          <Button variant="danger" onClick={onReset} className="w-full">
+            Reset All Progress
+          </Button>
+        </Panel>
       </div>
     </ScreenShell>
   );

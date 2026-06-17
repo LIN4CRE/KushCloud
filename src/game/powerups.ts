@@ -24,7 +24,7 @@ export class PowerUpManager {
     if (this.active.find((a) => a.id === id)) return false;
 
     if (def.effect === "shield") {
-      this.shieldHitsRemaining += def.id === "pu_mega" ? 3 : 1;
+      this.shieldHitsRemaining += 1;
       return true;
     }
 
@@ -64,7 +64,7 @@ export class PowerUpManager {
 
       switch (def.effect) {
         case "coinMultiplier":
-          result.coinMult = Math.max(result.coinMult, def.id === "pu_coin" ? 2 : 3);
+          result.coinMult = 2;
           break;
         case "magnet":
           result.magnetRadius = 80;

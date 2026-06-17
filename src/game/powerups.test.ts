@@ -1,14 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { PowerUpManager } from "./powerups";
 
-/**
- * PowerUpManager unit tests.
- *
- * These exercise the pure power-up state machine that drives in-run modifiers.
- * `performance.now()` is mocked so timed power-ups can be advanced
- * deterministically without relying on wall-clock timing.
- */
-
 let nowValue = 0;
 
 function advance(ms: number) {
@@ -43,80 +35,67 @@ describe("PowerUpManager", () => {
     expect(mgr.getActive()).toHaveLength(0);
   });
 
-  it("activates a coin multiplier (2x) and reflects it in modifiers", () => {
-    expect(mgr.activate("pu_coin")).toBe(true);
+  it("activates coin multiplier and reflects it in modifiers", () => {
+    expect(mgr.activate("double")).toBe(true);
     expect(mgr.getModifiers().coinMult).toBe(2);
   });
 
-  it("uses the stronger coin multiplier (3x) for pu_coin2", () => {
-    mgr.activate("pu_coin2");
-    expect(mgr.getModifiers().coinMult).toBe(3);
-  });
-
   it("does not stack the same power-up twice", () => {
-    expect(mgr.activate("pu_coin")).toBe(true);
-    expect(mgr.activate("pu_coin")).toBe(false);
+    expect(mgr.activate("double")).toBe(true);
+    expect(mgr.activate("double")).toBe(false);
     expect(mgr.getActive()).toHaveLength(1);
   });
 
   it("sets magnet radius when magnet power-up is active", () => {
-    mgr.activate("pu_magnet");
+    mgr.activate("magnet");
     expect(mgr.getModifiers().magnetRadius).toBe(80);
   });
 
   it("expires timed power-ups after their duration", () => {
-    mgr.activate("pu_coin"); // 20s duration
+    mgr.activate("double");
     expect(mgr.getModifiers().coinMult).toBe(2);
 
-    advance(19_000);
+    advance(7_000);
     mgr.update();
     expect(mgr.getModifiers().coinMult).toBe(2);
 
-    advance(2_000); // now past 20s
+    advance(2_000);
     mgr.update();
     expect(mgr.getModifiers().coinMult).toBe(1);
     expect(mgr.getActive()).toHaveLength(0);
   });
 
   describe("shields", () => {
-    it("grants one shield hit for pu_shield", () => {
-      mgr.activate("pu_shield");
+    it("grants one shield hit for invincible", () => {
+      mgr.activate("invincible");
       expect(mgr.getShieldHits()).toBe(1);
       expect(mgr.getModifiers().shieldHits).toBe(1);
     });
 
-    it("grants three shield hits for pu_mega", () => {
-      mgr.activate("pu_mega");
-      expect(mgr.getShieldHits()).toBe(3);
-    });
-
     it("consumes shield hits one at a time", () => {
-      mgr.activate("pu_mega");
-      expect(mgr.consumeShield()).toBe(true);
-      expect(mgr.consumeShield()).toBe(true);
+      mgr.activate("invincible");
       expect(mgr.consumeShield()).toBe(true);
       expect(mgr.consumeShield()).toBe(false);
       expect(mgr.getShieldHits()).toBe(0);
     });
 
     it("does not place shields into the active timed list", () => {
-      mgr.activate("pu_shield");
+      mgr.activate("invincible");
       expect(mgr.getActive()).toHaveLength(0);
     });
   });
 
   describe("double jump", () => {
     it("becomes available when activated and unused", () => {
-      mgr.activate("pu_double");
+      mgr.activate("ghost");
       expect(mgr.isDoubleJumpAvailable()).toBe(true);
       expect(mgr.getModifiers().doubleJumpAvailable).toBe(true);
     });
 
     it("is consumed by useDoubleJump and resettable", () => {
-      mgr.activate("pu_double");
+      mgr.activate("ghost");
       expect(mgr.useDoubleJump()).toBe(true);
       expect(mgr.isDoubleJumpAvailable()).toBe(false);
-      // second call fails until reset
       expect(mgr.useDoubleJump()).toBe(false);
 
       mgr.resetDoubleJump();
@@ -130,24 +109,24 @@ describe("PowerUpManager", () => {
 
   describe("getRemainingTime", () => {
     it("returns 0 for an inactive power-up", () => {
-      expect(mgr.getRemainingTime("pu_coin")).toBe(0);
+      expect(mgr.getRemainingTime("double")).toBe(0);
     });
 
     it("counts down toward zero", () => {
-      mgr.activate("pu_coin"); // 20s
-      expect(mgr.getRemainingTime("pu_coin")).toBe(20_000);
-      advance(5_000);
-      expect(mgr.getRemainingTime("pu_coin")).toBe(15_000);
+      mgr.activate("double");
+      expect(mgr.getRemainingTime("double")).toBe(8_000);
+      advance(3_000);
+      expect(mgr.getRemainingTime("double")).toBe(5_000);
       advance(100_000);
-      expect(mgr.getRemainingTime("pu_coin")).toBe(0);
+      expect(mgr.getRemainingTime("double")).toBe(0);
     });
   });
 
   describe("reset", () => {
     it("clears all active power-ups, shields and double-jump state", () => {
-      mgr.activate("pu_coin");
-      mgr.activate("pu_mega");
-      mgr.activate("pu_double");
+      mgr.activate("double");
+      mgr.activate("invincible");
+      mgr.activate("ghost");
       mgr.useDoubleJump();
 
       mgr.reset();
@@ -160,7 +139,7 @@ describe("PowerUpManager", () => {
   });
 
   it("returns a defensive copy from getActive", () => {
-    mgr.activate("pu_coin");
+    mgr.activate("double");
     const active = mgr.getActive();
     active.pop();
     expect(mgr.getActive()).toHaveLength(1);

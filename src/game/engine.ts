@@ -5,10 +5,10 @@ import { PowerUpManager } from "./powerups";
 // Power-ups that can spawn as mid-run pickups (the cosmetic/utility ones —
 // no shields here so the dramatic shield save stays a deliberate shop purchase).
 const PICKUP_POOL: { id: string; color: string }[] = [
-  { id: "pu_coin", color: "#c084fc" },
-  { id: "pu_coin2", color: "#f472b6" },
-  { id: "pu_magnet", color: "#34d399" },
-  { id: "pu_double", color: "#fbbf24" },
+  { id: "magnet", color: "#34d399" },
+  { id: "double", color: "#fbbf24" },
+  { id: "slow",   color: "#c084fc" },
+  { id: "ghost",  color: "#f472b6" },
 ];
 
 export interface RunResult {
