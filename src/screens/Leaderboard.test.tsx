@@ -5,25 +5,25 @@ import Leaderboard from "../screens/Leaderboard";
 import type { SaveData } from "../game/storage";
 
 vi.mock("../game/leaderboard", () => ({
-  subscribeToLeaderboard: vi.fn((_period: string, _name: string, _score: number, _friends: boolean, cb: (entries: any[]) => void) => {
+  subscribeToLeaderboard: vi.fn((_period: string, _name: string, _score: number, _friends: boolean, cb: (entries: unknown[]) => void) => {
     cb([]);
     return () => {};
   }),
   submitPlayerScore: vi.fn(),
   copyBragToClipboard: vi.fn(),
-  type: {} as any,
+  type: {} as Record<string, never>,
 }));
 
 vi.mock("../ui", () => ({
-  ScreenShell: ({ children, title }: any) => (
+  ScreenShell: ({ children, title }: { children: React.ReactNode; title: string }) => (
     <div>
       <h1>{title}</h1>
       {children}
     </div>
   ),
-  Tabs: ({ tabs, active, onChange }: any) => (
+  Tabs: ({ tabs, active, onChange }: { tabs: { key: string; label: string }[]; active: string; onChange: (key: string) => void }) => (
     <div>
-      {tabs.map((tab: any) => (
+      {tabs.map((tab: { key: string; label: string }) => (
         <button
           key={tab.key}
           onClick={() => onChange(tab.key)}
@@ -34,9 +34,9 @@ vi.mock("../ui", () => ({
       ))}
     </div>
   ),
-  Shimmer: ({ className }: any) => <div className={className} data-testid="shimmer" />,
-  cx: (...classes: any[]) => classes.filter(Boolean).join(" "),
-  Button: ({ children, onClick, className }: any) => (
+  Shimmer: ({ className }: { className?: string }) => <div className={className} data-testid="shimmer" />,
+  cx: (...classes: unknown[]) => classes.filter(Boolean).join(" "),
+  Button: ({ children, onClick, className }: { children: React.ReactNode; onClick?: () => void; className?: string }) => (
     <button onClick={onClick} className={className}>{children}</button>
   ),
   showToast: vi.fn(),

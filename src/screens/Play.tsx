@@ -94,10 +94,12 @@ export default function Play({ save, onExit, onNav, processRun, reviveRun }: Pro
     return () => window.clearTimeout(deadTimer.current);
   }, [save.stats.bestScore]);
 
+  const bestScoreRef = useRef(save.stats.bestScore);
+  bestScoreRef.current = save.stats.bestScore;
   useEffect(() => {
-    const unsub = subscribeToLeaderboard("daily", save.playerName, save.stats.bestScore, false, setLbEntries);
+    const unsub = subscribeToLeaderboard("daily", save.playerName, bestScoreRef.current, false, setLbEntries);
     return unsub;
-  }, [save.playerName, save.stats.bestScore]);
+  }, [save.playerName]);
 
   const handleDeath = (r: RunResult) => {
     if (processedRunIdsRef.current.has(r.runId)) return;

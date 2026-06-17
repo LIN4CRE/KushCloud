@@ -35,15 +35,26 @@ export const logger = {
   },
 };
 
+let onFatalError: ((message: string) => void) | null = null;
+
+export function setOnFatalError(cb: (message: string) => void) {
+  onFatalError = cb;
+}
+
 /**
  * Global listener for unhandled errors
  */
 export function setupGlobalErrorHandling() {
   window.addEventListener("error", (event) => {
-    logger.error(event.error || event.message, "UnhandledError");
+    const msg = event.error?.message || event.message || "An unknown error occurred";
+    logger.error(msg, "UnhandledError");
+    onFatalError?.(msg);
   });
 
   window.addEventListener("unhandledrejection", (event) => {
-    logger.error(event.reason, "UnhandledRejection");
+    const msg = event.reason?.message || "An unknown error occurred";
+    logger.error(msg, "UnhandledRejection");
+    onFatalError?.(msg);
+    event.preventDefault();
   });
 }

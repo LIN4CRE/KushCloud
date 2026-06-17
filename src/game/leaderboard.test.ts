@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { getLocalAllLeaderboards, getLocalRank, setUID } from "./leaderboard";
 
 vi.mock("../config/firebase", () => ({
-  LeaderboardPeriod: {} as any,
-  subscribeLeaderboard: vi.fn((_period: string, cb: (entries: any[]) => void) => { cb([]); return () => {}; }),
+  LeaderboardPeriod: {} as Record<string, never>,
+  subscribeLeaderboard: vi.fn((_period: string, cb: (entries: unknown[]) => void) => { cb([]); return () => {}; }),
   submitScore: vi.fn(),
   generateUID: () => "test-uid-123",
   getUserProfile: vi.fn(),

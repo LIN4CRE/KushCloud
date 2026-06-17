@@ -161,6 +161,7 @@ export class GameEngine {
   private graceTimer = 0;
   private readonly GRACE_PERIOD = 0.4;
   private lastIntensityScore = -1;
+  private lastFrenzyActive = false;
   private lastIntensityFrenzy = false;
 
   constructor(skin: Skin, trail: Trail, world: World, cb: EngineCallbacks) {
@@ -195,10 +196,6 @@ export class GameEngine {
 
   isTimeWarning() {
     return this.timeRemaining > 0 && this.timeRemaining <= this.timeWarningThreshold;
-  }
-
-  isTimeExpired() {
-    return this.timeRemaining > 0 && this.timeRemaining <= 0;
   }
 
   setPowerUpManager(m: PowerUpManager) {
@@ -292,6 +289,7 @@ export class GameEngine {
     this.frenzyTimer = 0;
     this.clutch = 0;
     this.graceTimer = 0;
+    this.lastFrenzyActive = false;
     this.cb.onWorld?.(this.world);
     this.cb.onStateChange?.(this.state);
     this.cb.onFrenzy?.(false, 0);
@@ -462,6 +460,7 @@ export class GameEngine {
     this.burst(this.w / 2, this.h * 0.35, "#60a5fa", 18, 240, "spark");
     this.addFloat(this.w / 2, this.h * 0.3, "🔥 FRENZY! 2× POINTS", "#fbbf24", 24);
     navigator.vibrate?.([30, 30, 30, 30, 60]);
+    this.lastFrenzyActive = true;
     this.cb.onFrenzy?.(true, this.frenzyTimer * 1000);
   }
 
@@ -636,11 +635,15 @@ export class GameEngine {
       }
     }
 
-    // FRENZY countdown
+    // FRENZY countdown — signal only on state change
     if (this.frenzyTimer > 0) {
       this.frenzyTimer = Math.max(0, this.frenzyTimer - dt);
-      if (this.frenzyTimer === 0) this.cb.onFrenzy?.(false, 0);
-      else this.cb.onFrenzy?.(true, this.frenzyTimer * 1000);
+      const wasActive = this.lastFrenzyActive;
+      const nowActive = this.frenzyTimer > 0;
+      if (nowActive !== wasActive) {
+        this.cb.onFrenzy?.(nowActive, nowActive ? this.frenzyTimer * 1000 : 0);
+        this.lastFrenzyActive = nowActive;
+      }
     }
 
     // Music intensity — update when score or FRENZY changes

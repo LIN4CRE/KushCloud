@@ -186,22 +186,19 @@ export async function getLeaderboard(
   friendsOnly: boolean
 ): Promise<LeaderboardServiceEntry[]> {
   try {
-    return new Promise((resolve) => {
+    return await new Promise<LeaderboardServiceEntry[]>((resolve) => {
       const timeout = setTimeout(() => {
         resolve(getLocalLeaderboard(period, playerName, playerScore, friendsOnly));
       }, 2000);
 
       const unsub = subscribeToLeaderboard(period, playerName, playerScore, friendsOnly, (list) => {
         clearTimeout(timeout);
-        callback(list);
+        resolve(list);
         unsub();
       });
-      function callback(list: LeaderboardServiceEntry[]) {
-        resolve(list);
-      }
     });
-  } catch (error) {
-    console.warn("[Leaderboard] getLeaderboard error:", error);
+  } catch {
+    console.warn("[Leaderboard] getLeaderboard error");
     const localAll = getLocalAllLeaderboards();
     if (localAll.length > 0) {
       const mapped: LeaderboardServiceEntry[] = localAll.map((e) => ({
