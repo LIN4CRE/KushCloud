@@ -1,18 +1,21 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, act } from "@testing-library/react";
-import { Leaderboard } from "../screens/Leaderboard";
-import { SaveData } from "../game/storage";
-import { LeaderboardPeriod } from "../game/leaderboardModel";
+import "@testing-library/jest-dom/vitest";
+import Leaderboard from "../screens/Leaderboard";
+import type { SaveData } from "../game/storage";
 
 vi.mock("../game/leaderboard", () => ({
-  subscribeToLeaderboard: vi.fn(),
+  subscribeToLeaderboard: vi.fn((_period: string, _name: string, _score: number, _friends: boolean, cb: (entries: any[]) => void) => {
+    cb([]);
+    return () => {};
+  }),
   submitPlayerScore: vi.fn(),
-  getUID: () => "test-uid-123",
-  setUID: vi.fn(),
+  copyBragToClipboard: vi.fn(),
+  type: {} as any,
 }));
 
 vi.mock("../ui", () => ({
-  ScreenShell: ({ children, title, onBack }: any) => (
+  ScreenShell: ({ children, title }: any) => (
     <div>
       <h1>{title}</h1>
       {children}
@@ -33,10 +36,10 @@ vi.mock("../ui", () => ({
   ),
   Shimmer: ({ className }: any) => <div className={className} data-testid="shimmer" />,
   cx: (...classes: any[]) => classes.filter(Boolean).join(" "),
-}));
-
-vi.mock("../game/storage", () => ({
-  SaveData: vi.fn(),
+  Button: ({ children, onClick, className }: any) => (
+    <button onClick={onClick} className={className}>{children}</button>
+  ),
+  showToast: vi.fn(),
 }));
 
 describe("Leaderboard Screen - Integration Test", () => {
@@ -97,23 +100,9 @@ describe("Leaderboard Screen - Integration Test", () => {
   });
 
   it("should render leaderboard component", async () => {
-    vi.mocked(require("../game/leaderboard").subscribeToLeaderboard).mockImplementation(
-      (
-        period: LeaderboardPeriod,
-        playerName: string,
-        playerScore: number,
-        friendsOnly: boolean,
-        callback: (entries: any[]) => void
-      ) => {
-        callback([]);
-        return () => {};
-      }
-    );
-
     await act(async () => {
       render(<Leaderboard save={mockSave} onBack={() => {}} />);
     });
-
     expect(screen.getByText("Leaderboard")).toBeInTheDocument();
   });
 });

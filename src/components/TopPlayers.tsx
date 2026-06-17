@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { subscribeToLeaderboard, type LeaderboardServiceEntry } from "../game/leaderboard";
 import type { SaveData } from "../game/storage";
+import { cx } from "../ui";
 
 interface Props {
   save: SaveData;
   limit?: number;
-  variant?: "default" | "compact" | "mini";
+  variant?: "default" | "compact" | "mini" | "podium";
   className?: string;
 }
 
@@ -50,6 +51,35 @@ export default function TopPlayers({ save, limit = 5, variant = "default", class
             <span className="ml-auto tabular-nums text-white/40">{e.score.toLocaleString()}</span>
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (variant === "podium") {
+    const podiumEntries = entries.slice(0, 3);
+    const displayOrder = [1, 0, 2].filter(i => i < podiumEntries.length);
+
+    return (
+      <div className={cx("flex items-end justify-center gap-2 py-2", className)}>
+        {displayOrder.map((idx) => {
+          const e = podiumEntries[idx];
+          const isFirst = idx === 0;
+          const isSecond = idx === 1;
+          return (
+            <div key={e.uid || idx} className="flex flex-col items-center">
+              <div className="text-[9px] font-bold text-white/60 truncate max-w-[60px] text-center">{e.name}</div>
+              <div className={cx(
+                "rounded-t-xl flex items-center justify-center font-black text-white",
+                isFirst ? "h-14 w-12 bg-amber-400 text-amber-950 shadow-[0_0_12px_rgba(251,191,36,0.4)]" :
+                isSecond ? "h-10 w-10 bg-slate-300 text-slate-800" :
+                "h-8 w-8 bg-amber-700 text-amber-100"
+              )}>
+                {isFirst ? "🥇" : isSecond ? "🥈" : "🥉"}
+              </div>
+              <div className="text-[9px] font-black text-white/70 tabular-nums mt-0.5">{e.score.toLocaleString()}</div>
+            </div>
+          );
+        })}
       </div>
     );
   }

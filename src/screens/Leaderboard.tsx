@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { SaveData } from "../game/storage";
-import { ScreenShell, Tabs, cx, Shimmer } from "../ui";
-import { subscribeToLeaderboard, submitPlayerScore, type LeaderboardServiceEntry, bragAboutScore, copyBragToClipboard } from "../game/leaderboard";
+import { ScreenShell, Tabs, cx, Shimmer, Button, showToast } from "../ui";
+import { subscribeToLeaderboard, submitPlayerScore, type LeaderboardServiceEntry, copyBragToClipboard } from "../game/leaderboard";
 
 interface Props {
   save: SaveData;
@@ -123,19 +123,36 @@ export default function Leaderboard({ save, onBack }: Props) {
 
       {/* Player stats bar */}
       {myEntry && !loading && (
-        <div className="mb-3 flex gap-2">
-          <div className="flex-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-center">
-            <div className="text-lg font-black text-emerald-400 tabular-nums">#{myRank}</div>
-            <div className="text-[9px] font-black uppercase tracking-wider text-emerald-400/50">Your Rank</div>
+        <div className="mb-3 flex flex-col gap-2">
+          <div className="flex gap-2">
+            <div className="flex-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-center">
+              <div className="text-lg font-black text-emerald-400 tabular-nums">#{myRank}</div>
+              <div className="text-[9px] font-black uppercase tracking-wider text-emerald-400/50">Your Rank</div>
+            </div>
+            <div className="flex-1 rounded-xl bg-white/7 border border-white/10 px-3 py-2 text-center">
+              <div className="text-lg font-black text-white tabular-nums">{totalPlayers}</div>
+              <div className="text-[9px] font-black uppercase tracking-wider text-white/40">Players</div>
+            </div>
+            <div className="flex-1 rounded-xl bg-white/7 border border-white/10 px-3 py-2 text-center">
+              <div className="text-lg font-black text-white tabular-nums">{myEntry.score.toLocaleString()}</div>
+              <div className="text-[9px] font-black uppercase tracking-wider text-white/40">Best Score</div>
+            </div>
           </div>
-          <div className="flex-1 rounded-xl bg-white/7 border border-white/10 px-3 py-2 text-center">
-            <div className="text-lg font-black text-white tabular-nums">{totalPlayers}</div>
-            <div className="text-[9px] font-black uppercase tracking-wider text-white/40">Players</div>
-          </div>
-          <div className="flex-1 rounded-xl bg-white/7 border border-white/10 px-3 py-2 text-center">
-            <div className="text-lg font-black text-white tabular-nums">{myEntry.score.toLocaleString()}</div>
-            <div className="text-[9px] font-black uppercase tracking-wider text-white/40">Best Score</div>
-          </div>
+          <Button
+            variant="gold"
+            size="sm"
+            className="w-full shadow-[0_4px_0_#92400e]"
+            onClick={async () => {
+              const success = await copyBragToClipboard(period, save.playerName, myEntry.score, myRank!);
+              if (success) {
+                showToast("Brag copied to clipboard! 🏆", "success");
+              } else {
+                showToast("Failed to copy brag.", "error");
+              }
+            }}
+          >
+            Brag about this score! 🏆
+          </Button>
         </div>
       )}
 

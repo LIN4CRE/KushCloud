@@ -5,7 +5,7 @@ import {
   searchUserByUid
 } from "../config/firebase";
 import type { LeaderboardEntry } from "../config/firebase";
-import { calculateRank } from "./leaderboardModel";
+import { calculateRank, normalizeLeaderboardEntries } from "./leaderboardModel";
 
 let currentUID: string | null = null;
 let unsubscribers: (() => void)[] = [];
@@ -53,6 +53,7 @@ export interface LeaderboardServiceEntry {
   score: number;
   you?: boolean;
   friend?: boolean;
+  timestamp?: number;
 }
 
 function sortServiceEntries(entries: LeaderboardServiceEntry[]): LeaderboardServiceEntry[] {
@@ -105,7 +106,7 @@ export function subscribeToLeaderboard(
         timestamp: Date.now(),
       }));
       localStorage.setItem("kushcloud_leaderboard_cache", JSON.stringify(cache));
-    } catch {}
+    } catch { /* localStorage quota or permission error */ }
   };
 
   const friendUnsub = subscribeFriends((friendUids) => {
@@ -203,7 +204,7 @@ export async function getLeaderboard(
         name: e.name,
         score: e.score,
         you: e.uid === getUID(),
-        friend: friendCache.includes(e.uid),
+        friend: e.uid ? friendCache.includes(e.uid) : false,
       }));
       const myEntry = mapped.find((e) => e.you);
       if (myEntry) {
@@ -239,7 +240,7 @@ export async function getRank(period: LeaderboardPeriod, playerScore: number): P
     console.warn("[Leaderboard] getRank error:", error);
     const localAll = getLocalAllLeaderboards();
     if (localAll.length > 0) {
-      const entries = localAll.map((e) => ({
+      const entries = localAll.filter((e): e is LeaderboardServiceEntry & { uid: string } => !!e.uid).map((e) => ({
         uid: e.uid,
         name: e.name,
         score: e.score,
@@ -257,7 +258,6 @@ export async function bragAboutScore(
   playerName: string,
   playerScore: number,
   playerRank: number,
-  friendCount: number = 0
 ): Promise<string> {
   const uid = getUID();
   const localAll = getLocalAllLeaderboards();
@@ -282,9 +282,8 @@ export async function bragAboutScore(
       name: playerName,
       score: playerScore,
       timestamp: Date.now(),
-      period,
     });
-    topThree.sort((a, b) => b.score - a.score || b.timestamp - a.timestamp);
+    topThree.sort((a, b) => b.score - a.score || (b.timestamp || 0) - (a.timestamp || 0));
     topThree = topThree.slice(0, 3);
   }
   
@@ -309,10 +308,9 @@ export async function copyBragToClipboard(
   playerName: string,
   playerScore: number,
   playerRank: number,
-  friendCount: number = 0
 ): Promise<boolean> {
   try {
-    const bragText = await bragAboutScore(period, playerName, playerScore, playerRank, friendCount);
+    const bragText = await bragAboutScore(period, playerName, playerScore, playerRank);
     
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(bragText);
@@ -350,7 +348,6 @@ function getLocalAllLeaderboards(): LeaderboardServiceEntry[] {
     if (!raw) return [];
     const cached: LeaderboardServiceEntry[] = JSON.parse(raw);
     if (!Array.isArray(cached)) return [];
-    const uid = getUID();
     const now = Date.now();
     const validEntries = cached.filter((e) => {
       const age = now - (e.timestamp || 0);
@@ -361,3 +358,5 @@ function getLocalAllLeaderboards(): LeaderboardServiceEntry[] {
     return [];
   }
 }
+
+export { getLocalAllLeaderboards, getLocalRank };

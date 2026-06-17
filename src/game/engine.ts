@@ -607,18 +607,6 @@ export class GameEngine {
     const speedFactor = this.challengeFactor;
     this.speed = baseSpeed * speedFactor;
 
-    // Time management - countdown for competitive play
-    if (!this.practiceMode) {
-      this.timeRemaining -= dt;
-      if (this.timeRemaining <= 0) {
-        this.timeRemaining = 0;
-        this.die();
-        return;
-      }
-    }
-
-    const baseSpeed = (180 + this.difficulty * 100) * this.sc;
-    this.speed = baseSpeed;
     const effGravity = this.gravity * this.sc;
     this.vy += effGravity * dt;
     this.by += this.vy * dt;
