@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.5.0 (2026-06-17)
+
+### Web-First Refactor
+- **Stripped Firebase** — removed Firebase Auth, RTDB leaderboard, friends, chat, cloud sync. Leaderboard is now localStorage-only.
+- **Stripped Capacitor** — removed Android/iOS native builds, `android/` directory deleted, no more APK/IPA artifacts.
+- **Stripped PWA** — removed service worker, update checker, install prompt.
+- **Stripped over-engineered features** — removed achievements, missions, friends, badges, titles, effects, loot crates, events, seasons, tutorial, statistics, profile.
+- **Simplified SaveData** — reduced from ~40 fields to ~15.
+- **World type fixed** — fields aligned with engine.ts expectations (`sky`, `pipe`, `pipeDark`, `ground`, `accent`).
+- **Power-up system updated** — new IDs and effect types, PICKUP_POOL fixed.
+- **All 53 tests passing**, production build clean.
+
 ## 3.0.0 (2026-06-16)
 
 ### Major Leaderboard Overhaul
