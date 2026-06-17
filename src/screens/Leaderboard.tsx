@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { SaveData } from "../game/storage";
 import { ScreenShell, Tabs, cx, Shimmer, Button, showToast } from "../ui";
-import { subscribeToLeaderboard, submitPlayerScore, type LeaderboardServiceEntry, copyBragToClipboard } from "../game/leaderboard";
+import { subscribeToLeaderboard, submitPlayerScore, type LeaderboardServiceEntry, copyBragToClipboard, encodeScoreLink, getFriendScores } from "../game/leaderboard";
 
 interface Props {
   save: SaveData;
@@ -18,14 +18,23 @@ export default function Leaderboard({ save, onBack }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const prevPeriodRef = useRef(period);
   const prevBestRef = useRef(save.stats.bestScore);
+  const scoreRef = useRef(save.stats.bestScore);
+  const nameRef = useRef(save.playerName);
+  const subscribeKeyRef = useRef(0);
+  const [subscribeKey, setSubscribeKey] = useState(0);
+  scoreRef.current = save.stats.bestScore;
+  nameRef.current = save.playerName;
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
     setLoading(true);
     const unsubscribe = subscribeToLeaderboard(
-      period, save.playerName, save.stats.bestScore, friends,
+      period, nameRef.current, scoreRef.current, friends,
       (entries) => {
-        setList(entries);
+        // Merge URL-imported friend scores (no Firebase needed)
+        const importedFriends = getFriendScores().filter(f => !entries.some(e => e.name === f.name));
+        const merged = [...entries, ...importedFriends].sort((a, b) => b.score - a.score).slice(0, 50);
+        setList(merged);
         setLoading(false);
         setLastUpdated(new Date());
       },
@@ -41,7 +50,20 @@ export default function Leaderboard({ save, onBack }: Props) {
       window.removeEventListener("offline", handleOffline);
       unsubscribe();
     };
-  }, [period, save.playerName, save.stats.bestScore, friends]);
+  }, [period, friends, subscribeKey]);
+
+  // Re-subscribe when tab becomes visible (ensures fresh data after background)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        setIsOnline(navigator.onLine);
+        subscribeKeyRef.current += 1;
+        setSubscribeKey(subscribeKeyRef.current);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
 
   useEffect(() => {
     const periodChanged = prevPeriodRef.current !== period;
@@ -60,16 +82,16 @@ export default function Leaderboard({ save, onBack }: Props) {
   const handleRetry = useCallback(() => {
     if (!isOnline) return;
     setLoading(true);
-    submitPlayerScore(save.playerName, save.stats.bestScore, period).catch(() => {});
+    submitPlayerScore(nameRef.current, scoreRef.current, period).catch(() => {});
     const unsub = subscribeToLeaderboard(
-      period, save.playerName, save.stats.bestScore, friends, (entries) => {
+      period, nameRef.current, scoreRef.current, friends, (entries) => {
         setList(entries);
         setLoading(false);
         setLastUpdated(new Date());
         unsub();
       },
     );
-  }, [period, save.playerName, save.stats.bestScore, friends, isOnline]);
+  }, [period, friends, isOnline]);
 
   const myEntry = list.find((e) => e.you);
   const myRank = myEntry ? list.indexOf(myEntry) + 1 : null;
@@ -152,6 +174,21 @@ export default function Leaderboard({ save, onBack }: Props) {
             }}
           >
             Brag about this score! 🏆
+          </Button>
+          <Button
+            variant="dark"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              const link = encodeScoreLink(save.playerName, myEntry.score, "🌿");
+              navigator.clipboard?.writeText(link).then(() => {
+                showToast("Share link copied! 📋", "success");
+              }).catch(() => {
+                showToast("Could not copy link.", "error");
+              });
+            }}
+          >
+            Share Score Link 📋
           </Button>
         </div>
       )}

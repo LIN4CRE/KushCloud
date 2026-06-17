@@ -19,8 +19,9 @@ import Statistics from "./screens/Statistics";
 import Settings from "./screens/Settings";
 import Tutorial from "./screens/Tutorial";
 import Friends from "./screens/Friends";
-import { Button, ToastContainer } from "./ui";
+import { Button, ToastContainer, showToast } from "./ui";
 import { loginWithGoogle, logout } from "./config/firebase";
+import { decodeScoreFromURL, importFriendScore, cleanURL } from "./game/leaderboard";
 
 import { useShopHandlers } from "./hooks/useShopHandlers";
 import { useGameHandlers } from "./hooks/useGameHandlers";
@@ -43,6 +44,18 @@ export default function App() {
 
   const pwaInstall = usePwaInstall();
   useAudio(save);
+
+  // Import friend score from shared URL (?kc= parameter)
+  useEffect(() => {
+    const imported = decodeScoreFromURL();
+    if (imported) {
+      const ok = importFriendScore(imported);
+      if (ok) {
+        showToast(`⭐ Score from ${imported.name} imported!`, "success");
+      }
+      cleanURL();
+    }
+  }, []);
 
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {

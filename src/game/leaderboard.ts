@@ -73,8 +73,10 @@ export function subscribeToLeaderboard(
   callback: (entries: LeaderboardServiceEntry[]) => void
 ): () => void {
   const uid = getUID();
+  let lastEntries: LeaderboardEntry[] = [];
 
   const emit = (entries: LeaderboardEntry[], friendUids: string[]) => {
+    lastEntries = entries;
     const mapped: LeaderboardServiceEntry[] = entries.map((e) => ({
       uid: e.uid,
       name: e.name,
@@ -111,6 +113,9 @@ export function subscribeToLeaderboard(
 
   const friendUnsub = subscribeFriends((friendUids) => {
     friendCache = friendUids;
+    if (lastEntries.length > 0) {
+      emit(lastEntries, friendUids);
+    }
   });
 
   const unsub = subscribeLeaderboard(period, (entries) => {
@@ -360,3 +365,90 @@ function getLocalAllLeaderboards(): LeaderboardServiceEntry[] {
 }
 
 export { getLocalAllLeaderboards, getLocalRank };
+
+// ─── URL-based friend score sharing (no Firebase needed) ─────────────
+// Encode a score into a URL. Friends open the link and the score is
+// imported into their local leaderboard — no server required.
+// Format: ?kc=<base64 of JSON {n, s, k, d}>
+
+export function encodeScoreLink(name: string, score: number, skinEmoji: string): string {
+  const payload = { n: name, s: score, k: skinEmoji, d: Date.now() };
+  const encoded = encodeURIComponent(JSON.stringify(payload));
+  const base = btoa(encoded);
+  const origin = window.location.origin + window.location.pathname;
+  return `${origin}?kc=${base}`;
+}
+
+export interface ImportedScore {
+  name: string;
+  score: number;
+  skin: string;
+  date: number;
+}
+
+export function decodeScoreFromURL(): ImportedScore | null {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const kc = params.get("kc");
+    if (!kc) return null;
+
+    const decoded = decodeURIComponent(atob(kc));
+    const payload = JSON.parse(decoded);
+
+    if (typeof payload.n !== "string" || payload.n.length === 0 || payload.n.length > 20) return null;
+    if (typeof payload.s !== "number" || !Number.isFinite(payload.s) || payload.s < 0 || payload.s > 100000) return null;
+    if (typeof payload.k !== "string") return null;
+
+    return {
+      name: payload.n.slice(0, 20),
+      score: Math.floor(payload.s),
+      skin: payload.k || "🌿",
+      date: typeof payload.d === "number" ? payload.d : Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+const FRIEND_SCORES_KEY = "kushcloud_friend_scores";
+
+function loadFriendScores(): LeaderboardServiceEntry[] {
+  try {
+    const raw = localStorage.getItem(FRIEND_SCORES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFriendScores(scores: LeaderboardServiceEntry[]) {
+  try {
+    localStorage.setItem(FRIEND_SCORES_KEY, JSON.stringify(scores));
+  } catch { /* storage full */ }
+}
+
+export function importFriendScore(imported: ImportedScore): boolean {
+  const friends = loadFriendScores();
+  const existing = friends.findIndex(f => f.name === imported.name);
+  if (existing >= 0) {
+    if (imported.score > friends[existing].score) {
+      friends[existing] = { uid: `friend_${imported.name}`, name: imported.name, score: imported.score, friend: true, timestamp: imported.date };
+      saveFriendScores(friends);
+      return true;
+    }
+    return false;
+  }
+  friends.push({ uid: `friend_${imported.name}`, name: imported.name, score: imported.score, friend: true, timestamp: imported.date });
+  saveFriendScores(friends);
+  return true;
+}
+
+export function getFriendScores(): LeaderboardServiceEntry[] {
+  return loadFriendScores();
+}
+
+export function cleanURL() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("kc");
+  window.history.replaceState({}, "", url.pathname + url.hash);
+}

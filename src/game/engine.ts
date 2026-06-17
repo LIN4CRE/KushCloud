@@ -91,10 +91,10 @@ export class GameEngine {
   private bx = 0; private by = 0; private vy = 0; private radius = 16; private rot = 0;
   private wingPhase = 0;
 
-  // world physics
-  private gravity = 1550;
-  private flapV = -520;
-  private speed = 130;
+  // world physics — between original (brutal) and v3.3 (tighter)
+  private gravity = 1450;
+  private flapV = -495;
+  private speed = 128;
 
   private pipes: Pipe[] = [];
   private particles: Particle[] = [];
@@ -157,6 +157,9 @@ export class GameEngine {
   private timeRemaining = 0;
   private timeWarningThreshold = 15; // seconds before showing warning
   clutch = 0; // count of clutch escapes this run
+  // grace period — prevents instant death on first flap
+  private graceTimer = 0;
+  private readonly GRACE_PERIOD = 0.4;
   private lastIntensityScore = -1;
   private lastIntensityFrenzy = false;
 
@@ -272,7 +275,7 @@ export class GameEngine {
     this.bestCombo = 1;
     this.multiplier = 1;
     this.flaps = 0;
-    this.speed = 130;
+    this.speed = 128;
     this.shake = 0;
     this.flashAlpha = 0;
     this.shieldInvuln = 0;
@@ -288,6 +291,7 @@ export class GameEngine {
     this.perfectStreak = 0;
     this.frenzyTimer = 0;
     this.clutch = 0;
+    this.graceTimer = 0;
     this.cb.onWorld?.(this.world);
     this.cb.onStateChange?.(this.state);
     this.cb.onFrenzy?.(false, 0);
@@ -333,6 +337,7 @@ export class GameEngine {
     if (this.state === "ready") {
       this.state = "playing";
       this.startTime = performance.now();
+      this.graceTimer = this.GRACE_PERIOD;
       this.cb.onStateChange?.(this.state);
     }
     if (this.vy > 0 && this.powerUpManager.isDoubleJumpAvailable()) {
@@ -374,35 +379,12 @@ export class GameEngine {
     }
   }
 
-  private get difficulty() {
-    // More aggressive difficulty scaling with strategic thresholds
-    let d = 1 + (this.score / 150);
-    // Add difficulty spikes at key milestones
-    if (this.score >= 20 && this.score < 40) d += 0.3;
-    if (this.score >= 40 && this.score < 60) d += 0.4;
-    if (this.score >= 60 && this.score < 80) d += 0.5;
-    if (this.score >= 80 && this.score < 120) d += 0.6;
-    if (this.score >= 120 && this.score < 200) d += 0.7;
-    if (this.score >= 200) d += 0.8;
-    return Math.min(2.5, d);
-  }
-
-  private get challengeFactor() {
-    // Dynamic challenge factor based on performance
-    let factor = 1.0;
-    // Higher factor for streaks (encourages consistency)
-    factor += Math.min(0.5, this.combo / 10);
-    // Lower factor for perfect runs (reward skill)
-    if (this.perfectPasses > 0 && this.nearMiss === 0) factor *= 0.8;
-    // Higher factor for clutch escapes (risk/reward)
-    factor += this.clutch * 0.1;
-    return factor;
-  }
-
   private spawnPipe() {
-    const d = this.difficulty;
-    let gap = (180 - d * 46) * this.sc;
-    gap = Math.max(100 * this.sc, gap);
+    // gradual gap tightening from 175 to 130 over score, like speed version
+    const baseGap = 175 * this.sc;
+    const minGap = 130 * this.sc;
+    const gapReduction = Math.min(this.score * 1.0, (baseGap - minGap) / this.sc) * this.sc;
+    const gap = baseGap - gapReduction;
     const margin = 70 * this.sc * 0.5;
     const usable = Math.max(0, this.h - this.groundH - gap - margin * 2);
     const top = margin + (usable > 0 ? Math.random() * usable : margin);
@@ -592,6 +574,7 @@ export class GameEngine {
     const mods = this.powerUpManager.getModifiers();
     this.powerUpManager.update();
     if (this.shieldInvuln > 0) this.shieldInvuln = Math.max(0, this.shieldInvuln - dt);
+    if (this.graceTimer > 0) this.graceTimer = Math.max(0, this.graceTimer - dt);
 
     // Time management - countdown for competitive play
     if (!this.practiceMode) {
@@ -603,9 +586,12 @@ export class GameEngine {
       }
     }
 
-    const baseSpeed = (180 + this.difficulty * 100) * this.sc;
-    const speedFactor = this.challengeFactor;
-    this.speed = baseSpeed * speedFactor;
+    // smooth speed ramp: starts brisk, accelerates mid-game, tapers at max
+    const baseSpeed = 128;
+    const maxSpeed = 220;
+    const rampScore = 50;
+    const t = Math.min(this.score / rampScore, 1);
+    this.speed = (baseSpeed + (maxSpeed - baseSpeed) * (t * t * (3 - 2 * t))) * this.sc;
 
     const effGravity = this.gravity * this.sc;
     this.vy += effGravity * dt;
@@ -638,7 +624,7 @@ export class GameEngine {
 
     // spawn pipes by spacing (skip in practice mode)
     if (!this.practiceMode) {
-      const spacing = Math.max(200 * this.sc, this.w * (0.58 - this.difficulty * 0.08));
+      const spacing = Math.max(190 * this.sc, this.w * (0.55 - Math.min(this.score / 150, 1) * 0.1));
       const last = this.pipes[this.pipes.length - 1];
       if (!last || last.x < this.w - spacing) this.spawnPipe();
 
@@ -837,10 +823,13 @@ export class GameEngine {
     }
     this.pipes.length = write;
 
-    // collisions
+    // collisions — grace period prevents instant death on first flap
     let dead = false;
-    if (this.by >= floorY) { dead = true; this.by = floorY; }
-    if (!this.practiceMode && this.shieldInvuln <= 0) {
+    if (this.by >= floorY) {
+      if (this.graceTimer > 0) { this.by = floorY; this.vy = -Math.abs(this.vy) * 0.3; }
+      else { dead = true; this.by = floorY; }
+    }
+    if (!this.practiceMode && this.shieldInvuln <= 0 && this.graceTimer <= 0) {
       if (this.by <= ceil) { this.by = ceil; this.vy = 0; }
       for (const p of this.pipes) {
         if (p.x > this.bx + this.radius || p.x + p.w < this.bx - this.radius) continue;
@@ -1012,6 +1001,18 @@ export class GameEngine {
       vg.addColorStop(1, `rgba(255,107,53,${pulse})`);
       ctx.fillStyle = vg;
       ctx.fillRect(-20, -20, w + 40, h + 40);
+    }
+
+    // grace period indicator — green pulsing ring while invulnerable
+    if (this.graceTimer > 0 && this.state === "playing") {
+      ctx.save();
+      const pulse = 0.3 + 0.3 * Math.sin(performance.now() / 100);
+      ctx.strokeStyle = `rgba(74,222,128,${pulse})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(this.bx, this.by, this.radius + 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     }
 
     // world flash
