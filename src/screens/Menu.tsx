@@ -1,5 +1,5 @@
 import { type SaveData } from "../game/storage";
-import { Button, CoinPill, ScreenShell, Stat } from "../ui";
+import { Button, CoinPill, Stat } from "../ui";
 import { worldForScore } from "../game/data";
 import { KushLogo } from "../components/KushLogo";
 

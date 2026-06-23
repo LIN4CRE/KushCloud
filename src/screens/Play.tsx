@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type SaveData } from "../game/storage";
-import { type RunResult } from "../game/runProcessing";
+import { type RunResult } from "../game/engine";
 import { type RunSummary } from "../game/runProcessing";
 import { GameCanvas, type GameCanvasHandle } from "../components/GameCanvas";
 import { Button, Panel, Stat, CoinPill } from "../ui";
 import { SKINS, TRAILS } from "../game/data";
-import { dayNumber } from "../game/storage";
 
 interface Props {
   save: SaveData;
@@ -71,6 +70,8 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
           skin={skin}
           trail={trail}
           onGameOver={onGameOver}
+          reducedMotion={save.reducedMotion}
+          highContrast={save.highContrast}
         />
 
         {state === "gameover" && lastRunRef.current && (

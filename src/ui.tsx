@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState, useCallback, createContext, useContext } from "react";
+import { type ReactNode, useState, useCallback, createContext, useContext } from "react";
 
 export function Button({
   children, onClick, className = "", disabled, variant = "primary", ...rest
@@ -128,10 +128,12 @@ interface ToastCtx {
 
 const Ctx = createContext<ToastCtx>({ show: () => {} });
 
+// We keep a module-level reference so showToast() can fire from non-React code.
+let globalShow: ToastCtx["show"] = () => {};
+
 export function showToast(message: string, type: Toast["type"] = "info") {
-  Ctx?._currentValue?.show?.(message, type);
+  globalShow(message, type);
 }
-showToast._ctx = Ctx;
 
 export function ToastContainer() {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -144,6 +146,9 @@ export function ToastContainer() {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3000);
   }, [idRef]);
+
+  // Wire up the global showToast helper
+  globalShow = show;
 
   return (
     <Ctx.Provider value={{ show }}>

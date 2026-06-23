@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { type SaveData } from "../game/storage";
 import { Button, CoinPill, Panel, ScreenShell, Tabs } from "../ui";
-import { SKINS, TRAILS, POWERUPS, RARITY, type Skin, type Trail, type PowerUp } from "../game/data";
+import { SKINS, TRAILS, POWERUPS, RARITY, type PowerUp } from "../game/data";
 
 interface Props {
   save: SaveData;

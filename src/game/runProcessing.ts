@@ -1,4 +1,5 @@
 import { type SaveData, dayNumber } from "./storage";
+import type { RunResult } from "./engine";
 
 export type { RunResult } from "./engine";
 

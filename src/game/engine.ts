@@ -499,26 +499,28 @@ export class GameEngine {
   }
 
   private emitTrail(dt: number) {
-    if (this.trail.kind === "none" || this.reducedMotion) return;
+    if (this.trail.id === "none" || this.reducedMotion) return;
     if (Math.random() > dt * 40) return;
-    const k = this.trail.kind;
-    if (k === "puff") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -30, vy: (Math.random() - 0.5) * 20, life: 0.6, maxLife: 0.6, size: 4 * this.sc, color: "rgba(220,235,220,0.55)", kind: "puff", rot: 0, vr: 0 });
-    } else if (k === "spark") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -50, vy: (Math.random() - 0.5) * 30, life: 0.5, maxLife: 0.5, size: 2.5 * this.sc, color: this.trail.glow, kind: "spark", rot: 0, vr: 0 });
-    } else if (k === "leaf") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -40, vy: (Math.random() - 0.5) * 20, life: 0.9, maxLife: 0.9, size: 5 * this.sc, color: this.trail.color, kind: "leaf", rot: Math.random() * 6, vr: (Math.random() - 0.5) * 6 });
-    } else if (k === "rainbow" || k === "aurora") {
+    const id = this.trail.id;
+    const c = this.trail.color;
+    if (id === "puff") {
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -30, vy: (Math.random() - 0.5) * 20, life: 0.6, maxLife: 0.6, size: 4 * this.sc, color: c || "rgba(220,235,220,0.55)", kind: "puff", rot: 0, vr: 0 });
+    } else if (id === "spark" || id === "cosmic" || id === "gold" || id === "glow" || id === "embers" || id === "holy") {
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -50, vy: (Math.random() - 0.5) * 30, life: 0.5, maxLife: 0.5, size: 2.5 * this.sc, color: c || "#fbbf24", kind: "spark", rot: 0, vr: 0 });
+    } else if (id === "leaf") {
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -40, vy: (Math.random() - 0.5) * 20, life: 0.9, maxLife: 0.9, size: 5 * this.sc, color: c || "#84cc16", kind: "leaf", rot: Math.random() * 6, vr: (Math.random() - 0.5) * 6 });
+    } else if (id === "rainbow" || id === "nebula") {
       const hue = (performance.now() / 6) % 360;
       this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -40, vy: (Math.random() - 0.5) * 20, life: 0.6, maxLife: 0.6, size: 4 * this.sc, color: `hsl(${hue},90%,65%)`, kind: "spark", rot: 0, vr: 0 });
-    } else if (k === "star") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -30, vy: (Math.random() - 0.5) * 15, life: 0.7, maxLife: 0.7, size: 3 * this.sc, color: this.trail.color, kind: "spark", rot: 0, vr: 0 });
-    } else if (k === "flame") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -20, vy: -50 - Math.random() * 30, life: 0.4, maxLife: 0.4, size: 3 * this.sc, color: this.trail.color, kind: "spark", rot: 0, vr: 0 });
-    } else if (k === "crystal") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -30 + Math.random() * 10, vy: (Math.random() - 0.5) * 20, life: 0.5, maxLife: 0.5, size: 2 * this.sc, color: this.trail.color, kind: "puff", rot: 0, vr: 0 });
-    } else if (k === "ghost") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -25, vy: (Math.random() - 0.5) * 10, life: 0.8, maxLife: 0.8, size: 4 * this.sc, color: this.trail.color + "60", kind: "puff", rot: 0, vr: 0 });
+    } else if (id === "frost") {
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -30, vy: (Math.random() - 0.5) * 15, life: 0.7, maxLife: 0.7, size: 3 * this.sc, color: c || "#67e8f9", kind: "spark", rot: 0, vr: 0 });
+    } else if (id === "flame") {
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -20, vy: -50 - Math.random() * 30, life: 0.4, maxLife: 0.4, size: 3 * this.sc, color: c || "#ef4444", kind: "spark", rot: 0, vr: 0 });
+    } else if (id === "shadow" || id === "void") {
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -25, vy: (Math.random() - 0.5) * 10, life: 0.8, maxLife: 0.8, size: 4 * this.sc, color: (c || "#6b7280") + "60", kind: "puff", rot: 0, vr: 0 });
+    } else {
+      // generic fallback for any new trail ids
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -35, vy: (Math.random() - 0.5) * 20, life: 0.5, maxLife: 0.5, size: 3 * this.sc, color: c || "#a3e635", kind: "spark", rot: 0, vr: 0 });
     }
   }
 
@@ -886,7 +888,7 @@ export class GameEngine {
     // dramatic death burst — many colored fragments
     this.burst(this.bx, this.by, "#ff6b6b", 25, 320, "spark");
     this.burst(this.bx, this.by, "#ffd24a", 18, 260, "spark");
-    this.burst(this.bx, this.by, this.skin.accent, 15, 200, "leaf");
+    this.burst(this.bx, this.by, this.skin.wingColor, 15, 200, "leaf");
     this.burst(this.bx, this.by, "#ffffff", 10, 180, "puff");
     // ring burst effect
     for (let i = 0; i < 12; i++) {
@@ -896,7 +898,7 @@ export class GameEngine {
         x: this.bx, y: this.by,
         vx: Math.cos(angle) * sp, vy: Math.sin(angle) * sp,
         life: 0.8, maxLife: 0.8,
-        size: 3 * this.sc, color: this.skin.body,
+        size: 3 * this.sc, color: this.skin.bodyColor,
         kind: "spark", rot: 0, vr: 0,
       });
     }
@@ -1363,13 +1365,13 @@ export class GameEngine {
 
     // glow
     if (!this.highContrast) {
-      ctx.shadowColor = this.skin.accent;
+      ctx.shadowColor = this.skin.wingColor;
       ctx.shadowBlur = 12;
     }
     // body
     const g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.2, 0, 0, r);
-    g.addColorStop(0, this.skin.body);
-    g.addColorStop(1, this.skin.accent);
+    g.addColorStop(0, this.skin.bodyColor);
+    g.addColorStop(1, this.skin.wingColor);
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, 7);
@@ -1377,7 +1379,7 @@ export class GameEngine {
     ctx.shadowBlur = 0;
 
     // leaf points on top (cannabis vibe)
-    ctx.fillStyle = this.skin.accent;
+    ctx.fillStyle = this.skin.wingColor;
     for (let i = -1; i <= 1; i++) {
       ctx.save();
       ctx.translate(i * r * 0.45, -r * 0.7);
@@ -1390,7 +1392,7 @@ export class GameEngine {
 
     // wing (flaps)
     const wingY = Math.sin(this.wingPhase) * r * 0.3;
-    ctx.fillStyle = this.skin.accent;
+    ctx.fillStyle = this.skin.wingColor;
     ctx.beginPath();
     ctx.ellipse(-r * 0.2, r * 0.1 + wingY, r * 0.5, r * 0.32, -0.3, 0, 7);
     ctx.fill();
@@ -1402,7 +1404,7 @@ export class GameEngine {
     ctx.beginPath();
     if (isBlinking) {
       // closed eye — thin line
-      ctx.strokeStyle = this.skin.eye;
+      ctx.strokeStyle = this.skin.crestColor;
       ctx.lineWidth = 2.5 * this.sc;
       ctx.moveTo(r * 0.1, -r * 0.2);
       ctx.lineTo(r * 0.7, -r * 0.2);
@@ -1410,7 +1412,7 @@ export class GameEngine {
     } else {
       ctx.arc(r * 0.4, -r * 0.2, r * 0.32, 0, 7);
       ctx.fill();
-      ctx.fillStyle = this.skin.eye;
+      ctx.fillStyle = this.skin.crestColor;
       ctx.beginPath();
       ctx.arc(r * 0.5, -r * 0.2, r * 0.16, 0, 7);
       ctx.fill();
@@ -1420,7 +1422,7 @@ export class GameEngine {
       ctx.arc(r * 0.42, -r * 0.28, r * 0.08, 0, 7);
       ctx.fill();
       // chill half-lids
-      ctx.strokeStyle = this.skin.eye;
+      ctx.strokeStyle = this.skin.crestColor;
       ctx.lineWidth = 2 * this.sc;
       ctx.beginPath();
       ctx.arc(r * 0.4, -r * 0.2, r * 0.32, Math.PI * 1.05, Math.PI * 1.9);
@@ -1428,7 +1430,7 @@ export class GameEngine {
     }
 
     // smile
-    ctx.strokeStyle = this.skin.eye;
+    ctx.strokeStyle = this.skin.crestColor;
     ctx.lineWidth = 2.2 * this.sc;
     ctx.beginPath();
     ctx.arc(r * 0.25, r * 0.25, r * 0.35, 0.1, Math.PI - 0.4);

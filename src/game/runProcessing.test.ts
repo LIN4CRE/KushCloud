@@ -139,7 +139,6 @@ describe("applyCompletedRun", () => {
 
   it("updates lastDay to current day number", () => {
     const save = makeSave();
-    const before = save.lastDay;
     applyCompletedRun(save, makeRun({ runId: "run-daytest", score: 1 }));
     expect(save.lastDay).toBe(dayNumber());
   });
