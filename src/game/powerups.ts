@@ -8,6 +8,8 @@ export interface ActivePowerUp {
 
 export interface PowerUpModifiers {
   coinMult: number;
+  scoreMult: number;
+  timeScale: number;
   magnetRadius: number;
   shieldHits: number;
   doubleJumpAvailable: boolean;
@@ -53,9 +55,11 @@ export class PowerUpManager {
   getModifiers(): PowerUpModifiers {
     const result: PowerUpModifiers = {
       coinMult: 1,
+      scoreMult: 1,
+      timeScale: 1,
       magnetRadius: 0,
       shieldHits: this.shieldHitsRemaining,
-      doubleJumpAvailable: this.hasActiveDoubleJump(),
+      doubleJumpAvailable: this.isDoubleJumpAvailable(),
     };
 
     for (const a of this.active) {
@@ -65,9 +69,13 @@ export class PowerUpManager {
       switch (def.effect) {
         case "coinMultiplier":
           result.coinMult = 2;
+          result.scoreMult = 2;
           break;
         case "magnet":
-          result.magnetRadius = 80;
+          result.magnetRadius = 110;
+          break;
+        case "slowMotion":
+          result.timeScale = Math.min(result.timeScale, 0.72);
           break;
       }
     }

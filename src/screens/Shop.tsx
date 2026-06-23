@@ -11,10 +11,25 @@ interface Props {
   onEquipSkin: (id: string) => void;
   onEquipTrail: (id: string) => void;
   onBuyPowerUp: (id: string) => void;
+  onEquipPowerUp: (id: string) => void;
+  onUnequipPowerUp: (id: string) => void;
 }
 
-export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onEquipSkin, onEquipTrail, onBuyPowerUp }: Props) {
+const POWERUP_SLOTS = 2;
+
+export default function Shop({
+  save,
+  onBack,
+  onBuySkin,
+  onBuyTrail,
+  onEquipSkin,
+  onEquipTrail,
+  onBuyPowerUp,
+  onEquipPowerUp,
+  onUnequipPowerUp,
+}: Props) {
   const [tab, setTab] = useState("skins");
+  const equippedPowerUps = save.equippedPowerUps || [];
 
   const tabs = [
     { id: "skins", label: "Skins" },
@@ -24,11 +39,22 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onEquipSkin,
 
   return (
     <ScreenShell title="Shop" onBack={onBack}>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <CoinPill amount={save.coins} />
+        {tab === "powerups" && (
+          <div className="rounded-full bg-white/5 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-200">
+            Loadout {equippedPowerUps.length}/{POWERUP_SLOTS}
+          </div>
+        )}
       </div>
 
       <Tabs tabs={tabs} active={tab} onChange={setTab} />
+
+      {tab === "powerups" && (
+        <Panel className="mt-4 border-emerald-400/20 bg-emerald-900/20 text-sm text-emerald-100">
+          Equip up to two owned power-ups. They trigger automatically at the start of every run, while pickups still spawn mid-flight.
+        </Panel>
+      )}
 
       <div className="mt-4 space-y-2">
         {tab === "skins" && SKINS.map((skin) => (
@@ -59,15 +85,23 @@ export default function Shop({ save, onBack, onBuySkin, onBuyTrail, onEquipSkin,
             onEquip={() => onEquipTrail(trail.id)}
           />
         ))}
-        {tab === "powerups" && POWERUPS.map((pu) => (
-          <PowerUpItem
-            key={pu.id}
-            pu={pu}
-            owned={save.ownedPowerUps.includes(pu.id)}
-            coins={save.coins}
-            onBuy={() => onBuyPowerUp(pu.id)}
-          />
-        ))}
+        {tab === "powerups" && POWERUPS.map((pu) => {
+          const owned = save.ownedPowerUps.includes(pu.id);
+          const equipped = equippedPowerUps.includes(pu.id);
+          return (
+            <PowerUpItem
+              key={pu.id}
+              pu={pu}
+              owned={owned}
+              equipped={equipped}
+              canEquip={equippedPowerUps.length < POWERUP_SLOTS}
+              coins={save.coins}
+              onBuy={() => onBuyPowerUp(pu.id)}
+              onEquip={() => onEquipPowerUp(pu.id)}
+              onUnequip={() => onUnequipPowerUp(pu.id)}
+            />
+          );
+        })}
       </div>
     </ScreenShell>
   );
@@ -81,9 +115,9 @@ function ShopItem({ name, rarity, image, cost, owned, equipped, coins, onBuy, on
   return (
     <Panel className="flex items-center gap-3">
       <span className="text-2xl">{image}</span>
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-white truncate">{name}</span>
+          <span className="block truncate text-sm font-bold text-white">{name}</span>
           <span className={`text-[10px] font-bold uppercase ${r.color}`}>{r.label}</span>
         </div>
       </div>
@@ -91,7 +125,7 @@ function ShopItem({ name, rarity, image, cost, owned, equipped, coins, onBuy, on
         <Button
           variant={equipped ? "secondary" : "ghost"}
           onClick={onEquip}
-          className="text-xs px-3 py-1.5"
+          className="px-3 py-1.5 text-xs"
         >
           {equipped ? "Equipped" : "Equip"}
         </Button>
@@ -100,7 +134,7 @@ function ShopItem({ name, rarity, image, cost, owned, equipped, coins, onBuy, on
           variant="primary"
           onClick={onBuy}
           disabled={coins < cost}
-          className="text-xs px-3 py-1.5"
+          className="px-3 py-1.5 text-xs"
         >
           {cost}🪙
         </Button>
@@ -109,24 +143,35 @@ function ShopItem({ name, rarity, image, cost, owned, equipped, coins, onBuy, on
   );
 }
 
-function PowerUpItem({ pu, owned, coins, onBuy }: {
-  pu: PowerUp; owned: boolean; coins: number; onBuy: () => void;
+function PowerUpItem({ pu, owned, equipped, canEquip, coins, onBuy, onEquip, onUnequip }: {
+  pu: PowerUp; owned: boolean; equipped: boolean; canEquip: boolean; coins: number;
+  onBuy: () => void; onEquip: () => void; onUnequip: () => void;
 }) {
   return (
-    <Panel className="flex items-center gap-3">
-      <div className={`size-10 rounded-lg bg-gradient-to-br ${pu.gradient}`} />
-      <div className="flex-1 min-w-0">
+    <Panel className={`flex items-center gap-3 ${equipped ? "border-emerald-400/40 bg-emerald-900/20" : ""}`}>
+      <div className={`flex size-11 items-center justify-center rounded-xl bg-gradient-to-br text-xl shadow-lg ${pu.gradient}`}>
+        {pu.icon}
+      </div>
+      <div className="min-w-0 flex-1">
         <div className="text-sm font-bold text-white">{pu.name}</div>
         <div className="text-xs text-slate-400">{pu.description}</div>
+        <div className="mt-1 text-[10px] uppercase tracking-wider text-slate-500">{pu.duration}s duration</div>
       </div>
       {owned ? (
-        <span className="text-xs text-emerald-400 font-bold">Owned</span>
+        <Button
+          variant={equipped ? "secondary" : "ghost"}
+          onClick={equipped ? onUnequip : onEquip}
+          disabled={!equipped && !canEquip}
+          className="px-3 py-1.5 text-xs"
+        >
+          {equipped ? "Equipped" : canEquip ? "Equip" : "Full"}
+        </Button>
       ) : (
         <Button
           variant="primary"
           onClick={onBuy}
           disabled={coins < pu.cost}
-          className="text-xs px-3 py-1.5"
+          className="px-3 py-1.5 text-xs"
         >
           {pu.cost}🪙
         </Button>

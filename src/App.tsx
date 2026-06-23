@@ -1,18 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSave, type Screen } from "./store";
 import Menu from "./screens/Menu";
 import Play from "./screens/Play";
 import Shop from "./screens/Shop";
 import Leaderboard from "./screens/Leaderboard";
 import Settings from "./screens/Settings";
-import { ToastContainer } from "./ui";
+import { ToastContainer, showToast } from "./ui";
 import { applyCompletedRun, type RunResult, type RunSummary } from "./game/runProcessing";
 import { submitLocalScore } from "./game/leaderboard";
 import { SKINS, TRAILS, POWERUPS } from "./game/data";
+import { createDefaultSave } from "./game/storage";
+import { claimDailyReward } from "./game/rewards";
+import { audio } from "./game/audio";
+
+const POWERUP_SLOTS = 2;
 
 export default function App() {
   const { save, update } = useSave();
   const [screen, setScreen] = useState<Screen>("menu");
+
+  useEffect(() => {
+    audio.setMusicVol(save.musicVol);
+    audio.setSfxVol(save.sfxVol);
+  }, [save.musicVol, save.sfxVol]);
 
   const processRun = async (r: RunResult): Promise<RunSummary> => {
     return update((s) => {
@@ -28,8 +38,10 @@ export default function App() {
     return update((s) => {
       if (s.coins >= cost) {
         s.coins -= cost;
+        showToast(`Revived for ${cost} coins`, "info");
         return true;
       }
+      showToast("Not enough coins to revive", "error");
       return false;
     });
   };
@@ -39,9 +51,13 @@ export default function App() {
     if (!skin || skin.cost === undefined) return;
     update((s) => {
       if (s.ownedSkins.includes(id)) return;
-      if (s.coins < (skin.cost ?? 0)) return;
+      if (s.coins < (skin.cost ?? 0)) {
+        showToast("Not enough coins", "error");
+        return;
+      }
       s.coins -= skin.cost ?? 0;
       s.ownedSkins.push(id);
+      showToast(`${skin.name} unlocked`, "success");
     });
   };
 
@@ -50,46 +66,90 @@ export default function App() {
     if (!trail || trail.cost === undefined) return;
     update((s) => {
       if (s.ownedTrails.includes(id)) return;
-      if (s.coins < (trail.cost ?? 0)) return;
+      if (s.coins < (trail.cost ?? 0)) {
+        showToast("Not enough coins", "error");
+        return;
+      }
       s.coins -= trail.cost ?? 0;
       s.ownedTrails.push(id);
+      showToast(`${trail.name} trail unlocked`, "success");
     });
   };
-
-  const equipSkin = (id: string) => update((s) => { s.equippedSkin = id; });
-  const equipTrail = (id: string) => update((s) => { s.equippedTrail = id; });
 
   const buyPowerUp = (id: string) => {
     const pu = POWERUPS.find((p) => p.id === id);
     if (!pu) return;
     update((s) => {
       if (s.ownedPowerUps.includes(id)) return;
-      if (s.coins < pu.cost) return;
+      if (s.coins < pu.cost) {
+        showToast("Not enough coins", "error");
+        return;
+      }
       s.coins -= pu.cost;
       s.ownedPowerUps.push(id);
+      s.equippedPowerUps = s.equippedPowerUps || [];
+      if (s.equippedPowerUps.length < POWERUP_SLOTS) s.equippedPowerUps.push(id);
+      showToast(`${pu.name} unlocked`, "success");
     });
+  };
+
+  const equipSkin = (id: string) => update((s) => {
+    if (!s.ownedSkins.includes(id)) return;
+    s.equippedSkin = id;
+    showToast("Skin equipped", "success");
+  });
+
+  const equipTrail = (id: string) => update((s) => {
+    if (!s.ownedTrails.includes(id)) return;
+    s.equippedTrail = id;
+    showToast("Trail equipped", "success");
+  });
+
+  const equipPowerUp = (id: string) => update((s) => {
+    if (!s.ownedPowerUps.includes(id)) return;
+    s.equippedPowerUps = s.equippedPowerUps || [];
+    if (s.equippedPowerUps.includes(id)) return;
+    if (s.equippedPowerUps.length >= POWERUP_SLOTS) {
+      showToast("Power-up loadout is full", "error");
+      return;
+    }
+    s.equippedPowerUps.push(id);
+    showToast("Power-up equipped", "success");
+  });
+
+  const unequipPowerUp = (id: string) => update((s) => {
+    s.equippedPowerUps = (s.equippedPowerUps || []).filter((powerUpId) => powerUpId !== id);
+    showToast("Power-up removed", "info");
+  });
+
+  const claimDaily = () => {
+    const result = update((s) => claimDailyReward(s));
+    if (result.claimed) {
+      showToast(`Daily claimed: +${result.reward} coins (streak ${result.streak})`, "success");
+    } else {
+      showToast("Daily reward already claimed", "info");
+    }
   };
 
   const resetProgress = () => {
     if (window.confirm("Reset all progress? This cannot be undone.")) {
       update((s) => {
-        const { loadSave } = { loadSave: () => ({ playerName: "Player", coins: 0, stats: { bestScore: 0, totalGames: 0, totalScore: 0, totalCoins: 0, totalNearMiss: 0, totalPerfectPasses: 0, bestCombo: 0, totalFlaps: 0 }, ownedSkins: ["bud"], ownedTrails: ["none"], ownedPowerUps: [], equippedSkin: "bud", equippedTrail: "none", lastDay: 0, musicVol: 0.5, sfxVol: 0.8, reducedMotion: false, highContrast: false, seenTutorial: false, version: 5 }) };
-        const fresh = loadSave();
-        Object.assign(s, fresh);
+        Object.assign(s, createDefaultSave());
       });
+      showToast("Progress reset", "info");
     }
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-slate-950 overflow-hidden">
+    <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-slate-950">
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="h-[600px] w-[420px] rounded-full bg-emerald-900/30 blur-[80px] animate-[glow-pulse_6s_ease-in-out_infinite]" />
-        <div className="h-[300px] w-[300px] translate-x-[120px] translate-y-[80px] rounded-full bg-violet-900/20 blur-[60px] animate-[glow-pulse_8s_ease-in-out_infinite_0.5s]" />
+        <div className="h-[600px] w-[420px] animate-[glow-pulse_6s_ease-in-out_infinite] rounded-full bg-emerald-900/30 blur-[80px]" />
+        <div className="h-[300px] w-[300px] translate-x-[120px] translate-y-[80px] animate-[glow-pulse_8s_ease-in-out_infinite_0.5s] rounded-full bg-violet-900/20 blur-[60px]" />
       </div>
-      <div className="relative mx-auto h-full w-full max-w-md md:max-w-xl lg:max-w-2xl overflow-hidden bg-gradient-to-b from-slate-900 via-emerald-950/60 to-slate-950 shadow-[0_0_80px_rgba(0,0,0,0.8)]">
+      <div className="relative mx-auto h-full w-full max-w-md overflow-hidden bg-gradient-to-b from-slate-900 via-emerald-950/60 to-slate-950 shadow-[0_0_80px_rgba(0,0,0,0.8)] md:max-w-xl lg:max-w-2xl">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
 
-        {screen === "menu" && <Menu save={save} onPlay={() => setScreen("play")} onNav={setScreen} />}
+        {screen === "menu" && <Menu save={save} onPlay={() => setScreen("play")} onNav={setScreen} onClaimDaily={claimDaily} />}
         {screen === "play" && (
           <Play
             save={save}
@@ -107,6 +167,8 @@ export default function App() {
             onEquipSkin={equipSkin}
             onEquipTrail={equipTrail}
             onBuyPowerUp={buyPowerUp}
+            onEquipPowerUp={equipPowerUp}
+            onUnequipPowerUp={unequipPowerUp}
           />
         )}
         {screen === "leaderboard" && <Leaderboard save={save} onBack={() => setScreen("menu")} />}
