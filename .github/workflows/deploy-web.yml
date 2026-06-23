@@ -15,28 +15,55 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: "22"
+
 jobs:
   build:
+    name: Quality Gate & Build Pages Artifact
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
 
-      - name: Build
-        run: npm run build
+      - name: Lint
+        run: npm run lint
 
-      - name: Copy index.html as 404.html for SPA fallback
-        run: cp dist/index.html dist/404.html
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build with deployment metadata
+        env:
+          VITE_BUILD_TIME: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          export VITE_BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          npm run build
+
+      - name: Print deployment diagnostics
+        run: |
+          echo "Commit: $GITHUB_SHA"
+          echo "Ref: $GITHUB_REF_NAME"
+          echo "Pages base: /KushCloud/"
+          find dist -maxdepth 2 -type f -printf '%p %k KB\n' | sort
+          cat dist/debug.json
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
@@ -44,6 +71,7 @@ jobs:
           path: dist
 
   deploy:
+    name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
     environment:

@@ -24,6 +24,8 @@ describe("PowerUpManager", () => {
     const mods = mgr.getModifiers();
     expect(mods).toEqual({
       coinMult: 1,
+      scoreMult: 1,
+      timeScale: 1,
       magnetRadius: 0,
       shieldHits: 0,
       doubleJumpAvailable: false,
@@ -35,9 +37,10 @@ describe("PowerUpManager", () => {
     expect(mgr.getActive()).toHaveLength(0);
   });
 
-  it("activates coin multiplier and reflects it in modifiers", () => {
+  it("activates score/coin multiplier and reflects it in modifiers", () => {
     expect(mgr.activate("double")).toBe(true);
     expect(mgr.getModifiers().coinMult).toBe(2);
+    expect(mgr.getModifiers().scoreMult).toBe(2);
   });
 
   it("does not stack the same power-up twice", () => {
@@ -48,7 +51,12 @@ describe("PowerUpManager", () => {
 
   it("sets magnet radius when magnet power-up is active", () => {
     mgr.activate("magnet");
-    expect(mgr.getModifiers().magnetRadius).toBe(80);
+    expect(mgr.getModifiers().magnetRadius).toBe(110);
+  });
+
+  it("sets slow motion time scale when slow power-up is active", () => {
+    mgr.activate("slow");
+    expect(mgr.getModifiers().timeScale).toBeLessThan(1);
   });
 
   it("expires timed power-ups after their duration", () => {

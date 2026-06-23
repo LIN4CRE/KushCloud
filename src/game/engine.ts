@@ -163,6 +163,8 @@ export class GameEngine {
   private lastIntensityScore = -1;
   private lastFrenzyActive = false;
   private lastIntensityFrenzy = false;
+  private starterPowerUpIds: string[] = [];
+  private starterPowerUpsApplied = false;
 
   constructor(skin: Skin, trail: Trail, world: World, cb: EngineCallbacks) {
     this.skin = skin;
@@ -201,6 +203,28 @@ export class GameEngine {
   setPowerUpManager(m: PowerUpManager) {
     this.powerUpManager = m;
     this.powerUpManager.reset();
+  }
+
+  setStarterPowerUps(ids: string[]) {
+    const valid = new Set(POWERUPS.map((p) => p.id));
+    this.starterPowerUpIds = [...new Set(ids)].filter((id) => valid.has(id)).slice(0, 2);
+    if (this.state === "ready") this.starterPowerUpsApplied = false;
+  }
+
+  private applyStarterPowerUps() {
+    if (this.starterPowerUpsApplied) return;
+    this.starterPowerUpsApplied = true;
+    if (this.starterPowerUpIds.length === 0) return;
+
+    this.starterPowerUpIds.forEach((id, i) => {
+      const def = POWERUPS.find((p) => p.id === id);
+      if (!def || !this.powerUpManager.activate(id)) return;
+      const x = this.bx + (i - (this.starterPowerUpIds.length - 1) / 2) * 44 * this.sc;
+      const y = this.by - 44 * this.sc;
+      this.addFloat(x, y, `${def.icon} READY`, "#a7f3d0", 14);
+      this.burst(x, y, "#34d399", 8, 130, "spark");
+      this.cb.onPowerUp?.(id, `${def.name} ready`);
+    });
   }
 
   resize(w: number, h: number) {
@@ -289,6 +313,8 @@ export class GameEngine {
     this.frenzyTimer = 0;
     this.clutch = 0;
     this.graceTimer = 0;
+    this.timeRemaining = this.practiceMode ? 999999 : this.TIME_LIMIT;
+    this.starterPowerUpsApplied = false;
     this.lastFrenzyActive = false;
     this.cb.onWorld?.(this.world);
     this.cb.onStateChange?.(this.state);
@@ -336,6 +362,9 @@ export class GameEngine {
       this.state = "playing";
       this.startTime = performance.now();
       this.graceTimer = this.GRACE_PERIOD;
+      if (!this.practiceMode && this.timeRemaining <= 0) this.timeRemaining = this.TIME_LIMIT;
+      this.applyStarterPowerUps();
+      audio.startMusic();
       this.cb.onStateChange?.(this.state);
     }
     if (this.vy > 0 && this.powerUpManager.isDoubleJumpAvailable()) {
@@ -472,6 +501,15 @@ export class GameEngine {
     this.floats.push({ x, y, vy: -50, life: 1, text, color, size: size * this.sc });
   }
 
+  private addRushTime(seconds: number, label?: string) {
+    if (this.practiceMode) return;
+    const before = this.timeRemaining;
+    this.timeRemaining = Math.min(this.TIME_LIMIT, this.timeRemaining + seconds);
+    if (label && this.timeRemaining > before + 0.05) {
+      this.addFloat(this.bx - 20 * this.sc, this.by - 56 * this.sc, label, "#67e8f9", 14);
+    }
+  }
+
   private burst(x: number, y: number, color: string, n: number, speed: number, kind = "spark") {
     if (this.reducedMotion) n = Math.ceil(n / 2);
     for (let i = 0; i < n; i++) {
@@ -572,16 +610,18 @@ export class GameEngine {
     }
 
     // playing
-    const mods = this.powerUpManager.getModifiers();
     this.powerUpManager.update();
+    const mods = this.powerUpManager.getModifiers();
+    const simDt = dt * mods.timeScale;
     if (this.shieldInvuln > 0) this.shieldInvuln = Math.max(0, this.shieldInvuln - dt);
     if (this.graceTimer > 0) this.graceTimer = Math.max(0, this.graceTimer - dt);
 
-    // Time management - countdown for competitive play
+    // Rush clock: visible pressure, but perfect/clutch play earns time back.
     if (!this.practiceMode) {
       this.timeRemaining -= dt;
       if (this.timeRemaining <= 0) {
         this.timeRemaining = 0;
+        this.addFloat(this.w / 2, this.h * 0.28, "⏰ RUSH OVER!", "#f87171", 24);
         this.die();
         return;
       }
@@ -595,8 +635,8 @@ export class GameEngine {
     this.speed = (baseSpeed + (maxSpeed - baseSpeed) * (t * t * (3 - 2 * t))) * this.sc;
 
     const effGravity = this.gravity * this.sc;
-    this.vy += effGravity * dt;
-    this.by += this.vy * dt;
+    this.vy += effGravity * simDt;
+    this.by += this.vy * simDt;
     this.rot = Math.max(-0.5, Math.min(1.2, this.vy / (700 * this.sc)));
 
     // squash when falling fast (stretch horizontally, compress vertically)
@@ -607,7 +647,7 @@ export class GameEngine {
     }
 
     // speed lines at high speed
-    if (this.score > 15 && !this.reducedMotion && Math.random() < dt * (this.score > 40 ? 25 : 10)) {
+    if (this.score > 15 && !this.reducedMotion && Math.random() < simDt * (this.score > 40 ? 25 : 10)) {
       this.speedLines.push({
         x: this.w + 10,
         y: Math.random() * this.h * 0.8 + this.h * 0.1,
@@ -617,11 +657,11 @@ export class GameEngine {
     }
     // update speed lines
     for (let i = this.speedLines.length - 1; i >= 0; i--) {
-      this.speedLines[i].x -= this.speedLines[i].speed * dt;
+      this.speedLines[i].x -= this.speedLines[i].speed * simDt;
       if (this.speedLines[i].x + this.speedLines[i].len < 0) this.speedLines.splice(i, 1);
     }
 
-    this.emitTrail(dt);
+    this.emitTrail(simDt);
 
     // spawn pipes by spacing (skip in practice mode)
     if (!this.practiceMode) {
@@ -667,8 +707,8 @@ export class GameEngine {
     // move & collect power-up pickups
     for (const pu of this.pickups) {
       if (pu.taken) continue;
-      pu.x -= this.speed * dt;
-      pu.bob += dt * 4;
+      pu.x -= this.speed * simDt;
+      pu.bob += simDt * 4;
       const py = pu.y + Math.sin(pu.bob) * 7 * this.sc;
       const pr = 16 * this.sc;
       if (Math.hypot(pu.x - this.bx, py - this.by) < this.radius + pr) {
@@ -685,10 +725,10 @@ export class GameEngine {
     const ceil = this.radius;
 
     for (const p of this.pipes) {
-      p.x -= this.speed * dt;
+      p.x -= this.speed * simDt;
       // coin — magnet auto-collect
       if (p.coin && !p.coin.taken) {
-        p.coin.bob += dt * 4;
+        p.coin.bob += simDt * 4;
         const cx = p.x + p.w / 2;
         const cy = p.coin.y + Math.sin(p.coin.bob) * 6 * this.sc;
         const cr = 13 * this.sc;
@@ -725,10 +765,13 @@ export class GameEngine {
         const isPerfect = distFromCenter < p.gap * 0.12;
 
         const frenzyMult = this.frenzyTimer > 0 ? 2 : 1;
+        const scoreMult = frenzyMult * mods.scoreMult;
+        const passGain = this.multiplier * (isPerfect ? 2 : 1) * scoreMult;
         if (isPerfect) {
           this.perfectPasses++;
           this.combo++; // Bonus combo
-          this.score += this.multiplier * 2 * frenzyMult;
+          this.score += passGain;
+          this.addRushTime(1.5, "+1.5s");
           audio.score(); // Could add a special sound
           this.burst(this.bx, this.by, "#60a5fa", 15, 200, "spark");
           this.addFloat(this.bx, this.by - 40 * this.sc, "PERFECT!", "#60a5fa", 22);
@@ -742,14 +785,15 @@ export class GameEngine {
             this.triggerFrenzy();
           }
         } else {
-          this.score += this.multiplier * frenzyMult;
+          this.score += passGain;
+          this.addRushTime(0.8, "+0.8s");
           audio.score();
           // a non-perfect pass breaks the perfect streak (combo is untouched)
           this.perfectStreak = 0;
         }
 
         this.updateMultiplier();
-        this.addFloat(this.bx + 20 * this.sc, this.by - 30 * this.sc, `+${isPerfect ? this.multiplier * 2 : this.multiplier}`, "#ffffff", 18);
+        this.addFloat(this.bx + 20 * this.sc, this.by - 30 * this.sc, `+${passGain}`, "#ffffff", 18);
         this.cb.onScore?.(this.score);
         // score milestone celebrations
         const milestones = [10, 25, 50, 75, 100, 150, 200];
@@ -795,21 +839,26 @@ export class GameEngine {
           this.combo++;
           this.updateMultiplier();
           const frenzyMult = this.frenzyTimer > 0 ? 2 : 1;
+          const scoreMult = frenzyMult * mods.scoreMult;
           // A "clutch" is an extremely tight escape — bigger reward & drama.
           const isClutch = near < 6 * this.sc;
           if (isClutch) {
             this.clutch++;
-            this.score += this.multiplier * 3 * frenzyMult;
+            const clutchGain = this.multiplier * 3 * scoreMult;
+            this.score += clutchGain;
+            this.addRushTime(1.2, "+1.2s");
             audio.clutch();
             this.shake = 9;
             this.flashAlpha = Math.max(this.flashAlpha, 0.35);
             navigator.vibrate?.([10, 25, 10, 25, 40]);
             this.burst(this.bx + this.radius, this.by, "#fbbf24", 16, 220, "spark");
             this.burst(this.bx + this.radius, this.by, "#ffffff", 10, 130, "puff");
-            this.addFloat(this.bx, this.by + 24 * this.sc, "⚡ CLUTCH! +" + this.multiplier * 3 * frenzyMult, "#fbbf24", 18);
+            this.addFloat(this.bx, this.by + 24 * this.sc, "⚡ CLUTCH! +" + clutchGain, "#fbbf24", 18);
             this.cb.onClutch?.(this.clutch);
           } else {
-            this.score += this.multiplier * frenzyMult;
+            const nearMissGain = this.multiplier * scoreMult;
+            this.score += nearMissGain;
+            this.addRushTime(0.5, "+0.5s");
             audio.nearMiss();
             this.shake = 4;
             navigator.vibrate?.(15);
@@ -1044,7 +1093,34 @@ export class GameEngine {
         ctx.fillText(`x${this.multiplier} COMBO`, w / 2, 92 * this.sc);
       }
       ctx.restore();
+      this.drawRushTimer(ctx);
     }
+  }
+
+  private drawRushTimer(ctx: CanvasRenderingContext2D) {
+    if (this.practiceMode || this.timeRemaining <= 0) return;
+    const warning = this.isTimeWarning();
+    const label = `${Math.ceil(this.timeRemaining)}s`;
+    const x = this.w - 56 * this.sc;
+    const y = 52 * this.sc;
+    const pulse = warning ? 0.75 + Math.sin(performance.now() / 80) * 0.25 : 1;
+
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = warning ? "rgba(127,29,29,0.72)" : "rgba(15,23,42,0.58)";
+    ctx.strokeStyle = warning ? "#f87171" : "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 1.5 * this.sc;
+    ctx.beginPath();
+    ctx.roundRect(x - 42 * this.sc, y - 20 * this.sc, 84 * this.sc, 32 * this.sc, 14 * this.sc);
+    ctx.fill();
+    ctx.stroke();
+    ctx.font = `900 ${16 * this.sc}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = warning ? "#fecaca" : "#e0f2fe";
+    ctx.fillText(`⏱ ${label}`, x, y - 4 * this.sc);
+    ctx.restore();
+    ctx.textBaseline = "alphabetic";
   }
 
   private drawPickups(ctx: CanvasRenderingContext2D) {

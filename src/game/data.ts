@@ -93,11 +93,11 @@ export interface PowerUp {
 }
 
 export const POWERUPS: PowerUp[] = [
-  { id: "slow",      name: "Slow Motion", cost: 300,  duration: 8,    description: "Slows time",           gradient: "from-cyan-500 to-blue-600",    icon: "⏱️", effect: "slowMotion" },
-  { id: "invincible",name: "Shield",      cost: 500,  duration: 4,    description: "Ignore one collision", gradient: "from-amber-400 to-orange-600", icon: "🛡️", effect: "shield" },
-  { id: "magnet",    name: "Magnet",      cost: 400,  duration: 8,    description: "Attract coins",         gradient: "from-pink-400 to-rose-600",    icon: "🧲", effect: "magnet" },
-  { id: "double",    name: "2x Score",    cost: 600,  duration: 8,    description: "Double score gained",   gradient: "from-violet-500 to-purple-700", icon: "✖️",  effect: "coinMultiplier" },
-  { id: "ghost",     name: "Ghost Mode",  cost: 800,  duration: 6,    description: "Pass through pipes",    gradient: "from-slate-400 to-slate-600",  icon: "👻", effect: "doubleJump" },
+  { id: "slow",      name: "Slow Motion", cost: 300,  duration: 8,    description: "Slows the world for tighter dodges", gradient: "from-cyan-500 to-blue-600",    icon: "⏱️", effect: "slowMotion" },
+  { id: "invincible",name: "Shield",      cost: 500,  duration: 4,    description: "Blocks one collision",              gradient: "from-amber-400 to-orange-600", icon: "🛡️", effect: "shield" },
+  { id: "magnet",    name: "Magnet",      cost: 400,  duration: 8,    description: "Pulls nearby coins into you",        gradient: "from-pink-400 to-rose-600",    icon: "🧲", effect: "magnet" },
+  { id: "double",    name: "2x Score",    cost: 600,  duration: 8,    description: "Doubles score and coin pickups",     gradient: "from-violet-500 to-purple-700", icon: "✖️",  effect: "coinMultiplier" },
+  { id: "ghost",     name: "Ghost Hop",   cost: 800,  duration: 6,    description: "Grants a reusable mid-air double jump", gradient: "from-slate-400 to-slate-600",  icon: "👻", effect: "doubleJump" },
 ];
 
 export interface PlayerStats {

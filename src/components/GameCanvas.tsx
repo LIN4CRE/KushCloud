@@ -7,6 +7,21 @@ export interface GameCanvasHandle {
   start: () => void;
   restart: () => void;
   revive: () => void;
+  pause: () => void;
+  resume: () => void;
+}
+
+export interface GameHudUpdate {
+  score?: number;
+  runCoins?: number;
+  nearMiss?: number;
+  perfectPasses?: number;
+  combo?: number;
+  worldName?: string;
+  frenzyActive?: boolean;
+  frenzyRemainingMs?: number;
+  lastPowerUp?: string;
+  clutch?: number;
 }
 
 interface Props {
@@ -15,10 +30,20 @@ interface Props {
   onGameOver: (run: RunResult) => void;
   reducedMotion?: boolean;
   highContrast?: boolean;
+  starterPowerUps?: string[];
+  onHud?: (patch: GameHudUpdate) => void;
 }
 
 export const GameCanvas = forwardRef<GameCanvasHandle, Props>(function GameCanvas(
-  { skin, trail, onGameOver, reducedMotion = false, highContrast = false },
+  {
+    skin,
+    trail,
+    onGameOver,
+    reducedMotion = false,
+    highContrast = false,
+    starterPowerUps = [],
+    onHud,
+  },
   ref,
 ) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -26,36 +51,82 @@ export const GameCanvas = forwardRef<GameCanvasHandle, Props>(function GameCanva
   const engineRef = useRef<GameEngine | null>(null);
   const rafRef = useRef<number>(0);
   const lastRef = useRef<number>(0);
+  const pausedRef = useRef(false);
   const onGameOverRef = useRef(onGameOver);
+  const onHudRef = useRef(onHud);
   onGameOverRef.current = onGameOver;
+  onHudRef.current = onHud;
+
+  const resetHud = () => {
+    onHudRef.current?.({
+      score: 0,
+      runCoins: 0,
+      nearMiss: 0,
+      perfectPasses: 0,
+      combo: 1,
+      worldName: worldForScore(0).name,
+      frenzyActive: false,
+      frenzyRemainingMs: 0,
+      lastPowerUp: undefined,
+      clutch: 0,
+    });
+  };
 
   // Imperative handle for Play.tsx
   useImperativeHandle(ref, () => ({
     start() {
       const eng = engineRef.current;
       if (!eng) return;
+      pausedRef.current = false;
+      audio.resume();
       eng.flap(); // first flap transitions "ready" → "playing"
     },
     restart() {
       const eng = engineRef.current;
       if (!eng) return;
+      pausedRef.current = false;
       eng.reset(crypto.randomUUID());
+      resetHud();
     },
     revive() {
       const eng = engineRef.current;
       if (!eng) return;
+      pausedRef.current = false;
       eng.revive(crypto.randomUUID());
+    },
+    pause() {
+      pausedRef.current = true;
+      audio.stopMusic();
+    },
+    resume() {
+      pausedRef.current = false;
+      lastRef.current = 0;
+      audio.resume();
+      audio.startMusic();
     },
   }));
 
   // init engine once
   useEffect(() => {
     const cb = {
+      onScore: (score: number) => onHudRef.current?.({ score }),
+      onCoin: (runCoins: number) => onHudRef.current?.({ runCoins }),
+      onNearMiss: (nearMiss: number) => onHudRef.current?.({ nearMiss }),
+      onPerfectPass: (perfectPasses: number) => onHudRef.current?.({ perfectPasses }),
+      onCombo: (combo: number) => onHudRef.current?.({ combo }),
       onDeath: (r: RunResult) => onGameOverRef.current(r),
+      onWorld: (world: ReturnType<typeof worldForScore>) => onHudRef.current?.({ worldName: world.name }),
       onStateChange: (_s: GameState) => {},
+      onPowerUp: (_id: string, name: string) => onHudRef.current?.({ lastPowerUp: name }),
+      onFrenzy: (active: boolean, remainingMs: number) => onHudRef.current?.({
+        frenzyActive: active,
+        frenzyRemainingMs: remainingMs,
+      }),
+      onClutch: (clutch: number) => onHudRef.current?.({ clutch }),
     };
 
     const eng = new GameEngine(skin, trail, worldForScore(0), cb);
+    eng.setStarterPowerUps(starterPowerUps);
     engineRef.current = eng;
 
     const canvas = canvasRef.current!;
@@ -77,6 +148,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, Props>(function GameCanva
     resize();
     eng.setAccessibility(reducedMotion, highContrast);
     eng.reset(crypto.randomUUID());
+    resetHud();
 
     const ro = new ResizeObserver(resize);
     ro.observe(wrapperRef.current!);
@@ -85,11 +157,9 @@ export const GameCanvas = forwardRef<GameCanvasHandle, Props>(function GameCanva
     const loop = (t: number) => {
       const dt = lastRef.current ? (t - lastRef.current) / 1000 : 0.016;
       lastRef.current = t;
-      eng.update(dt);
-      ctx.setTransform(
-        Math.min(window.devicePixelRatio || 1, 2), 0, 0,
-        Math.min(window.devicePixelRatio || 1, 2), 0, 0,
-      );
+      if (!pausedRef.current) eng.update(dt);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       eng.render(ctx);
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -99,6 +169,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, Props>(function GameCanva
       cancelAnimationFrame(rafRef.current);
       ro.disconnect();
       window.removeEventListener("resize", resize);
+      audio.stopMusic();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -109,9 +180,16 @@ export const GameCanvas = forwardRef<GameCanvasHandle, Props>(function GameCanva
     engineRef.current?.setAccessibility(reducedMotion, highContrast);
   }, [skin, trail, reducedMotion, highContrast]);
 
+  const starterKey = starterPowerUps.join("|");
+  useEffect(() => {
+    engineRef.current?.setStarterPowerUps(starterPowerUps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [starterKey]);
+
   // input
   useEffect(() => {
     const flap = () => {
+      if (pausedRef.current) return;
       audio.resume();
       engineRef.current?.flap();
     };

@@ -1,7 +1,7 @@
 import { type PlayerStats } from "./data";
 
 const KEY = "kushcloud_save_v1";
-const VERSION = 5;
+const VERSION = 6;
 
 export interface SaveData {
   version: number;
@@ -11,9 +11,12 @@ export interface SaveData {
   ownedSkins: string[];
   ownedTrails: string[];
   ownedPowerUps: string[];
+  equippedPowerUps: string[];
   equippedSkin: string;
   equippedTrail: string;
   lastDay: number;
+  lastDailyClaimDay: number;
+  dailyStreak: number;
   musicVol: number;
   sfxVol: number;
   reducedMotion: boolean;
@@ -55,15 +58,22 @@ function defaultSave(): SaveData {
     ownedSkins: ["bud"],
     ownedTrails: ["none"],
     ownedPowerUps: [],
+    equippedPowerUps: [],
     equippedSkin: "bud",
     equippedTrail: "none",
     lastDay: dayNumber(),
+    lastDailyClaimDay: 0,
+    dailyStreak: 0,
     musicVol: 0.5,
     sfxVol: 0.8,
     reducedMotion: false,
     highContrast: false,
     seenTutorial: false,
   };
+}
+
+export function createDefaultSave(): SaveData {
+  return defaultSave();
 }
 
 export function loadSave(): SaveData {
