@@ -1,38 +1,37 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
-import reactHooks from "eslint-plugin-react-hooks";
 import reactPlugin from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 
 export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    plugins: { "react-hooks": reactHooks },
+    plugins: {
+      react: reactPlugin,
+      "react-hooks": reactHooks,
+    },
+    settings: {
+      react: { version: "detect" },
+    },
     rules: {
-      ...reactHooks.configs.flat.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
       "react-hooks/rules-of-hooks": "warn",
       "react-hooks/exhaustive-deps": "warn",
-    },
-  },
-  {
-    settings: {
-      react: {
-        version: "detect",
-      },
+      "react/prop-types": "off",
     },
   },
   reactPlugin.configs.flat.recommended,
   reactPlugin.configs.flat["jsx-runtime"],
   {
-    ignores: ["dist/**", "android/**", "ios/**", "builds/**", "node_modules/**", "test-app.js", "public/sw.js"],
+    ignores: ["dist/**", "android/**", "ios/**", "builds/**", "node_modules/**", "public/sw.js"],
   },
   {
     rules: {
       "@typescript-eslint/no-unused-expressions": "off",
-      "react/prop-types": "off",
       "@typescript-eslint/no-explicit-any": "warn",
-      "react-hooks/set-state-in-effect": "off",
-      "react-hooks/refs": "off",
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      "react/prop-types": "off",
     },
   },
 );

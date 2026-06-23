@@ -1,116 +1,136 @@
 <p align="center">
-  <img src="public/icon.svg" width="96" height="96" alt="KushCloud logo" />
+  <img src="logo.png" width="120" height="120" alt="KushCloud Logo" />
 </p>
 
-<h1 align="center">KushCloud 🌿</h1>
+<h1 align="center">🌿 KUSHCLOUD</h1>
+
+<p align="center"><i>A chill one-tap arcade flyer — tap to fly, dodge the jars, grab the leaves.</i></p>
 
 <p align="center">
-  <i>A chill one-tap arcade flyer — tap to fly, dodge the jars, grab the leaves.</i>
-</p>
-
-<p align="center">
-  <a href="https://lin4cre.github.io/KushCloud/" target="_blank"><strong>🌐 Play in Browser</strong></a>
-  ·
-  <a href="https://github.com/LIN4CRE/KushCloud/issues" target="_blank"><strong>🐛 Report Bug</strong></a>
+  <a href="https://lin4cre.github.io/KushCloud/" target="_blank"><strong>🌐 Play Now</strong></a>
 </p>
 
 <p align="center">
-  <a href="https://react.dev"><img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React"></a>
-  <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"></a>
-  <a href="https://vitejs.dev"><img src="https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-22c55e?style=flat-square" alt="License"></a>
-  <a href="https://github.com/LIN4CRE/KushCloud/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/LIN4CRE/KushCloud/ci.yml?style=flat-square&logo=githubactions&label=CI" alt="CI"></a>
+  <img src="https://img.shields.io/badge/Play-Free-22c55e?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Play Free" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React" />
+  <img src="https://img.shields.io/badge/TypeScript-6-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge" alt="License" />
 </p>
 
 ---
 
-A **Flappy Bird-style arcade game** with a chill aesthetic — featuring a custom canvas game engine, fully synthesised audio (zero audio files), unlockable cosmetics, power-ups, and a local leaderboard.
+![KushCloud Banner](banner.png)
 
----
+## 🎮 How to Play
 
-## 🎮 Quick Start
+| Action | Desktop | Mobile |
+|:-------|:--------|:-------|
+| **Flap** | Space / ↑ / W | Tap anywhere |
+| **Navigate menus** | Mouse / Tab | Tap |
 
-| Action | Link |
-|--------|------|
-| **Play in Browser** | **[lin4cre.github.io/KushCloud/](https://lin4cre.github.io/KushCloud/)** — opens instantly, no install |
-| **Report a Bug** | **[Open an Issue](https://github.com/LIN4CRE/KushCloud/issues/new)** |
-
----
+Flap through the gaps between glass jars. Score points, collect coins, chain combos, and survive as long as you can. The world evolves as you score higher — from **Meadow** to **Cosmic** and beyond.
 
 ## ✨ Features
 
-| Feature | Details |
-|---------|---------|
-| **Custom game engine** | Canvas-based physics, procedural generation, near-miss detection, particle systems |
-| **Synthesised audio** | Music + SFX via Web Audio API — zero audio files |
-| **Leaderboard** | Local high scores, persistent across sessions |
-| **Shop** | Unlockable skins, trails, and power-ups |
-| **8 unique worlds** | Visual themes that unlock as your score increases |
-| **Accessibility** | Reduced motion, high contrast modes |
+- 🎯 **One-tap gameplay** — Simple to pick up, hard to put down
+- 🌍 **8 evolving worlds** — Meadow → Sunset → Night → Arctic → Volcanic → Cosmic → Celestial → Neon
+- 🐦 **24 unlockable skins** — From Bud to Void, common to mythic rarity
+- ✨ **15 trail effects** — Puff, spark, flame, rainbow, nebula, and more
+- 💎 **Power-up pickups** — Magnet, Double Score, Slow Motion, Shield, Ghost Mode
+- 🔥 **FRENZY mode** — Chain 3 perfect passes for 2× points
+- ⚡ **Clutch escapes** — Near-death saves with bonus score
+- 🎵 **Synthesized audio** — Zero audio files, all generated with Web Audio API
+- 🎹 **Dynamic music** — Layers build with intensity as you score higher
+- 🏆 **Local leaderboard** — Compete for the top spot
+- 🛡️ **Revive system** — Spend coins to continue after death
 
----
+## 🌍 Worlds
 
-## 🎮 Controls
+| World | Score | Vibe |
+|:------|------:|:-----|
+| 🌿 Meadow | 0 | Bright skies, green pipes |
+| 🌅 Sunset | 25 | Warm oranges, golden hour |
+| 🌙 Night | 50 | Deep indigo, glowing pipes |
+| ❄️ Arctic | 80 | Icy blues, frozen landscape |
+| 🌋 Volcanic | 120 | Red-hot lava, dangerous |
+| 🌌 Cosmic | 180 | Purple nebula, starfield |
+| ✨ Celestial | 250 | Golden heavens |
+| 💜 Neon | 350 | Electric pink, maximum difficulty |
 
-| Action | Input |
-|--------|-------|
-| Flap | Tap · Click · Space · ↑ |
-| Pause | Top-left pause button (in-game) |
-
-**Scoring:** Fly through jar gaps for points, collect leaves for coins, skim jar edges for near-miss combo multipliers.
-
----
-
-## 🛠 Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| UI | React 19 + TypeScript 6 |
-| Build | Vite 8 |
-| Styling | Tailwind CSS v4 |
-| Game | Custom HTML5 Canvas engine |
-| Audio | Web Audio API (fully synthesised) |
-| CI/CD | GitHub Actions |
-
----
-
-## 💻 Development
+## 🚀 Quick Start
 
 ```bash
+# Clone the repo
 git clone https://github.com/LIN4CRE/KushCloud.git
 cd KushCloud
-npm install
-npm run dev        # → http://localhost:5000
+
+# Install & run
+npm install --legacy-peer-deps
+npm run dev
 ```
 
-### Quick Commands
+Then open [http://localhost:5000](http://localhost:5000) in your browser.
 
-```bash
-npm run dev           # Dev server on :5000
-npm run build         # Production build
-npm test              # Run unit tests
-npm run test:coverage # Coverage report
+## 🛠️ Tech Stack
+
+| Tech | Purpose |
+|:-----|:--------|
+| **React 19** | UI framework |
+| **TypeScript** | Type safety |
+| **Canvas 2D** | 60fps game rendering |
+| **Web Audio API** | Synthesized music & SFX |
+| **Tailwind CSS 4** | UI styling |
+| **Vite** | Build tool |
+
+## 📊 Game Mechanics
+
 ```
-
----
+Score = Base Points × Combo Multiplier × Frenzy Multiplier
+       ┌─────────────────────────────────────────────────┐
+       │  Combo: 1× → 2× (4 passes) → 3× (8) → ...10×  │
+       │  Frenzy: 2× (3 perfect passes in a row, 6 sec)  │
+       │  Clutch: +3× (extremely tight escape)            │
+       │  Near Miss: +1× (close call bonus)               │
+       │  Perfect Pass: +2× (centre of the gap)           │
+       └─────────────────────────────────────────────────┘
+```
 
 ## 📁 Project Structure
 
 ```
 src/
-├── game/              # Engine, audio, physics, storage, data, leaderboard
-├── components/        # React components (GameCanvas, KushLogo)
-├── screens/           # Menu, Play, Shop, Settings, Leaderboard
-├── config/            # App config
-├── App.tsx            # Root navigation and state
-├── store.ts           # Persistent save-data hook
-├── ui.tsx             # Shared design system components
-├── index.css          # Tailwind imports and animations
-└── main.tsx           # Entry point
+├── components/     # React components (GameCanvas, KushLogo)
+├── game/           # Core game engine & logic
+│   ├── engine.ts   # Main game loop, physics, rendering
+│   ├── audio.ts    # Web Audio synthesized music & SFX
+│   ├── data.ts     # Skins, trails, worlds, power-ups
+│   ├── powerups.ts # Power-up activation & modifiers
+│   ├── storage.ts  # localStorage save/load
+│   ├── leaderboard.ts # Local leaderboard
+│   └── runProcessing.ts # Score validation & dedup
+├── screens/        # UI screens (Menu, Play, Shop, etc.)
+└── ui.tsx          # Shared UI components
 ```
+
+## 🧪 Development
+
+```bash
+npm run dev          # Start dev server
+npm run build        # Production build
+npm run test         # Run tests
+npm run test:coverage # Test coverage report
+npm run typecheck    # TypeScript check
+npm run lint         # ESLint check
+npm run lint:fix     # Auto-fix lint issues
+```
+
+## 📜 License
+
+MIT License — See [LICENSE](./LICENSE)
 
 ---
 
-## 📄 License
-
-MIT © [Linacre](https://github.com/LIN4CRE)
+<p align="center">
+  <img src="https://img.shields.io/badge/Made_with-🌿-22c55e?style=flat-square" alt="Made with 🌿" />
+  <img src="https://img.shields.io/badge/No_external_assets-Zero_audio_files-06b6d4?style=flat-square" alt="No external assets" />
+</p>
