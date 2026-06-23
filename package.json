@@ -19,7 +19,7 @@
   "main": "index.html",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/verify-build.mjs",
     "preview": "vite preview",
     "serve": "vite preview",
     "test": "vitest run",

@@ -1,8 +1,11 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  /** App version injected from package.json at build time (see vite.config.ts). */
+  /** App version and deployment metadata injected at build time (see vite.config.ts). */
   readonly VITE_APP_VERSION: string;
+  readonly VITE_GIT_SHA: string;
+  readonly VITE_GIT_BRANCH: string;
+  readonly VITE_BUILD_TIME: string;
   readonly VITE_FIREBASE_API_KEY: string;
   readonly VITE_FIREBASE_AUTH_DOMAIN: string;
   readonly VITE_FIREBASE_DATABASE_URL: string;

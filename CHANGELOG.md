@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - Two-slot power-up loadout system; owned power-ups now activate at the start of runs.
 - Pause/resume support with keyboard shortcuts and a clearer in-run HUD.
 - Rush timer display with time rewards for normal, perfect, near-miss, and clutch passes.
+- Build/deploy diagnostics via Settings and generated `dist/debug.json` artifacts.
 
 ### Changed
 - Power-ups now match their descriptions: Slow Motion slows gameplay, 2x Score doubles score and coin pickups, Magnet has a larger pull radius, and Ghost Hop is described as a double-jump tool.
@@ -19,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - Fixed shop power-ups being purchasable but not usable in gameplay.
 - Fixed audio settings/music wiring so volume sliders affect the audio engine and music starts during play.
 - Fixed reset progress to use the canonical default save shape.
+- Hardened GitHub Pages deploy so tests and artifact verification gate deployment.
 
 ## [3.1.0] - 2026-06-17
 ### Added
