@@ -42,7 +42,7 @@ describe("randomName", () => {
 describe("loadSave", () => {
   it("returns default save when localStorage is empty", () => {
     const save = loadSave();
-    expect(save.version).toBe(8);
+    expect(save.version).toBe(9);
     expect(save.playerId).toMatch(/^(kc_|[0-9a-f-]{36})/);
     expect(save.coins).toBe(0);
     expect(save.stats).toEqual(DEFAULT_STATS);
@@ -53,7 +53,7 @@ describe("loadSave", () => {
   it("preserves existing values", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ coins: 500, playerName: "Test" }));
     const save = loadSave();
-    expect(save.version).toBe(8);
+    expect(save.version).toBe(9);
     expect(save.coins).toBe(500);
     expect(save.playerName).toBe("Test");
   });
@@ -61,13 +61,13 @@ describe("loadSave", () => {
   it("returns default on corrupt data", () => {
     localStorage.setItem(STORAGE_KEY, "not-json");
     const save = loadSave();
-    expect(save.version).toBe(8);
+    expect(save.version).toBe(9);
   });
 
   it("returns default on non-object data", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify("string"));
     const save = loadSave();
-    expect(save.version).toBe(8);
+    expect(save.version).toBe(9);
   });
 });
 
@@ -78,6 +78,6 @@ describe("writeSave", () => {
     const stored = localStorage.getItem(STORAGE_KEY);
     expect(stored).toBeDefined();
     const parsed = JSON.parse(stored!);
-    expect(parsed.version).toBe(8);
+    expect(parsed.version).toBe(9);
   });
 });

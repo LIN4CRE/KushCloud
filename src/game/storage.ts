@@ -1,7 +1,7 @@
 import { type PlayerStats } from "./data";
 
 const KEY = "kushcloud_save_v1";
-const VERSION = 8;
+const VERSION = 9;
 
 export interface TopRun {
   score: number;
@@ -29,6 +29,7 @@ export interface SaveData {
   reducedMotion: boolean;
   highContrast: boolean;
   seenTutorial: boolean;
+  achievedFrenzy?: boolean;
 }
 
 export const DEFAULT_STATS: PlayerStats = {

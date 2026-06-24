@@ -1,6 +1,11 @@
 import { Skin, Trail, World, worldForScore, POWERUPS } from "./data";
 import { audio } from "./audio";
 import { PowerUpManager } from "./powerups";
+import {
+  type EffectParticle, type ScreenOverlay,
+  createBurst, createRing, createPuff, createConfetti, createTrailSegment,
+  updateParticles as updateEffectParticles, drawParticles, drawOverlays, updateOverlays,
+} from "./effects";
 
 const SPAWN_RATE_MULTIPLIER = 1.2;
 
@@ -35,7 +40,7 @@ export interface RunResult {
 
 export type GameState = "ready" | "playing" | "dead";
 
-type PipePattern = "standard" | "moving";
+type PipePattern = "standard" | "moving" | "tight" | "triple";
 
 interface Pipe {
   x: number;
@@ -51,11 +56,10 @@ interface Pipe {
   baseGapY: number;
   oscAmp: number;
   oscPhase: number;
-}
-
-interface Particle {
-  x: number; y: number; vx: number; vy: number;
-  life: number; maxLife: number; size: number; color: string; kind: string; rot: number; vr: number;
+  oscSpeed: number;
+  gapTighten: number;
+  /** For triple pattern, index 0=top, 1=middle, 2=bottom */
+  tripleIndex?: number;
 }
 
 interface FloatText {
@@ -91,6 +95,8 @@ export interface EngineCallbacks {
   onClutch?: (count: number) => void;
   /** Fired when smoke is collected for a Red Eye bonus. */
   onRedEye?: (count: number) => void;
+  /** Fired when combo fire level changes (0-4). */
+  onComboFireLevel?: (level: number) => void;
 }
 
 export class GameEngine {
@@ -109,7 +115,7 @@ export class GameEngine {
   private speed = 115;
 
   private pipes: Pipe[] = [];
-  private particles: Particle[] = [];
+  private particles: EffectParticle[] = [];
   private floats: FloatText[] = [];
   private groundOffset = 0;
   private decor: { x: number; y: number; s: number; type: number; spd: number }[] = [];
@@ -118,6 +124,27 @@ export class GameEngine {
   private mountains: { x: number; h: number; w: number; layer: number }[] = [];
   // background stars (for cosmos world)
   private stars: { x: number; y: number; s: number; blink: number }[] = [];
+
+  // Screen overlay stack
+  private overlays: ScreenOverlay[] = [];
+
+  // --- Enhanced background layers ---
+  // Parallax clouds (3 layers at different speeds)
+  private cloudLayers: { x: number; y: number; w: number; h: number; speed: number; alpha: number }[][] = [[], [], []];
+  // Ground detail elements (grass tufts, rocks, smoke wisps per world)
+  private groundDetails: { x: number; y: number; w: number; h: number; color: string; sway: number }[] = [];
+
+  // --- Player animation ---
+  private wingFrame = 0;
+  private wingTimer = 0;
+  private readonly WING_FRAME_DUR = 0.06; // seconds per wing frame
+  private deathTimer = 0;
+  private invincibilityTimer = 0;
+  private invincibilityFlash = false;
+
+  // --- Combo fire meter ---
+  private comboFireTimer = 0;
+  private comboFireLevel = 0; // 0-4
 
   // scoring
   score = 0;
@@ -185,7 +212,31 @@ export class GameEngine {
     this.trail = trail;
     this.world = world;
     this.cb = cb;
+    this.initBackgroundLayers();
     this.initDecor();
+  }
+
+  private initBackgroundLayers() {
+    // Cloud layers: far (slow), mid, near (fast)
+    const cloudColors = [
+      "rgba(255,255,255,0.06)", // far — faint
+      "rgba(255,255,255,0.12)", // mid
+      "rgba(255,255,255,0.18)", // near
+    ];
+    for (let layer = 0; layer < 3; layer++) {
+      this.cloudLayers[layer] = [];
+      const count = layer === 0 ? 5 : layer === 1 ? 4 : 3;
+      for (let i = 0; i < count; i++) {
+        this.cloudLayers[layer].push({
+          x: (this.w / count) * i + (Math.random() - 0.5) * 60,
+          y: this.h * (0.05 + Math.random() * 0.35),
+          w: 60 + Math.random() * 90 * (this.sc || 1),
+          h: 20 + Math.random() * 30 * (this.sc || 1),
+          speed: (0.2 + layer * 0.2) * (this.sc || 1),
+          alpha: parseFloat(cloudColors[layer].match(/[\d.]+(?=\))/)?.[0] ?? "0.1"),
+        });
+      }
+    }
   }
 
   setCosmetics(skin: Skin, trail: Trail) {
@@ -248,7 +299,47 @@ export class GameEngine {
     this.radius = 17 * this.sc;
     this.bx = w * 0.3;
     if (this.state === "ready") this.by = h * 0.45;
+    this.initBackgroundLayers();
     this.initDecor();
+    this.initGroundDetails();
+  }
+
+  private initGroundDetails() {
+    this.groundDetails = [];
+    const gy = this.h - this.groundH;
+    const id = this.world.id;
+    const isGrass = id === "dispensary" || id === "grow";
+    const isSmoke = id === "smoke" || id === "festival";
+    const isCosmos = id === "cosmos";
+    const count = Math.ceil(this.w / 25);
+    for (let i = 0; i < count; i++) {
+      const x = (this.w / count) * i + Math.random() * 10;
+      if (isGrass) {
+        this.groundDetails.push({
+          x, y: gy + 2, w: 3 + Math.random() * 4, h: 5 + Math.random() * 8,
+          color: `rgba(34,197,94,${0.2 + Math.random() * 0.2})`,
+          sway: Math.random() * 10,
+        });
+      } else if (isSmoke) {
+        this.groundDetails.push({
+          x, y: gy + 4 + Math.random() * 4, w: 8 + Math.random() * 10, h: 5 + Math.random() * 4,
+          color: `rgba(255,255,255,${0.05 + Math.random() * 0.08})`,
+          sway: Math.random() * 5,
+        });
+      } else if (isCosmos) {
+        this.groundDetails.push({
+          x, y: gy, w: 1 + Math.random() * 2, h: 1 + Math.random() * 2,
+          color: `rgba(167,139,250,${0.3 + Math.random() * 0.4})`,
+          sway: 0,
+        });
+      } else {
+        this.groundDetails.push({
+          x, y: gy + 4, w: 4 + Math.random() * 6, h: 3 + Math.random() * 3,
+          color: `rgba(0,0,0,${0.08 + Math.random() * 0.08})`,
+          sway: 0,
+        });
+      }
+    }
   }
 
   private initDecor() {
@@ -299,9 +390,12 @@ export class GameEngine {
     this.vy = 0;
     this.rot = 0;
     this.wingPhase = 0;
+    this.wingFrame = 0;
+    this.wingTimer = 0;
     this.pipes = [];
     this.particles = [];
     this.floats = [];
+    this.overlays = [];
     this.score = 0;
     this.runCoins = 0;
     this.nearMiss = 0;
@@ -329,6 +423,11 @@ export class GameEngine {
     this.redEye = 0;
     this.redEyeTimer = 0;
     this.graceTimer = 0;
+    this.deathTimer = 0;
+    this.invincibilityTimer = 0;
+    this.invincibilityFlash = false;
+    this.comboFireTimer = 0;
+    this.comboFireLevel = 0;
     this.timeRemaining = this.practiceMode ? 999999 : this.TIME_LIMIT;
     this.starterPowerUpsApplied = false;
     this.lastFrenzyActive = false;
@@ -407,58 +506,70 @@ export class GameEngine {
     this.vy = baseLift;
     this.flaps++;
     this.wingPhase = 0;
+    this.wingFrame = 3; // snap to max up-stroke
+    this.wingTimer = 0;
     // squash & stretch: stretch vertically on flap
     this.squashX = mods.flapBoost > 1 ? 0.76 : 0.8;
     this.squashY = mods.flapBoost > 1 ? 1.3 : 1.25;
     audio.flap();
     this.emitFlapPuff();
+    // Trail particles on flap
+    if (!this.reducedMotion && this.trail.id !== "none") {
+      createTrailSegment(this.particles, this.bx - this.radius * 0.5, this.by,
+        this.trail.color, this.trail.size * this.sc, 3);
+    }
     navigator.vibrate?.(8);
   }
 
   private emitFlapPuff() {
-    for (let i = 0; i < (this.reducedMotion ? 2 : 5); i++) {
-      this.particles.push({
-        x: this.bx - this.radius,
-        y: this.by + this.radius * 0.4,
-        vx: -40 - Math.random() * 40,
-        vy: 20 + Math.random() * 30,
-        life: 0.5, maxLife: 0.5,
-        size: (3 + Math.random() * 4) * this.sc,
-        color: "rgba(230,240,230,0.7)",
-        kind: "puff", rot: 0, vr: 0,
-      });
-    }
+    const count = this.reducedMotion ? 2 : 5;
+    createPuff(this.particles,
+      this.bx - this.radius,
+      this.by + this.radius * 0.4,
+      "rgba(230,240,230,0.7)", count, 3 * this.sc);
   }
 
   private spawnPipe() {
     const mods = this.powerUpManager.getModifiers();
-    // Gap starts generous for an easy first impression, then tightens with
-    // skill score. Speed pressure widens it slightly at high speeds to keep
-    // late-game intense but fair. Wide power-up adds extra breathing room.
     const baseGap = 195 * this.sc;
     const skillTightening = Math.min(this.score * 0.65, 36) * this.sc;
     const speedPressure = Math.max(0, Math.min(1, ((this.speed / this.sc) - 150) / 60));
     const speedRelief = speedPressure * 30 * this.sc;
     const minGap = (150 + speedPressure * 10) * this.sc;
     const gap = Math.max(minGap, baseGap - skillTightening + speedRelief + mods.gapBonus * this.sc);
-    const margin = 70 * this.sc * 0.5;
-    const usable = Math.max(0, this.h - this.groundH - gap - margin * 2);
-    const top = margin + (usable > 0 ? Math.random() * usable : margin);
-    const gapY = Math.max(gap / 2 + margin, Math.min(top + gap / 2, this.h - this.groundH - gap / 2 - margin));
-
-    // Choose pipe pattern based on score (moving pipes from score 20 onward)
+    // Apply gap tightening for tight/triple patterns
     let pattern: PipePattern = "standard";
     let oscAmp = 0;
+    let oscSpeed = 2;
+    let gapTighten = 0;
     const oscPhase = Math.random() * Math.PI * 2;
-    if (this.score >= 20 && Math.random() < 0.3) {
+    const r = Math.random();
+    if (this.score >= 10 && r < 0.25) {
+      pattern = "tight";
+      gapTighten = (15 + Math.random() * 20) * this.sc;
+    } else if (this.score >= 20 && r < 0.45) {
       pattern = "moving";
-      oscAmp = (15 + Math.random() * 20) * this.sc;
+      oscAmp = (20 + Math.random() * 25) * this.sc;
+      oscSpeed = 2.5 + Math.random() * 1.5;
+    } else if (this.score >= 35 && r < 0.55) {
+      pattern = "triple";
+      gapTighten = 35 * this.sc; // much tighter gaps through triple gauntlet
+    } else if (this.score >= 50 && r < 0.60) {
+      pattern = "moving";
+      oscAmp = (35 + Math.random() * 30) * this.sc;
+      oscSpeed = 3 + Math.random() * 2;
     }
+
+    const effectiveGap = Math.max(minGap, gap - gapTighten);
+    const margin = 70 * this.sc * 0.5;
+    const usable = Math.max(0, this.h - this.groundH - effectiveGap - margin * 2);
+    const top = margin + (usable > 0 ? Math.random() * usable : margin);
+    const gapY = Math.max(effectiveGap / 2 + margin, Math.min(top + effectiveGap / 2, this.h - this.groundH - effectiveGap / 2 - margin));
 
     const pipe: Pipe = {
       x: this.w + 40,
       gapY,
-      gap,
+      gap: effectiveGap,
       w: 66 * this.sc,
       passed: false,
       nearChecked: false,
@@ -467,6 +578,8 @@ export class GameEngine {
       baseGapY: gapY,
       oscAmp,
       oscPhase,
+      oscSpeed,
+      gapTighten,
     };
     // 20% more coin spawns than before (moving bongs still reward extra risk).
     const baseCoinChance = pattern === "moving" ? 0.50 : 0.38;
@@ -482,6 +595,17 @@ export class GameEngine {
       bob: Math.random() * Math.PI * 2,
     };
     this.pipes.push(pipe);
+
+    // For triple pattern, add two more pipes offset vertically
+    if (pattern === "triple") {
+      const tripleStep = (this.h - this.groundH) / 3;
+      const triplePipe1: Pipe = { ...pipe, gapY: tripleStep, tripleIndex: 0 };
+      const triplePipe2: Pipe = { ...pipe, gapY: tripleStep * 2, tripleIndex: 1 };
+      // Offset x slightly so they stagger visually
+      triplePipe1.x += 20 * this.sc;
+      triplePipe2.x += 40 * this.sc;
+      this.pipes.push(triplePipe1, triplePipe2);
+    }
   }
 
   private spawnPickup() {
@@ -571,20 +695,8 @@ export class GameEngine {
   }
 
   private burst(x: number, y: number, color: string, n: number, speed: number, kind = "spark") {
-    if (this.reducedMotion) n = Math.ceil(n / 2);
-    for (let i = 0; i < n; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const sp = speed * (0.4 + Math.random() * 0.8);
-      this.particles.push({
-        x, y,
-        vx: Math.cos(a) * sp,
-        vy: Math.sin(a) * sp,
-        life: 0.6 + Math.random() * 0.4,
-        maxLife: 1,
-        size: (2 + Math.random() * 3) * this.sc,
-        color, kind, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 10,
-      });
-    }
+    const count = this.reducedMotion ? Math.ceil(n / 2) : n;
+    createBurst(this.particles, x, y, color, count, speed, kind, { size: 3 * this.sc });
   }
 
   private updateMultiplier() {
@@ -601,24 +713,24 @@ export class GameEngine {
     if (Math.random() > dt * 40) return;
     const id = this.trail.id;
     const c = this.trail.color;
+    const def = { decay: 1, gravity: 0 };
     if (id === "puff") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -30, vy: (Math.random() - 0.5) * 20, life: 0.6, maxLife: 0.6, size: 4 * this.sc, color: c || "rgba(220,235,220,0.55)", kind: "puff", rot: 0, vr: 0 });
+      createPuff(this.particles, this.bx - this.radius, this.by, c || "rgba(220,235,220,0.55)", 1, 4 * this.sc);
     } else if (id === "spark" || id === "cosmic" || id === "gold" || id === "glow" || id === "embers" || id === "holy") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -50, vy: (Math.random() - 0.5) * 30, life: 0.5, maxLife: 0.5, size: 2.5 * this.sc, color: c || "#fbbf24", kind: "spark", rot: 0, vr: 0 });
+      createBurst(this.particles, this.bx - this.radius, this.by, c || "#fbbf24", 1, 50, "spark", def);
     } else if (id === "leaf") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -40, vy: (Math.random() - 0.5) * 20, life: 0.9, maxLife: 0.9, size: 5 * this.sc, color: c || "#84cc16", kind: "leaf", rot: Math.random() * 6, vr: (Math.random() - 0.5) * 6 });
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -40, vy: (Math.random() - 0.5) * 20, life: 0.9, maxLife: 0.9, size: 5 * this.sc, color: c || "#84cc16", kind: "leaf", rot: Math.random() * 6, vr: (Math.random() - 0.5) * 6, decay: 1, gravity: 80 });
     } else if (id === "rainbow" || id === "nebula") {
       const hue = (performance.now() / 6) % 360;
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -40, vy: (Math.random() - 0.5) * 20, life: 0.6, maxLife: 0.6, size: 4 * this.sc, color: `hsl(${hue},90%,65%)`, kind: "spark", rot: 0, vr: 0 });
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -40, vy: (Math.random() - 0.5) * 20, life: 0.6, maxLife: 0.6, size: 4 * this.sc, color: `hsl(${hue},90%,65%)`, kind: "spark", rot: 0, vr: 0, decay: 1, gravity: 220 });
     } else if (id === "frost") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -30, vy: (Math.random() - 0.5) * 15, life: 0.7, maxLife: 0.7, size: 3 * this.sc, color: c || "#67e8f9", kind: "spark", rot: 0, vr: 0 });
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -30, vy: (Math.random() - 0.5) * 15, life: 0.7, maxLife: 0.7, size: 3 * this.sc, color: c || "#67e8f9", kind: "spark", rot: 0, vr: 0, decay: 1, gravity: 220 });
     } else if (id === "flame") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -20, vy: -50 - Math.random() * 30, life: 0.4, maxLife: 0.4, size: 3 * this.sc, color: c || "#ef4444", kind: "spark", rot: 0, vr: 0 });
+      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -20, vy: -50 - Math.random() * 30, life: 0.4, maxLife: 0.4, size: 3 * this.sc, color: c || "#ef4444", kind: "spark", rot: 0, vr: 0, decay: 1, gravity: -15 });
     } else if (id === "shadow" || id === "void") {
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -25, vy: (Math.random() - 0.5) * 10, life: 0.8, maxLife: 0.8, size: 4 * this.sc, color: (c || "#6b7280") + "60", kind: "puff", rot: 0, vr: 0 });
+      createPuff(this.particles, this.bx - this.radius, this.by, (c || "#6b7280") + "60", 1, 4 * this.sc);
     } else {
-      // generic fallback for any new trail ids
-      this.particles.push({ x: this.bx - this.radius, y: this.by, vx: -35, vy: (Math.random() - 0.5) * 20, life: 0.5, maxLife: 0.5, size: 3 * this.sc, color: c || "#a3e635", kind: "spark", rot: 0, vr: 0 });
+      createBurst(this.particles, this.bx - this.radius, this.by, c || "#a3e635", 1, 35, "spark", def);
     }
   }
 
@@ -628,6 +740,19 @@ export class GameEngine {
     this.groundOffset = (this.groundOffset + this.speed * dt) % (40 * this.sc);
     this.wingPhase += dt * 18;
 
+    // Wing animation cycle (4 frames)
+    this.wingTimer += dt;
+    if (this.wingTimer >= this.WING_FRAME_DUR) {
+      this.wingTimer = 0;
+      if (this.state === "playing" && this.vy < 0) {
+        // Flapping upward: cycle through frames
+        this.wingFrame = (this.wingFrame + 1) % 4;
+      } else if (this.state === "playing") {
+        // Falling: return to neutral
+        this.wingFrame = this.wingFrame > 2 ? 2 : Math.max(0, this.wingFrame - 1);
+      }
+    }
+
     // squash & stretch recovery
     this.squashX += (1 - this.squashX) * Math.min(1, dt * 12);
     this.squashY += (1 - this.squashY) * Math.min(1, dt * 12);
@@ -636,6 +761,25 @@ export class GameEngine {
     for (const m of this.mountains) {
       m.x -= this.speed * (0.05 + m.layer * 0.06) * dt;
       if (m.x + m.w < -20) m.x = this.w + 20 + Math.random() * 80;
+    }
+
+    // Cloud layers parallax scroll
+    for (let layer = 0; layer < this.cloudLayers.length; layer++) {
+      const clouds = this.cloudLayers[layer];
+      for (const c of clouds) {
+        c.x -= this.speed * c.speed * dt;
+        if (c.x + c.w < -20) {
+          c.x = this.w + 20 + Math.random() * 60;
+          c.y = this.h * (0.05 + Math.random() * 0.35);
+        }
+      }
+    }
+
+    // Ground detail animation (sway)
+    for (const gd of this.groundDetails) {
+      if (gd.sway > 0) {
+        gd.y = (this.h - this.groundH + 2) + Math.sin(performance.now() / 800 + gd.sway) * 2;
+      }
     }
 
     // decor parallax
@@ -652,18 +796,22 @@ export class GameEngine {
       // gentle bob
       this.by = this.h * 0.45 + Math.sin(performance.now() / 400) * 10 * this.sc;
       this.rot = Math.sin(performance.now() / 400) * 0.1;
-      this.updateParticles(dt);
+      updateEffectParticles(this.particles, dt);
+      updateOverlays(this.overlays, dt);
       return;
     }
 
     if (this.state === "dead") {
+      this.deathTimer += dt;
+      this.invincibilityTimer = 0;
       // bird falls
       this.vy += this.gravity * this.sc * dt;
       this.by += this.vy * dt;
       const floorY = this.h - this.groundH - this.radius;
       if (this.by > floorY) { this.by = floorY; this.vy = 0; }
       this.rot = Math.min(this.rot + dt * 4, 1.4);
-      this.updateParticles(dt);
+      updateEffectParticles(this.particles, dt);
+      updateOverlays(this.overlays, dt);
       if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 40);
       if (this.flashAlpha > 0) this.flashAlpha = Math.max(0, this.flashAlpha - dt * 2.5);
       return;
@@ -762,7 +910,7 @@ export class GameEngine {
     for (const p of this.pipes) {
       if (p.pattern === "moving") {
         const age = (this.w + 40 - p.x) / (60 * this.sc);
-        p.gapY = p.baseGapY + Math.sin(age * 2.5 + p.oscPhase) * p.oscAmp;
+        p.gapY = p.baseGapY + Math.sin(age * p.oscSpeed + p.oscPhase) * p.oscAmp;
       }
     }
 
@@ -870,16 +1018,26 @@ export class GameEngine {
         this.addFloat(this.bx + 20 * this.sc, this.by - 30 * this.sc, `+${passGain}`, "#ffffff", 18);
         this.cb.onScore?.(this.score);
         // score milestone celebrations
-        const milestones = [10, 25, 50, 75, 100, 150, 200];
+        const milestones = [10, 25, 50, 75, 100, 150, 200, 300, 500];
         for (const m of milestones) {
           if (this.score >= m && this.lastMilestone < m) {
             this.lastMilestone = m;
-            this.shake = 8;
+            this.shake = 10;
             this.flashAlpha = 0.5;
             this.burst(this.w / 2, this.h / 2, "#ffd24a", 30, 300, "spark");
             this.burst(this.w / 2, this.h / 2, "#ff6b6b", 20, 250, "spark");
             this.burst(this.w / 2, this.h / 2, "#60a5fa", 20, 250, "spark");
+            this.burst(this.w / 2, this.h / 2, "#a855f7", 15, 200, "spark");
+            // Confetti burst at big milestones
+            if (m >= 50) {
+              createConfetti(this.particles, this.w / 2, this.h * 0.3, 30,
+                ["#ffd24a", "#ff6b6b", "#60a5fa", "#a855f7", "#34d399"], 200);
+            }
             this.addFloat(this.w / 2, this.h * 0.3, `🎉 ${m}!`, "#ffd24a", 28);
+            // Vignette flash at every milestone
+            this.overlays.push({
+              kind: "flash", alpha: 0.2, decay: 1.5, color: "#ffffff", intensity: 1,
+            });
             audio.milestone();
             navigator.vibrate?.([20, 40, 20]);
           }
@@ -893,11 +1051,23 @@ export class GameEngine {
         const nw = worldForScore(this.score);
         if (nw.id !== this.world.id) {
           this.world = nw;
-          this.flashAlpha = 0.6;
+          this.flashAlpha = 0.7;
+          this.shake = 10;
           this.cb.onWorld?.(nw);
-          this.addFloat(this.w / 2, this.h * 0.35, nw.name + "!", nw.accent, 22);
+          this.burst(this.w / 2, this.h * 0.35, nw.accent, 40, 350, "spark");
+          createConfetti(this.particles, this.w / 2, this.h * 0.35, 40,
+            [nw.accent, "#ffffff", "#ffd24a", nw.sky[0]], 250);
+          // World entry overlay
+          this.overlays.push({
+            kind: "worldEntry", alpha: 0.3, decay: 0.8, color: nw.accent, intensity: 20,
+          });
+          this.overlays.push({
+            kind: "flash", alpha: 0.3, decay: 1.5, color: nw.sky[0], intensity: 1,
+          });
+          this.addFloat(this.w / 2, this.h * 0.35, "✦ " + nw.name + " ✦", nw.accent, 26);
           audio.setWorld(nw.id);
           audio.worldChange();
+          this.initGroundDetails();
         }
       }
       // near miss check (once, as pipe edge passes bird)
@@ -987,7 +1157,24 @@ export class GameEngine {
       }
     }
 
-    this.updateParticles(dt);
+    // Update comb fire level
+    const prevFireLevel = this.comboFireLevel;
+    if (this.combo >= 20) this.comboFireLevel = 4;
+    else if (this.combo >= 12) this.comboFireLevel = 3;
+    else if (this.combo >= 6) this.comboFireLevel = 2;
+    else if (this.combo >= 3) this.comboFireLevel = 1;
+    else this.comboFireLevel = 0;
+    if (this.comboFireLevel !== prevFireLevel) {
+      this.cb.onComboFireLevel?.(this.comboFireLevel);
+    }
+    if (this.comboFireLevel > 0) {
+      this.comboFireTimer += dt;
+    } else {
+      this.comboFireTimer = 0;
+    }
+
+    updateEffectParticles(this.particles, dt);
+    updateOverlays(this.overlays, dt);
     if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 40);
     if (this.flashAlpha > 0) this.flashAlpha = Math.max(0, this.flashAlpha - dt * 2.5);
   }
@@ -1004,27 +1191,27 @@ export class GameEngine {
     this.vy = -200 * this.sc;
     this.squashX = 1.4;
     this.squashY = 0.6;
+    this.deathTimer = 0;
     audio.hit();
-    this.shake = 14;
-    this.flashAlpha = 0.8;
+    audio.deathExplosion();
+    this.shake = 18;
+    this.flashAlpha = 1;
     navigator.vibrate?.([30, 30, 50]);
     // dramatic death burst — many colored fragments
-    this.burst(this.bx, this.by, "#ff6b6b", 25, 320, "spark");
-    this.burst(this.bx, this.by, "#ffd24a", 18, 260, "spark");
-    this.burst(this.bx, this.by, this.skin.wingColor, 15, 200, "leaf");
-    this.burst(this.bx, this.by, "#ffffff", 10, 180, "puff");
-    // ring burst effect
-    for (let i = 0; i < 12; i++) {
-      const angle = (i / 12) * Math.PI * 2;
-      const sp = 200;
-      this.particles.push({
-        x: this.bx, y: this.by,
-        vx: Math.cos(angle) * sp, vy: Math.sin(angle) * sp,
-        life: 0.8, maxLife: 0.8,
-        size: 3 * this.sc, color: this.skin.bodyColor,
-        kind: "spark", rot: 0, vr: 0,
-      });
-    }
+    createBurst(this.particles, this.bx, this.by, "#ff6b6b", 30, 350, "spark");
+    createBurst(this.particles, this.bx, this.by, "#ffd24a", 22, 280, "spark");
+    createBurst(this.particles, this.bx, this.by, this.skin.wingColor, 18, 220, "leaf");
+    createBurst(this.particles, this.bx, this.by, "#ffffff", 14, 200, "puff");
+    createRing(this.particles, this.bx, this.by, this.skin.bodyColor, 16, 220, "spark");
+    createConfetti(this.particles, this.bx, this.by, 25,
+      [this.skin.bodyColor, this.skin.wingColor, "#ff6b6b", "#ffd24a", "#a78bfa"], 200);
+    // Red overlay flash
+    this.overlays.push({
+      kind: "flash", alpha: 0.5, decay: 1.5, color: "#ff4444", intensity: 1,
+    });
+    this.overlays.push({
+      kind: "vignette", alpha: 0.6, decay: 1, color: "", intensity: 0.8,
+    });
 
     const result: RunResult = {
       runId: this.runId,
@@ -1042,29 +1229,6 @@ export class GameEngine {
     this.cb.onDeath?.(result);
   }
 
-  private updateParticles(dt: number) {
-    for (const p of this.particles) {
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      if (p.kind === "leaf") { p.vy += 60 * dt; p.rot += p.vr * dt; }
-      else if (p.kind === "spark") { p.vy += 220 * dt; }
-      else { p.vy -= 15 * dt; }
-      p.life -= dt;
-    }
-    // In-place removal to avoid array allocation churn at 60fps
-    let write = 0;
-    for (let i = 0; i < this.particles.length; i++) {
-      if (this.particles[i].life > 0) this.particles[write++] = this.particles[i];
-    }
-    this.particles.length = write;
-
-    for (const f of this.floats) { f.y += f.vy * dt; f.life -= dt * 1.1; }
-    write = 0;
-    for (let i = 0; i < this.floats.length; i++) {
-      if (this.floats[i].life > 0) this.floats[write++] = this.floats[i];
-    }
-    this.floats.length = write;
-  }
 
   // ============ RENDER ============
   render(ctx: CanvasRenderingContext2D) {
@@ -1075,6 +1239,7 @@ export class GameEngine {
     }
 
     this.drawBackground(ctx);
+    this.drawClouds(ctx);
     this.drawMountains(ctx);
     this.drawStars(ctx);
     this.drawDecor(ctx);
@@ -1101,6 +1266,7 @@ export class GameEngine {
     this.drawPickups(ctx);
 
     this.drawGround(ctx);
+    this.drawGroundDetails(ctx);
 
     // particles behind bird
     this.drawParticles(ctx);
@@ -1120,6 +1286,11 @@ export class GameEngine {
       ctx.fillStyle = f.color;
       ctx.fillText(f.text, f.x, f.y);
       ctx.restore();
+    }
+
+    // Combo fire effect — flame particles around bird at high combo
+    if (this.comboFireLevel >= 2 && !this.highContrast && !this.reducedMotion && this.state === "playing") {
+      this.drawComboFire(ctx);
     }
 
     // FRENZY vignette — warm pulsing edge glow while active
@@ -1147,12 +1318,49 @@ export class GameEngine {
       ctx.restore();
     }
 
+    // Shield indicator when invulnerable after revive
+    if (this.shieldInvuln > 0 && this.state === "playing" && this.graceTimer <= 0) {
+      ctx.save();
+      const alpha = 0.25 + Math.sin(performance.now() / 60) * 0.15;
+      ctx.strokeStyle = `rgba(96,165,250,${alpha})`;
+      ctx.lineWidth = 2.5 * this.sc;
+      ctx.shadowColor = "#60a5fa";
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(this.bx, this.by, this.radius * 1.3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Invincibility flash after shield break
+    if (this.shieldInvuln > 0.01 && this.shieldInvuln < 0.5 && !this.highContrast) {
+      const flashOn = Math.sin(performance.now() / 50) > 0;
+      if (flashOn) {
+        ctx.fillStyle = "rgba(96,165,250,0.12)";
+        ctx.fillRect(-20, -20, w + 40, h + 40);
+      }
+    }
+
+    // Screen overlays (flash, vignette, scanline, world entry)
+    drawOverlays(ctx, this.overlays, w, h);
+
     // world flash
     if (this.flashAlpha > 0 && !this.reducedMotion) {
       ctx.fillStyle = `rgba(255,255,255,${this.flashAlpha * 0.5})`;
       ctx.fillRect(-20, -20, w + 40, h + 40);
     }
     ctx.restore();
+
+    // Scanline overlay (subtle CRT effect)
+    if (!this.highContrast && !this.reducedMotion) {
+      ctx.save();
+      ctx.globalAlpha = 0.03;
+      ctx.fillStyle = "#000000";
+      for (let y = 0; y < h; y += 3) {
+        ctx.fillRect(0, y, w, 1);
+      }
+      ctx.restore();
+    }
 
     // big score (only when playing/dead)
     if (this.state !== "ready") {
@@ -1165,14 +1373,98 @@ export class GameEngine {
       ctx.fillStyle = "#ffffff";
       ctx.fillText(String(this.score), w / 2, 64 * this.sc);
       if (this.multiplier > 1) {
+        // Combo label with fire color at high combos
+        const comboColor = this.combo >= 10 ? "#ff6b53" : this.combo >= 5 ? "#fbbf24" : this.world.accent;
         ctx.font = `800 ${20 * this.sc}px system-ui, sans-serif`;
-        ctx.fillStyle = this.world.accent;
+        ctx.fillStyle = comboColor;
+        const pulse = this.combo >= 10 ? 1 + Math.sin(performance.now() / 150) * 0.1 : 1;
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, pulse);
         ctx.strokeText(`x${this.multiplier} COMBO`, w / 2, 92 * this.sc);
         ctx.fillText(`x${this.multiplier} COMBO`, w / 2, 92 * this.sc);
+        ctx.restore();
       }
       ctx.restore();
       this.drawRushTimer(ctx);
     }
+  }
+
+  private drawClouds(ctx: CanvasRenderingContext2D) {
+    if (this.highContrast) return;
+    ctx.save();
+    for (let layer = 0; layer < this.cloudLayers.length; layer++) {
+      const clouds = this.cloudLayers[layer];
+      const alphaBase = 0.04 + layer * 0.04;
+      ctx.fillStyle = `rgba(255,255,255,${alphaBase})`;
+      for (const c of clouds) {
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.y, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(c.x + c.w * 0.3, c.y - c.h * 0.2, c.w * 0.35, c.h * 0.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(c.x - c.w * 0.25, c.y + c.h * 0.1, c.w * 0.3, c.h * 0.45, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  private drawGroundDetails(ctx: CanvasRenderingContext2D) {
+    if (this.highContrast) return;
+    const gy = this.h - this.groundH;
+    ctx.save();
+    for (const gd of this.groundDetails) {
+      ctx.fillStyle = gd.color;
+      const sway = gd.sway > 0 ? Math.sin(performance.now() / 800 + gd.sway) * 3 : 0;
+      if (gd.w < 5) {
+        // small dots (cosmos stars, rocks)
+        ctx.beginPath();
+        ctx.arc(gd.x + sway, gd.y, gd.w / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (gd.h > gd.w) {
+        // grass tufts
+        ctx.beginPath();
+        ctx.moveTo(gd.x + sway, gy);
+        ctx.lineTo(gd.x + gd.w / 2 + sway, gy - gd.h);
+        ctx.lineTo(gd.x + gd.w + sway, gy);
+        ctx.fill();
+      } else {
+        // smoke wisps
+        ctx.beginPath();
+        ctx.arc(gd.x + sway, gd.y, gd.w / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  private drawComboFire(ctx: CanvasRenderingContext2D) {
+    const now = performance.now();
+    const count = this.comboFireLevel >= 3 ? 8 : 5;
+    const colors = this.comboFireLevel >= 4
+      ? ["#ef4444", "#f97316", "#fbbf24", "#ffffff", "#a855f7"]
+      : this.comboFireLevel >= 3
+        ? ["#f97316", "#fbbf24", "#ef4444", "#ffffff"]
+        : ["#fbbf24", "#f97316", "#ffffff"];
+    ctx.save();
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + now / 500;
+      const dist = this.radius * (1.1 + 0.15 * Math.sin(now / 300 + i));
+      const fx = this.bx + Math.cos(angle) * dist;
+      const fy = this.by + Math.sin(angle) * dist * 0.6;
+      const fs = (2 + Math.sin(now / 200 + i * 2) * 1.5) * this.sc;
+      const alpha = 0.4 + 0.3 * Math.sin(now / 400 + i * 1.5);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.shadowColor = colors[i % colors.length];
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(fx, fy, fs, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   private drawRedEyeGlaze(ctx: CanvasRenderingContext2D) {
@@ -1816,33 +2108,15 @@ export class GameEngine {
   }
 
   private drawParticles(ctx: CanvasRenderingContext2D) {
-    for (const p of this.particles) {
-      const a = Math.max(0, p.life / p.maxLife);
-      ctx.save();
-      ctx.globalAlpha = a;
-      if (p.kind === "leaf") {
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, p.size, p.size * 0.5, 0, 0, 7);
-        ctx.fill();
-      } else if (p.kind === "puff") {
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * (1.5 - a * 0.5), 0, 7);
-        ctx.fill();
-      } else {
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, 7);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
+    drawParticles(ctx, this.particles);
   }
 
   private drawBird(ctx: CanvasRenderingContext2D) {
+    // Invincibility flash — skip draw every other frame
+    if (this.invincibilityTimer > 0 && this.invincibilityFlash && Math.sin(performance.now() / 50) < 0) {
+      return;
+    }
+
     const r = this.radius;
     ctx.save();
     ctx.translate(this.bx, this.by);
@@ -1892,12 +2166,37 @@ export class GameEngine {
       ctx.restore();
     }
 
-    // wing (flaps)
-    const wingY = Math.sin(this.wingPhase) * r * 0.3;
-    ctx.fillStyle = this.skin.wingColor;
-    ctx.beginPath();
-    ctx.ellipse(-r * 0.2, r * 0.1 + wingY, r * 0.5, r * 0.32, -0.3, 0, 7);
-    ctx.fill();
+    // Wing animation based on frame keyframe selection
+    //   frame 0: neutral (idle)
+    //   frame 1: slight lift
+    //   frame 2: mid-upstroke
+    //   frame 3: full upstroke (peak flap)
+    if (this.wingFrame >= 3) {
+      // Full upstroke — wing pulled up tight
+      ctx.fillStyle = this.skin.wingColor;
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.15, -r * 0.55, r * 0.45, r * 0.3, -0.5, 0, 7);
+      ctx.fill();
+    } else if (this.wingFrame >= 2) {
+      // Mid upstroke
+      ctx.fillStyle = this.skin.wingColor;
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.18, -r * 0.3, r * 0.48, r * 0.3, -0.4, 0, 7);
+      ctx.fill();
+    } else if (this.wingFrame >= 1) {
+      // Slight lift
+      ctx.fillStyle = this.skin.wingColor;
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.2, -r * 0.1, r * 0.5, r * 0.3, -0.3, 0, 7);
+      ctx.fill();
+    } else {
+      // Neutral / idle frame 0 — wing down
+      const wingY = Math.sin(this.wingPhase) * r * 0.3;
+      ctx.fillStyle = this.skin.wingColor;
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.2, r * 0.1 + wingY, r * 0.5, r * 0.32, -0.3, 0, 7);
+      ctx.fill();
+    }
 
     // eye with periodic blink
     const blinkCycle = (performance.now() / 100) % 40;

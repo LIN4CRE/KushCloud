@@ -17,12 +17,14 @@ export interface GameHudUpdate {
   nearMiss?: number;
   perfectPasses?: number;
   combo?: number;
+  comboFireLevel?: number;
   worldName?: string;
   frenzyActive?: boolean;
   frenzyRemainingMs?: number;
   lastPowerUp?: string;
   clutch?: number;
   redEye?: number;
+  timeRemaining?: number;
 }
 
 interface Props {
@@ -126,6 +128,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, Props>(function GameCanva
       }),
       onClutch: (clutch: number) => onHudRef.current?.({ clutch }),
       onRedEye: (redEye: number) => onHudRef.current?.({ redEye }),
+      onComboFireLevel: (comboFireLevel: number) => onHudRef.current?.({ comboFireLevel }),
     };
 
     const eng = new GameEngine(skin, trail, worldForScore(0), cb);

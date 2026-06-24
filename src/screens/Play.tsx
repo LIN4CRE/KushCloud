@@ -6,6 +6,7 @@ import { GameCanvas, type GameCanvasHandle, type GameHudUpdate } from "../compon
 import { Button, Panel, Stat, CoinPill } from "../ui";
 import { SKINS, TRAILS, POWERUPS } from "../game/data";
 import { audio } from "../game/audio";
+import { checkNewAchievements, loadUnlocked, saveUnlocked } from "../game/achievements";
 
 interface Props {
   save: SaveData;
@@ -24,12 +25,14 @@ const initialHud = {
   nearMiss: 0,
   perfectPasses: 0,
   combo: 1,
+  comboFireLevel: 0,
   worldName: "Meadow",
   frenzyActive: false,
   frenzyRemainingMs: 0,
   lastPowerUp: "",
   clutch: 0,
   redEye: 0,
+  timeRemaining: 0,
 };
 
 export default function Play({ save, onExit, processRun, reviveRun }: Props) {
@@ -40,6 +43,8 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
   const [lastSummary, setLastSummary] = useState<RunSummary | null>(null);
   const [revivesUsed, setRevivesUsed] = useState(0);
   const [hud, setHud] = useState(initialHud);
+  const [dismissedTutorial, setDismissedTutorial] = useState(save.stats.totalGames >= 3);
+  const [achievementPopup, setAchievementPopup] = useState<{ name: string; desc: string } | null>(null);
 
   const reviveCost = 200 + revivesUsed * 200;
   const skin = SKINS.find((s) => s.id === save.equippedSkin) || SKINS[0];
@@ -73,7 +78,17 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
     pendingRunRef.current = run;
     setLastSummary(null);
     setState("gameover");
-  }, []);
+    // Check for new achievements after each run
+    const unlocked = loadUnlocked();
+    const newAchievements = checkNewAchievements(unlocked, save.stats, run);
+    if (newAchievements.length > 0) {
+      const allIds = [...unlocked, ...newAchievements.map((a) => a.id)];
+      saveUnlocked(allIds);
+      const last = newAchievements[newAchievements.length - 1];
+      setAchievementPopup({ name: last.name, desc: last.description });
+      audio.achievement();
+    }
+  }, [save.stats]);
 
   const handleRevive = () => {
     if (revivesUsed >= MAX_REVIVES) return;
@@ -116,14 +131,14 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
   }, [state]);
 
   useEffect(() => {
-    if (state === "ready") {
+    if (state === "ready" && dismissedTutorial) {
       const timer = setTimeout(() => {
         canvasRef.current?.start();
         setState("playing");
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [state]);
+  }, [state, dismissedTutorial]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -192,7 +207,17 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
             <div className="rounded-2xl border border-white/10 bg-slate-950/45 px-3 py-2 text-xs font-bold text-white shadow-lg backdrop-blur-sm">
               <div className="flex items-center gap-3">
                 <span>🪙 {hud.runCoins}</span>
-                <span className={hud.combo >= 3 ? "text-amber-300" : "text-emerald-300"}>×{hud.combo}</span>
+                <span className={
+                  hud.combo >= 10 ? "text-red-400" :
+                  hud.combo >= 5 ? "text-amber-300" :
+                  hud.combo >= 3 ? "text-emerald-300" :
+                  "text-slate-200"
+                }>
+                  ×{hud.combo}
+                  {hud.comboFireLevel >= 4 && " 🔥"}
+                  {hud.comboFireLevel === 3 && " 🔸"}
+                  {hud.comboFireLevel === 2 && " 🔹"}
+                </span>
                 <span className="text-slate-300">{hud.worldName}</span>
               </div>
             </div>
@@ -213,6 +238,41 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
         {hud.lastPowerUp && state === "playing" && (
           <div className="pointer-events-none absolute inset-x-0 bottom-6 mx-auto w-fit rounded-full border border-emerald-300/30 bg-emerald-500/15 px-4 py-2 text-xs font-bold text-emerald-100 backdrop-blur-sm">
             {hud.lastPowerUp}
+          </div>
+        )}
+
+        {state === "ready" && !dismissedTutorial && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 px-6 backdrop-blur-sm">
+            <Panel className="w-full max-w-xs text-center">
+              <h2 className="mb-4 text-2xl font-bold text-white">🌿 KushCloud</h2>
+              <p className="mb-3 text-sm leading-relaxed text-slate-200">
+                Tap or press <kbd className="rounded bg-white/10 px-2 py-0.5 font-mono text-xs">Space</kbd>{' '}
+                to flap your bird through the bongs!
+              </p>
+              <div className="mb-4 space-y-2 text-start text-xs text-slate-300">
+                <div>🪙 <strong>Coins</strong> — collect for score</div>
+                <div>🔥 <strong>Combo</strong> — chain passes for multiplier</div>
+                <div>💨 <strong>Smoke</strong> — fly through for Red Eye bonus</div>
+                <div>✨ <strong>Power-Ups</strong> — grab for temporary help</div>
+              </div>
+              <Button onClick={() => {
+                setDismissedTutorial(true);
+                canvasRef.current?.start();
+                setState("playing");
+              }} className="w-full">
+                Let&apos;s Go!
+              </Button>
+            </Panel>
+          </div>
+        )}
+
+        {achievementPopup && state === "gameover" && (
+          <div className="pointer-events-none absolute left-1/2 top-20 z-50 -translate-x-1/2 animate-bounce">
+            <div className="rounded-2xl border border-yellow-400/40 bg-gradient-to-r from-yellow-600/40 to-amber-600/40 px-5 py-3 text-center shadow-xl shadow-yellow-900/30 backdrop-blur-sm">
+              <div className="text-xs uppercase tracking-wider text-yellow-300">Achievement Unlocked</div>
+              <div className="text-sm font-bold text-white">{achievementPopup.name}</div>
+              <div className="text-[11px] text-yellow-200/70">{achievementPopup.desc}</div>
+            </div>
           </div>
         )}
 

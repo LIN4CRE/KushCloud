@@ -153,6 +153,100 @@ class AudioEngine {
     setTimeout(() => this.tone(150, 0.2, "sawtooth", 0.15, this.sfxGain!), 120);
   }
 
+  // Combo escalation — gets higher/punchier as combo grows.
+  comboStep(combo: number) {
+    if (!this.sfxGain) return;
+    const base = 400 + combo * 30;
+    const dur = Math.max(0.05, 0.12 - combo * 0.003);
+    this.tone(Math.min(base, 1200), dur, "triangle", Math.min(0.3, 0.12 + combo * 0.01), this.sfxGain);
+  }
+
+  // Perfect pass reward chime.
+  perfectPass() {
+    if (!this.sfxGain) return;
+    this.tone(1200, 0.06, "sine", 0.15, this.sfxGain, 1800);
+    setTimeout(() => this.tone(1600, 0.08, "sine", 0.12, this.sfxGain!), 50);
+  }
+
+  // Death explosion — gritty descending crunch.
+  deathExplosion() {
+    if (!this.sfxGain) return;
+    this.tone(300, 0.15, "sawtooth", 0.3, this.sfxGain, 80);
+    setTimeout(() => this.tone(150, 0.25, "sawtooth", 0.25, this.sfxGain!), 80);
+    setTimeout(() => this.tone(80, 0.3, "square", 0.2, this.sfxGain!), 180);
+  }
+
+  // Achievement unlock — triumphant chord.
+  achievement() {
+    if (!this.sfxGain) return;
+    [392, 494, 587, 784].forEach((f, i) => setTimeout(() => this.tone(f, 0.35, "triangle", 0.28, this.sfxGain!), i * 60));
+  }
+
+  // Menu hover / UI tick.
+  menuHover() {
+    if (!this.sfxGain) return;
+    this.tone(600, 0.04, "sine", 0.08, this.sfxGain);
+  }
+
+  // Power-up warning — rapid double beep.
+  powerUpWarning() {
+    if (!this.sfxGain) return;
+    this.tone(880, 0.1, "square", 0.18, this.sfxGain);
+    setTimeout(() => this.tone(1100, 0.12, "square", 0.18, this.sfxGain!), 100);
+  }
+
+  // World transition — swoosh then landing.
+  worldTransition() {
+    if (!this.sfxGain) return;
+    this.tone(600, 0.2, "sine", 0.15, this.sfxGain, 200);
+    setTimeout(() => { if (this.sfxGain) this.tone(400, 0.15, "sine", 0.12, this.sfxGain, 800); }, 150);
+    setTimeout(() => { if (this.sfxGain) this.tone(1047, 0.25, "triangle", 0.3, this.sfxGain); }, 350);
+  }
+
+  // Star/coin sparkle collect.
+  sparkle() {
+    if (!this.sfxGain) return;
+    this.tone(1800, 0.05, "sine", 0.1, this.sfxGain, 2400);
+  }
+
+  // Shield recharged after grace period.
+  shieldRecharge() {
+    if (!this.sfxGain) return;
+    this.tone(600, 0.06, "sine", 0.12, this.sfxGain, 900);
+    setTimeout(() => this.tone(900, 0.06, "sine", 0.12, this.sfxGain!), 40);
+    setTimeout(() => this.tone(1200, 0.08, "triangle", 0.15, this.sfxGain!), 80);
+  }
+
+  // Countdown beep for time warning.
+  countdown() {
+    if (!this.sfxGain) return;
+    this.tone(440, 0.08, "square", 0.12, this.sfxGain);
+  }
+
+  // Low health warning beep.
+  healthWarning() {
+    if (!this.sfxGain) return;
+    this.tone(220, 0.1, "square", 0.1, this.sfxGain, 180);
+  }
+
+  // Boost activation.
+  boost() {
+    if (!this.sfxGain) return;
+    [300, 400, 500, 600].forEach((f, i) => setTimeout(() => this.tone(f, 0.06, "triangle", 0.15, this.sfxGain!), i * 30));
+  }
+
+  // Invincibility sparkle loop tick.
+  invincibleTick() {
+    if (!this.sfxGain) return;
+    this.tone(2000, 0.03, "sine", 0.06, this.sfxGain);
+  }
+
+  // New item discover (in crate/shop).
+  itemDiscover() {
+    if (!this.sfxGain) return;
+    [800, 1000, 1200, 1500].forEach((f, i) => setTimeout(() => this.tone(f, 0.12, "sine", 0.2, this.sfxGain!), i * 50));
+  }
+
   private beds: Record<string, { bass: number[]; chord: number[][]; mel: number[] }> = {
     dispensary: {
       bass: [110, 110, 146.83, 130.81],
