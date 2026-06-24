@@ -104,7 +104,7 @@ export default function Menu({ save, onPlay, onNav, onClaimDaily }: Props) {
       </div>
 
       <div className="mt-5 text-center">
-        <p className="text-xs text-slate-500">v{import.meta.env.VITE_APP_VERSION || "4.2.0"}</p>
+        <p className="text-xs text-slate-500">v{import.meta.env.VITE_APP_VERSION || "4.3.0"}</p>
       </div>
     </div>
   );

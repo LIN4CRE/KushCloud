@@ -89,15 +89,21 @@ export function worldForScore(score: number): World {
 export interface PowerUp {
   id: string; name: string; cost: number; duration: number;
   description: string; gradient: string; icon: string;
-  effect: "coinMultiplier" | "slowMotion" | "magnet" | "shield" | "doubleJump";
+  effect: "coinMultiplier" | "slowMotion" | "magnet" | "shield" | "doubleJump" | "gapWiden";
 }
 
 export const POWERUPS: PowerUp[] = [
-  { id: "slow",      name: "Slow Motion", cost: 300,  duration: 8,    description: "Slows the world for tighter dodges", gradient: "from-cyan-500 to-blue-600",    icon: "⏱️", effect: "slowMotion" },
-  { id: "invincible",name: "Shield",      cost: 500,  duration: 4,    description: "Blocks one collision",              gradient: "from-amber-400 to-orange-600", icon: "🛡️", effect: "shield" },
-  { id: "magnet",    name: "Magnet",      cost: 400,  duration: 8,    description: "Pulls nearby coins into you",        gradient: "from-pink-400 to-rose-600",    icon: "🧲", effect: "magnet" },
-  { id: "double",    name: "2x Score",    cost: 600,  duration: 8,    description: "Doubles score and coin pickups",     gradient: "from-violet-500 to-purple-700", icon: "✖️",  effect: "coinMultiplier" },
-  { id: "ghost",     name: "Ghost Hop",   cost: 800,  duration: 6,    description: "Grants a reusable mid-air double jump", gradient: "from-slate-400 to-slate-600",  icon: "👻", effect: "doubleJump" },
+  { id: "slow",      name: "Slow Motion",     cost: 300,  duration: 8,  description: "Slows obstacles while keeping the bird responsive", gradient: "from-cyan-500 to-blue-600",     icon: "⏱️", effect: "slowMotion" },
+  { id: "focus",     name: "Focus Flow",      cost: 450,  duration: 9,  description: "Stronger slow-mo with calmer gravity and clock relief", gradient: "from-sky-400 to-teal-600",      icon: "🎯", effect: "slowMotion" },
+  { id: "invincible",name: "Shield",          cost: 500,  duration: 0,  description: "Blocks one collision",                         gradient: "from-amber-400 to-orange-600",  icon: "🛡️", effect: "shield" },
+  { id: "guardian",  name: "Guardian Bubble", cost: 900,  duration: 0,  description: "Blocks two collisions",                         gradient: "from-blue-400 to-indigo-600",   icon: "🔵", effect: "shield" },
+  { id: "magnet",    name: "Magnet",          cost: 400,  duration: 8,  description: "Pulls nearby coins into you",                   gradient: "from-pink-400 to-rose-600",     icon: "🧲", effect: "magnet" },
+  { id: "supermag",  name: "Super Magnet",    cost: 900,  duration: 9,  description: "Huge coin pull radius",                         gradient: "from-fuchsia-400 to-purple-700", icon: "🪐", effect: "magnet" },
+  { id: "double",    name: "2x Score",        cost: 600,  duration: 8,  description: "Doubles score and coin pickups",                gradient: "from-violet-500 to-purple-700", icon: "✖️",  effect: "coinMultiplier" },
+  { id: "coinrush",  name: "Coin Rush",       cost: 650,  duration: 9,  description: "Triple coin pickups with a small score boost",   gradient: "from-yellow-400 to-amber-600",  icon: "💰", effect: "coinMultiplier" },
+  { id: "ghost",     name: "Ghost Hop",       cost: 800,  duration: 8,  description: "Three boosted rescue hops with brief phasing",   gradient: "from-slate-400 to-slate-600",   icon: "👻", effect: "doubleJump" },
+  { id: "dash",      name: "Dash Hop",        cost: 750,  duration: 7,  description: "Four fast rescue hops for late-run saves",       gradient: "from-lime-400 to-emerald-600",  icon: "💨", effect: "doubleJump" },
+  { id: "wide",      name: "Open Sky",        cost: 700,  duration: 10, description: "Temporarily widens bong gaps",                  gradient: "from-emerald-400 to-cyan-600",  icon: "🌀", effect: "gapWiden" },
 ];
 
 export interface PlayerStats {

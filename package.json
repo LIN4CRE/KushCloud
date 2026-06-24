@@ -1,6 +1,6 @@
 {
   "name": "kushcloud",
-  "version": "4.2.0",
+  "version": "4.3.0",
   "private": false,
   "description": "Flappy bird style arcade game with canvas physics, unlockable skins, and power-ups.",
   "license": "MIT",

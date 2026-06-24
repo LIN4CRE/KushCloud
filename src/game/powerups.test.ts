@@ -26,9 +26,14 @@ describe("PowerUpManager", () => {
       coinMult: 1,
       scoreMult: 1,
       timeScale: 1,
+      clockScale: 1,
+      gravityMult: 1,
+      flapBoost: 1,
       magnetRadius: 0,
+      gapBonus: 0,
       shieldHits: 0,
       doubleJumpAvailable: false,
+      doubleJumpCharges: 0,
     });
   });
 
@@ -51,12 +56,21 @@ describe("PowerUpManager", () => {
 
   it("sets magnet radius when magnet power-up is active", () => {
     mgr.activate("magnet");
-    expect(mgr.getModifiers().magnetRadius).toBe(110);
+    expect(mgr.getModifiers().magnetRadius).toBe(132);
   });
 
-  it("sets slow motion time scale when slow power-up is active", () => {
+  it("sets controlled slow motion modifiers when slow power-up is active", () => {
     mgr.activate("slow");
-    expect(mgr.getModifiers().timeScale).toBeLessThan(1);
+    const mods = mgr.getModifiers();
+    expect(mods.timeScale).toBeLessThan(1);
+    expect(mods.clockScale).toBeLessThan(1);
+    expect(mods.gravityMult).toBeLessThan(1);
+    expect(mods.flapBoost).toBeGreaterThan(1);
+  });
+
+  it("supports gap widening power-ups", () => {
+    mgr.activate("wide");
+    expect(mgr.getModifiers().gapBonus).toBeGreaterThan(0);
   });
 
   it("expires timed power-ups after their duration", () => {
@@ -91,23 +105,34 @@ describe("PowerUpManager", () => {
       mgr.activate("invincible");
       expect(mgr.getActive()).toHaveLength(0);
     });
+
+    it("guardian grants two shield hits", () => {
+      mgr.activate("guardian");
+      expect(mgr.getShieldHits()).toBe(2);
+    });
   });
 
   describe("double jump", () => {
-    it("becomes available when activated and unused", () => {
+    it("becomes available with multiple rescue charges", () => {
       mgr.activate("ghost");
       expect(mgr.isDoubleJumpAvailable()).toBe(true);
       expect(mgr.getModifiers().doubleJumpAvailable).toBe(true);
+      expect(mgr.getModifiers().doubleJumpCharges).toBe(3);
     });
 
-    it("is consumed by useDoubleJump and resettable", () => {
+    it("consumes finite rescue hop charges", () => {
       mgr.activate("ghost");
+      expect(mgr.useDoubleJump()).toBe(true);
+      expect(mgr.getDoubleJumpCharges()).toBe(2);
+      expect(mgr.useDoubleJump()).toBe(true);
       expect(mgr.useDoubleJump()).toBe(true);
       expect(mgr.isDoubleJumpAvailable()).toBe(false);
       expect(mgr.useDoubleJump()).toBe(false);
+    });
 
-      mgr.resetDoubleJump();
-      expect(mgr.isDoubleJumpAvailable()).toBe(true);
+    it("dash grants four rescue hop charges", () => {
+      mgr.activate("dash");
+      expect(mgr.getModifiers().doubleJumpCharges).toBe(4);
     });
 
     it("cannot be used when no double jump power-up is active", () => {

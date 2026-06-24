@@ -2,13 +2,20 @@ import { Skin, Trail, World, worldForScore, POWERUPS } from "./data";
 import { audio } from "./audio";
 import { PowerUpManager } from "./powerups";
 
-// Power-ups that can spawn as mid-run pickups (the cosmetic/utility ones —
-// no shields here so the dramatic shield save stays a deliberate shop purchase).
+const SPAWN_RATE_MULTIPLIER = 1.2;
+
+// Power-ups that can spawn as mid-run pickups. Shields stay shop/loadout-only,
+// but utility pickups are now 20% more frequent and include the new set.
 const PICKUP_POOL: { id: string; color: string }[] = [
-  { id: "magnet", color: "#34d399" },
-  { id: "double", color: "#fbbf24" },
-  { id: "slow",   color: "#c084fc" },
-  { id: "ghost",  color: "#f472b6" },
+  { id: "magnet",   color: "#34d399" },
+  { id: "supermag", color: "#d946ef" },
+  { id: "double",   color: "#fbbf24" },
+  { id: "coinrush", color: "#f59e0b" },
+  { id: "slow",     color: "#60a5fa" },
+  { id: "focus",    color: "#22d3ee" },
+  { id: "ghost",    color: "#f472b6" },
+  { id: "dash",     color: "#a3e635" },
+  { id: "wide",     color: "#2dd4bf" },
 ];
 
 export interface RunResult {
@@ -144,7 +151,7 @@ export class GameEngine {
 
   // --- mid-run power-up pickups ---
   private pickups: PowerUpPickup[] = [];
-  private nextPickupScore = 8; // first pickup window
+  private nextPickupScore = 6; // first pickup window (20% earlier than before)
 
   // --- streak gate / FRENZY (double points after a perfect streak) ---
   private   perfectStreak = 0;
@@ -308,7 +315,7 @@ export class GameEngine {
     this.speedLines = [];
     this.bestScoreBefore = 0;
     this.pickups = [];
-    this.nextPickupScore = 8;
+    this.nextPickupScore = 6;
     this.perfectStreak = 0;
     this.frenzyTimer = 0;
     this.clutch = 0;
@@ -367,26 +374,34 @@ export class GameEngine {
       audio.startMusic();
       this.cb.onStateChange?.(this.state);
     }
-    if (this.vy > 0 && this.powerUpManager.isDoubleJumpAvailable()) {
-      this.powerUpManager.useDoubleJump();
-      this.vy = this.flapV * this.sc;
+
+    const mods = this.powerUpManager.getModifiers();
+    const baseLift = this.flapV * this.sc * mods.flapBoost;
+    const rescueHop = this.vy > 120 * this.sc && this.powerUpManager.isDoubleJumpAvailable();
+
+    if (rescueHop && this.powerUpManager.useDoubleJump()) {
+      this.vy = baseLift * 1.14;
+      this.shieldInvuln = Math.max(this.shieldInvuln, 0.26);
+      this.flashAlpha = Math.max(this.flashAlpha, 0.18);
+      this.burst(this.bx, this.by, "#c084fc", 12, 170, "spark");
+      this.addFloat(this.bx + 8 * this.sc, this.by - 28 * this.sc, "👻 HOP SAVE", "#f0abfc", 15);
       this.flaps++;
       this.wingPhase = 0;
-      this.squashX = 0.75;
-      this.squashY = 1.3;
+      this.squashX = 0.72;
+      this.squashY = 1.35;
       audio.flap();
       this.emitFlapPuff();
-      navigator.vibrate?.(8);
+      navigator.vibrate?.([8, 18, 8]);
       return;
     }
-    this.vy = this.flapV * this.sc;
+
+    this.vy = baseLift;
     this.flaps++;
     this.wingPhase = 0;
     // squash & stretch: stretch vertically on flap
-    this.squashX = 0.8;
-    this.squashY = 1.25;
+    this.squashX = mods.flapBoost > 1 ? 0.76 : 0.8;
+    this.squashY = mods.flapBoost > 1 ? 1.3 : 1.25;
     audio.flap();
-    this.powerUpManager.resetDoubleJump();
     this.emitFlapPuff();
     navigator.vibrate?.(8);
   }
@@ -407,11 +422,15 @@ export class GameEngine {
   }
 
   private spawnPipe() {
-    // gradual gap tightening from 175 to 130 over score, like speed version
-    const baseGap = 175 * this.sc;
-    const minGap = 130 * this.sc;
-    const gapReduction = Math.min(this.score * 1.0, (baseGap - minGap) / this.sc) * this.sc;
-    const gap = baseGap - gapReduction;
+    const mods = this.powerUpManager.getModifiers();
+    // Gap now tightens with skill score, then widens again as speed pressure
+    // rises. This keeps late-game bongs intense without becoming impossible.
+    const baseGap = 178 * this.sc;
+    const skillTightening = Math.min(this.score * 0.78, 42) * this.sc;
+    const speedPressure = Math.max(0, Math.min(1, ((this.speed / this.sc) - 160) / 60));
+    const speedRelief = speedPressure * 34 * this.sc;
+    const minGap = (145 + speedPressure * 12) * this.sc;
+    const gap = Math.max(minGap, baseGap - skillTightening + speedRelief + mods.gapBonus * this.sc);
     const margin = 70 * this.sc * 0.5;
     const usable = Math.max(0, this.h - this.groundH - gap - margin * 2);
     const top = margin + (usable > 0 ? Math.random() * usable : margin);
@@ -439,8 +458,9 @@ export class GameEngine {
       oscAmp,
       oscPhase,
     };
-    // 38% chance of a coin (50% for moving to reward the extra challenge)
-    const coinChance = pattern === "moving" ? 0.50 : 0.38;
+    // 20% more coin spawns than before (moving bongs still reward extra risk).
+    const baseCoinChance = pattern === "moving" ? 0.50 : 0.38;
+    const coinChance = Math.min(0.85, baseCoinChance * SPAWN_RATE_MULTIPLIER);
     if (Math.random() < coinChance) {
       pipe.coin = { y: gapY + (Math.random() - 0.5) * gap * 0.4, taken: false, bob: Math.random() * Math.PI * 2 };
     }
@@ -612,13 +632,15 @@ export class GameEngine {
     // playing
     this.powerUpManager.update();
     const mods = this.powerUpManager.getModifiers();
-    const simDt = dt * mods.timeScale;
+    const worldDt = dt * mods.timeScale;
+    const birdDt = dt * Math.max(0.86, mods.timeScale);
     if (this.shieldInvuln > 0) this.shieldInvuln = Math.max(0, this.shieldInvuln - dt);
     if (this.graceTimer > 0) this.graceTimer = Math.max(0, this.graceTimer - dt);
 
     // Rush clock: visible pressure, but perfect/clutch play earns time back.
+    // Slow-mo now slows the clock too, so it feels like control rather than a debuff.
     if (!this.practiceMode) {
-      this.timeRemaining -= dt;
+      this.timeRemaining -= dt * mods.clockScale;
       if (this.timeRemaining <= 0) {
         this.timeRemaining = 0;
         this.addFloat(this.w / 2, this.h * 0.28, "⏰ RUSH OVER!", "#f87171", 24);
@@ -634,9 +656,9 @@ export class GameEngine {
     const t = Math.min(this.score / rampScore, 1);
     this.speed = (baseSpeed + (maxSpeed - baseSpeed) * (t * t * (3 - 2 * t))) * this.sc;
 
-    const effGravity = this.gravity * this.sc;
-    this.vy += effGravity * simDt;
-    this.by += this.vy * simDt;
+    const effGravity = this.gravity * this.sc * mods.gravityMult;
+    this.vy += effGravity * birdDt;
+    this.by += this.vy * birdDt;
     this.rot = Math.max(-0.5, Math.min(1.2, this.vy / (700 * this.sc)));
 
     // squash when falling fast (stretch horizontally, compress vertically)
@@ -647,7 +669,7 @@ export class GameEngine {
     }
 
     // speed lines at high speed
-    if (this.score > 15 && !this.reducedMotion && Math.random() < simDt * (this.score > 40 ? 25 : 10)) {
+    if (this.score > 15 && !this.reducedMotion && Math.random() < worldDt * (this.score > 40 ? 25 : 10)) {
       this.speedLines.push({
         x: this.w + 10,
         y: Math.random() * this.h * 0.8 + this.h * 0.1,
@@ -657,11 +679,11 @@ export class GameEngine {
     }
     // update speed lines
     for (let i = this.speedLines.length - 1; i >= 0; i--) {
-      this.speedLines[i].x -= this.speedLines[i].speed * simDt;
+      this.speedLines[i].x -= this.speedLines[i].speed * worldDt;
       if (this.speedLines[i].x + this.speedLines[i].len < 0) this.speedLines.splice(i, 1);
     }
 
-    this.emitTrail(simDt);
+    this.emitTrail(worldDt);
 
     // spawn pipes by spacing (skip in practice mode)
     if (!this.practiceMode) {
@@ -669,11 +691,10 @@ export class GameEngine {
       const last = this.pipes[this.pipes.length - 1];
       if (!last || last.x < this.w - spacing) this.spawnPipe();
 
-      // Mid-run power-up pickups: once the player passes a score threshold,
-      // spawn a floating token, then schedule the next one ~12-20 points later.
+      // Mid-run power-up pickups: 20% more frequent than before.
       if (this.score >= this.nextPickupScore && this.pickups.length === 0) {
         this.spawnPickup();
-        this.nextPickupScore = this.score + 12 + Math.floor(Math.random() * 8);
+        this.nextPickupScore = this.score + 10 + Math.floor(Math.random() * 7);
       }
     }
 
@@ -707,8 +728,8 @@ export class GameEngine {
     // move & collect power-up pickups
     for (const pu of this.pickups) {
       if (pu.taken) continue;
-      pu.x -= this.speed * simDt;
-      pu.bob += simDt * 4;
+      pu.x -= this.speed * worldDt;
+      pu.bob += worldDt * 4;
       const py = pu.y + Math.sin(pu.bob) * 7 * this.sc;
       const pr = 16 * this.sc;
       if (Math.hypot(pu.x - this.bx, py - this.by) < this.radius + pr) {
@@ -725,10 +746,10 @@ export class GameEngine {
     const ceil = this.radius;
 
     for (const p of this.pipes) {
-      p.x -= this.speed * simDt;
+      p.x -= this.speed * worldDt;
       // coin — magnet auto-collect
       if (p.coin && !p.coin.taken) {
-        p.coin.bob += simDt * 4;
+        p.coin.bob += worldDt * 4;
         const cx = p.x + p.w / 2;
         const cy = p.coin.y + Math.sin(p.coin.bob) * 6 * this.sc;
         const cr = 13 * this.sc;
@@ -766,7 +787,7 @@ export class GameEngine {
 
         const frenzyMult = this.frenzyTimer > 0 ? 2 : 1;
         const scoreMult = frenzyMult * mods.scoreMult;
-        const passGain = this.multiplier * (isPerfect ? 2 : 1) * scoreMult;
+        const passGain = Math.round(this.multiplier * (isPerfect ? 2 : 1) * scoreMult);
         if (isPerfect) {
           this.perfectPasses++;
           this.combo++; // Bonus combo
@@ -844,7 +865,7 @@ export class GameEngine {
           const isClutch = near < 6 * this.sc;
           if (isClutch) {
             this.clutch++;
-            const clutchGain = this.multiplier * 3 * scoreMult;
+            const clutchGain = Math.round(this.multiplier * 3 * scoreMult);
             this.score += clutchGain;
             this.addRushTime(1.2, "+1.2s");
             audio.clutch();
@@ -856,7 +877,7 @@ export class GameEngine {
             this.addFloat(this.bx, this.by + 24 * this.sc, "⚡ CLUTCH! +" + clutchGain, "#fbbf24", 18);
             this.cb.onClutch?.(this.clutch);
           } else {
-            const nearMissGain = this.multiplier * scoreMult;
+            const nearMissGain = Math.round(this.multiplier * scoreMult);
             this.score += nearMissGain;
             this.addRushTime(0.5, "+0.5s");
             audio.nearMiss();

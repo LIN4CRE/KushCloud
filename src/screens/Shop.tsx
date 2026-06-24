@@ -155,7 +155,9 @@ function PowerUpItem({ pu, owned, equipped, canEquip, coins, onBuy, onEquip, onU
       <div className="min-w-0 flex-1">
         <div className="text-sm font-bold text-white">{pu.name}</div>
         <div className="text-xs text-slate-400">{pu.description}</div>
-        <div className="mt-1 text-[10px] uppercase tracking-wider text-slate-500">{pu.duration}s duration</div>
+        <div className="mt-1 text-[10px] uppercase tracking-wider text-slate-500">
+          {pu.duration > 0 ? `${pu.duration}s duration` : "Instant charge"}
+        </div>
       </div>
       {owned ? (
         <Button

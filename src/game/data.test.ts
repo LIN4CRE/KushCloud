@@ -37,12 +37,17 @@ describe("static data integrity", () => {
     }
   });
 
+  it("POWERUPS has unique ids", () => {
+    const ids = POWERUPS.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it("RARITY has all 6 rarities", () => {
     expect(Object.keys(RARITY)).toHaveLength(6);
   });
 
   it("POWERUPS each have valid effect", () => {
-    const validEffects = ["coinMultiplier", "slowMotion", "magnet", "shield", "doubleJump"];
+    const validEffects = ["coinMultiplier", "slowMotion", "magnet", "shield", "doubleJump", "gapWiden"];
     for (const p of POWERUPS) {
       expect(validEffects).toContain(p.effect);
       expect(p.duration).toBeGreaterThanOrEqual(0);
