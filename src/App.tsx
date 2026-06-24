@@ -9,7 +9,7 @@ import { ToastContainer, showToast } from "./ui";
 import { applyCompletedRun, type RunResult, type RunSummary } from "./game/runProcessing";
 import { submitScore } from "./game/leaderboard";
 import { SKINS, TRAILS, POWERUPS } from "./game/data";
-import { createDefaultSave } from "./game/storage";
+import { createDefaultSave, recordRun } from "./game/storage";
 import { claimDailyReward } from "./game/rewards";
 import { audio } from "./game/audio";
 
@@ -40,6 +40,10 @@ export default function App() {
       }
       return result;
     });
+
+    if (summary.status === "recorded") {
+      recordRun(r.score);
+    }
 
     if (leaderboardPayload) {
       void submitScore(leaderboardPayload).then((result) => {

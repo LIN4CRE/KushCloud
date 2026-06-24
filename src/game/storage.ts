@@ -1,7 +1,12 @@
 import { type PlayerStats } from "./data";
 
 const KEY = "kushcloud_save_v1";
-const VERSION = 7;
+const VERSION = 8;
+
+export interface TopRun {
+  score: number;
+  date: number;
+}
 
 export interface SaveData {
   version: number;
@@ -9,6 +14,7 @@ export interface SaveData {
   playerName: string;
   coins: number;
   stats: PlayerStats;
+  topRuns: TopRun[];
   ownedSkins: string[];
   ownedTrails: string[];
   ownedPowerUps: string[];
@@ -65,6 +71,7 @@ function defaultSave(): SaveData {
     playerName: randomName(),
     coins: 0,
     stats: { ...DEFAULT_STATS },
+    topRuns: [],
     ownedSkins: ["bud"],
     ownedTrails: ["none"],
     ownedPowerUps: [],
@@ -103,6 +110,16 @@ export function loadSave(): SaveData {
   } catch {
     return defaultSave();
   }
+}
+
+export function recordRun(score: number): TopRun[] {
+  const save = loadSave();
+  const date = Date.now();
+  const runs = [...(save.topRuns || []), { score, date }];
+  runs.sort((a, b) => b.score - a.score);
+  save.topRuns = runs.slice(0, 3);
+  writeSave(save);
+  return save.topRuns;
 }
 
 export function writeSave(data: SaveData) {

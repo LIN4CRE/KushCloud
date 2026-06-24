@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { type SaveData } from "../game/storage";
+import { type SaveData, type TopRun } from "../game/storage";
 import {
   getLeaderboard,
   getLocalLeaderboard,
@@ -12,6 +12,10 @@ import { Button, Panel, ScreenShell } from "../ui";
 interface Props {
   save: SaveData;
   onBack: () => void;
+}
+
+function topRunsFromSave(save: SaveData): TopRun[] {
+  return (save.topRuns || []).slice(0, 3);
 }
 
 export default function Leaderboard({ save, onBack }: Props) {
@@ -53,6 +57,7 @@ export default function Leaderboard({ save, onBack }: Props) {
   const displayRank = playerRank || localRank;
   const topEntries = entries.slice(0, 50);
   const cloudConfigured = isCloudLeaderboardConfigured();
+  const myTopRuns = topRunsFromSave(save);
 
   return (
     <ScreenShell title="Leaderboard" onBack={onBack}>
@@ -60,14 +65,14 @@ export default function Leaderboard({ save, onBack }: Props) {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              {source === "cloud" ? "Online Cloud Leaderboard" : "Local Leaderboard"}
+              {source === "cloud" ? "Online Leaderboard" : "Local Leaderboard"}
             </p>
             <p className="text-sm text-slate-300">
               {source === "cloud"
-                ? "Powered by the free Cloudflare Worker/D1 backend."
+                ? "Live global rankings via Firebase."
                 : cloudConfigured
                   ? "Cloud is unreachable, showing saved local scores."
-                  : "Cloud endpoint not configured yet; local scores still work."}
+                  : "Cloud not available; local scores still work."}
             </p>
           </div>
           <div className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wider ${source === "cloud" ? "bg-sky-500/20 text-sky-200" : "bg-amber-500/20 text-amber-200"}`}>
@@ -92,6 +97,20 @@ export default function Leaderboard({ save, onBack }: Props) {
             #{displayRank > 0 ? displayRank : entries.length + 1}
           </p>
           <p className="text-sm text-slate-300">{save.playerName} — {save.stats.bestScore}</p>
+        </Panel>
+      )}
+
+      {myTopRuns.length > 0 && (
+        <Panel className="mb-4 border-emerald-700/30 bg-emerald-950/20">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-400">Your Top 3 Runs</p>
+          <div className="space-y-1">
+            {myTopRuns.map((run, i) => (
+              <div key={`top-${i}-${run.score}`} className="flex items-center justify-between rounded-lg bg-slate-800/40 px-3 py-1.5">
+                <span className="text-sm font-bold text-emerald-300">#{i + 1}</span>
+                <span className="text-sm text-white">{run.score.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
         </Panel>
       )}
 

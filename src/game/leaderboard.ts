@@ -3,6 +3,8 @@ const MAX_ENTRIES = 100;
 const DEFAULT_LIMIT = 50;
 const REQUEST_TIMEOUT_MS = 6_000;
 
+import { isFirebaseConfigured, submitLeaderboardScore, getLeaderboardEntries, getPlayerRank } from "../config/firebase";
+
 export interface LbEntry {
   name: string;
   score: number;
@@ -42,7 +44,7 @@ function safeApiBase() {
 }
 
 export function isCloudLeaderboardConfigured(): boolean {
-  return safeApiBase().length > 0;
+  return isFirebaseConfigured() || safeApiBase().length > 0;
 }
 
 function cleanName(name: string) {
@@ -139,9 +141,36 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
-export async function getLeaderboard(uid?: string, limit = DEFAULT_LIMIT): Promise<LeaderboardResult> {
-  if (!isCloudLeaderboardConfigured()) return localResult(uid, limit);
+async function firebaseLeaderboard(uid?: string, limit = DEFAULT_LIMIT): Promise<LeaderboardResult | null> {
+  if (!isFirebaseConfigured()) return null;
+  try {
+    const raw = await getLeaderboardEntries(limit);
+    const entries: LbEntry[] = raw.map((e, i) => ({
+      uid: e.uid,
+      name: e.name,
+      score: e.score,
+      date: e.date,
+      rank: i + 1,
+    }));
+    let playerEntry: LbEntry | undefined;
+    let playerRank = 0;
+    if (uid) {
+      const found = entries.find((e) => e.uid === uid);
+      if (found) {
+        playerEntry = found;
+        playerRank = found.rank || 0;
+      } else {
+        playerRank = await getPlayerRank(uid, 0);
+      }
+    }
+    return { entries, source: "cloud", online: true, playerRank, playerEntry };
+  } catch {
+    return null;
+  }
+}
 
+async function apiLeaderboard(uid?: string, limit = DEFAULT_LIMIT): Promise<LeaderboardResult | null> {
+  if (!safeApiBase()) return null;
   try {
     const params = new URLSearchParams({ limit: String(limit) });
     if (uid) params.set("uid", uid);
@@ -165,37 +194,58 @@ export async function getLeaderboard(uid?: string, limit = DEFAULT_LIMIT): Promi
       playerRank: data.playerRank,
       playerEntry,
     };
-  } catch (err) {
-    return {
-      ...localResult(uid, limit),
-      error: err instanceof Error ? err.message : "Cloud leaderboard failed",
-    };
+  } catch {
+    return null;
   }
+}
+
+export async function getLeaderboard(uid?: string, limit = DEFAULT_LIMIT): Promise<LeaderboardResult> {
+  const fb = await firebaseLeaderboard(uid, limit);
+  if (fb) return fb;
+
+  const api = await apiLeaderboard(uid, limit);
+  if (api) return api;
+
+  return localResult(uid, limit);
 }
 
 export async function submitScore(input: SubmitScoreInput): Promise<SubmitScoreResult> {
   const local = submitLocalScore(input.name, input.score, input.uid);
-  if (!isCloudLeaderboardConfigured()) return { localRank: local.rank, online: false };
 
-  try {
-    const data = await fetchJson<{ ok: boolean; rank?: number }>("/leaderboard", {
-      method: "POST",
-      body: JSON.stringify({
-        uid: input.uid,
-        name: cleanName(input.name),
-        score: Math.floor(input.score),
-        totalGames: input.totalGames ?? 0,
-        bestCombo: input.bestCombo ?? 0,
-        redEye: input.redEye ?? 0,
-      }),
-    });
-
-    return { localRank: local.rank, cloudRank: data.rank, online: true };
-  } catch (err) {
-    return {
-      localRank: local.rank,
-      online: false,
-      error: err instanceof Error ? err.message : "Cloud score submit failed",
-    };
+  const firebaseOnline = isFirebaseConfigured();
+  if (firebaseOnline) {
+    try {
+      const result = await submitLeaderboardScore(input.uid, input.name, input.score);
+      if (result) {
+        return { localRank: local.rank, cloudRank: result.rank, online: true };
+      }
+    } catch {
+      /* fall through */
+    }
   }
+
+  if (safeApiBase()) {
+    try {
+      const data = await fetchJson<{ ok: boolean; rank?: number }>("/leaderboard", {
+        method: "POST",
+        body: JSON.stringify({
+          uid: input.uid,
+          name: cleanName(input.name),
+          score: Math.floor(input.score),
+          totalGames: input.totalGames ?? 0,
+          bestCombo: input.bestCombo ?? 0,
+          redEye: input.redEye ?? 0,
+        }),
+      });
+      return { localRank: local.rank, cloudRank: data.rank, online: true };
+  } catch {
+      return {
+        localRank: local.rank,
+        online: false,
+        error: "Cloud score submit failed",
+      };
+    }
+  }
+
+  return { localRank: local.rank, online: firebaseOnline };
 }

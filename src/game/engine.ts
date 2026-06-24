@@ -103,10 +103,10 @@ export class GameEngine {
   private bx = 0; private by = 0; private vy = 0; private radius = 16; private rot = 0;
   private wingPhase = 0;
 
-  // world physics — between original (brutal) and v3.3 (tighter)
-  private gravity = 1450;
-  private flapV = -495;
-  private speed = 128;
+  // world physics — tuned for addictive feel: lighter gravity, responsive flaps
+  private gravity = 1380;
+  private flapV = -485;
+  private speed = 115;
 
   private pipes: Pipe[] = [];
   private particles: Particle[] = [];
@@ -310,7 +310,7 @@ export class GameEngine {
     this.bestCombo = 1;
     this.multiplier = 1;
     this.flaps = 0;
-    this.speed = 128;
+    this.speed = 115;
     this.shake = 0;
     this.flashAlpha = 0;
     this.shieldInvuln = 0;
@@ -432,13 +432,14 @@ export class GameEngine {
 
   private spawnPipe() {
     const mods = this.powerUpManager.getModifiers();
-    // Gap now tightens with skill score, then widens again as speed pressure
-    // rises. This keeps late-game bongs intense without becoming impossible.
-    const baseGap = 178 * this.sc;
-    const skillTightening = Math.min(this.score * 0.78, 42) * this.sc;
-    const speedPressure = Math.max(0, Math.min(1, ((this.speed / this.sc) - 160) / 60));
-    const speedRelief = speedPressure * 34 * this.sc;
-    const minGap = (145 + speedPressure * 12) * this.sc;
+    // Gap starts generous for an easy first impression, then tightens with
+    // skill score. Speed pressure widens it slightly at high speeds to keep
+    // late-game intense but fair. Wide power-up adds extra breathing room.
+    const baseGap = 195 * this.sc;
+    const skillTightening = Math.min(this.score * 0.65, 36) * this.sc;
+    const speedPressure = Math.max(0, Math.min(1, ((this.speed / this.sc) - 150) / 60));
+    const speedRelief = speedPressure * 30 * this.sc;
+    const minGap = (150 + speedPressure * 10) * this.sc;
     const gap = Math.max(minGap, baseGap - skillTightening + speedRelief + mods.gapBonus * this.sc);
     const margin = 70 * this.sc * 0.5;
     const usable = Math.max(0, this.h - this.groundH - gap - margin * 2);
@@ -622,7 +623,7 @@ export class GameEngine {
   }
 
   update(dt: number) {
-    dt = Math.min(dt, 0.033); // clamp for stability
+    dt = Math.min(dt, 0.05); // clamp for stability (20fps floor)
 
     this.groundOffset = (this.groundOffset + this.speed * dt) % (40 * this.sc);
     this.wingPhase += dt * 18;
@@ -689,10 +690,10 @@ export class GameEngine {
       }
     }
 
-    // smooth speed ramp: starts brisk, accelerates mid-game, tapers at max
-    const baseSpeed = 128;
-    const maxSpeed = 220;
-    const rampScore = 50;
+    // smooth speed ramp: easy start, gradual climb, early plateau
+    const baseSpeed = 115;
+    const maxSpeed = 205;
+    const rampScore = 55;
     const t = Math.min(this.score / rampScore, 1);
     this.speed = (baseSpeed + (maxSpeed - baseSpeed) * (t * t * (3 - 2 * t))) * this.sc;
 
@@ -727,7 +728,7 @@ export class GameEngine {
 
     // spawn pipes by spacing (skip in practice mode)
     if (!this.practiceMode) {
-      const spacing = Math.max(190 * this.sc, this.w * (0.55 - Math.min(this.score / 150, 1) * 0.1));
+      const spacing = Math.max(200 * this.sc, this.w * (0.58 - Math.min(this.score / 150, 1) * 0.1));
       const last = this.pipes[this.pipes.length - 1];
       if (!last || last.x < this.w - spacing) this.spawnPipe();
 
@@ -1358,10 +1359,119 @@ export class GameEngine {
     const botEdge = p.gapY + p.gap / 2;
     const groundY = this.h - this.groundH;
 
-    this.drawBong(ctx, p, topEdge, Math.max(0, topEdge), -1);
+    this.drawBlunt(ctx, p, topEdge, Math.max(0, topEdge));
     this.drawBong(ctx, p, botEdge, Math.max(0, groundY - botEdge), 1);
     this.drawBongSmoke(ctx, p, topEdge, botEdge);
     this.drawPipeCoin(ctx, p);
+  }
+
+  private drawBlunt(ctx: CanvasRenderingContext2D, p: Pipe, mouthY: number, length: number) {
+    if (length < 18 * this.sc) return;
+
+    const x = p.x;
+    const w = p.w;
+    const cx = x + w / 2;
+    const safeLength = Math.max(18 * this.sc, length);
+
+    const paper = this.highContrast ? "#d4a574" : "#c9956b";
+    const paperDark = this.highContrast ? "#a07850" : "#a07850";
+    const outline = this.highContrast ? "#fff" : "rgba(160,120,80,0.65)";
+    const glow = this.highContrast ? "#ffd700" : this.world.accent;
+
+    ctx.save();
+    if (!this.highContrast) {
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = 8;
+    }
+
+    const bodyW = w * 0.88;
+    const bodyX = x + (w - bodyW) / 2;
+
+    // Crutch (filter tip) at the mouth end — visible at the gap edge
+    const crutchH = Math.min(14 * this.sc, safeLength * 0.12);
+    const crutchY = mouthY - crutchH;
+
+    ctx.fillStyle = "#f0dbb8";
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 1.5 * this.sc;
+    ctx.beginPath();
+    ctx.roundRect(bodyX, crutchY, bodyW, crutchH, 3 * this.sc);
+    ctx.fill();
+    ctx.stroke();
+
+    // Crutch texture lines
+    ctx.strokeStyle = "rgba(160,120,80,0.25)";
+    ctx.lineWidth = 1 * this.sc;
+    for (let i = 0; i < 3; i++) {
+      const ly = crutchY + (i + 1) * crutchH / 4;
+      ctx.beginPath();
+      ctx.moveTo(bodyX + 2 * this.sc, ly);
+      ctx.lineTo(bodyX + bodyW - 2 * this.sc, ly);
+      ctx.stroke();
+    }
+
+    // Main paper body — solid brown cylinder filling the space
+    const bodyTop = 0;
+    const bodyH = safeLength - crutchH;
+
+    const bodyGrad = ctx.createLinearGradient(x, 0, x + w, 0);
+    bodyGrad.addColorStop(0, "rgba(0,0,0,0.20)");
+    bodyGrad.addColorStop(0.35, "rgba(255,255,255,0.12)");
+    bodyGrad.addColorStop(0.65, "rgba(0,0,0,0.06)");
+    bodyGrad.addColorStop(1, "rgba(0,0,0,0.20)");
+
+    ctx.fillStyle = bodyGrad;
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 2 * this.sc;
+    ctx.beginPath();
+    ctx.roundRect(bodyX, bodyTop, bodyW, bodyH, 4 * this.sc);
+    ctx.fill();
+    ctx.stroke();
+
+    // Warm paper overlay
+    const paperGrad = ctx.createLinearGradient(0, bodyTop, 0, bodyTop + bodyH);
+    paperGrad.addColorStop(0, paperDark);
+    paperGrad.addColorStop(0.15, paper);
+    paperGrad.addColorStop(0.85, paper);
+    paperGrad.addColorStop(1, paperDark);
+    ctx.fillStyle = paperGrad;
+    ctx.globalAlpha = 0.55;
+    ctx.fillRect(bodyX + 1, bodyTop + 1, bodyW - 2, bodyH - 2);
+    ctx.globalAlpha = 1;
+
+    // Rolling seam spiral line
+    ctx.strokeStyle = "rgba(140,100,60,0.35)";
+    ctx.lineWidth = 1.8 * this.sc;
+    const seamMid = bodyH * 0.45;
+    ctx.beginPath();
+    ctx.moveTo(bodyX + bodyW * 0.12, bodyTop);
+    ctx.lineTo(bodyX + bodyW * 0.88, bodyTop + seamMid);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(bodyX + bodyW * 0.12, bodyTop + seamMid + bodyH * 0.06);
+    ctx.lineTo(bodyX + bodyW * 0.88, bodyTop + bodyH);
+    ctx.stroke();
+
+    // Leaf accent
+    ctx.fillStyle = "rgba(80,180,60,0.55)";
+    ctx.font = `900 ${bodyW * 0.38}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🍃", cx, mouthY - safeLength * 0.40);
+
+    // Ember glow at the cut end
+    if (!this.highContrast) {
+      ctx.shadowColor = "#ff9944";
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = "rgba(255,180,80,0.08)";
+      ctx.beginPath();
+      ctx.arc(cx, mouthY - 3 * this.sc, w * 0.38, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 8;
+    }
+
+    ctx.restore();
+    ctx.textBaseline = "alphabetic";
   }
 
   private drawBong(ctx: CanvasRenderingContext2D, p: Pipe, mouthY: number, length: number, direction: 1 | -1) {

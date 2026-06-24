@@ -21,7 +21,7 @@ vi.mock("../ui", () => ({
 
 describe("Leaderboard Screen", () => {
   const mockSave: SaveData = {
-    version: 7,
+    version: 8,
     playerId: "player-test-id",
     playerName: "TestPlayer",
     coins: 100,
@@ -30,6 +30,7 @@ describe("Leaderboard Screen", () => {
       totalNearMiss: 2, totalPerfectPasses: 5, bestCombo: 3,
       totalFlaps: 100, bestScore: 100,
     },
+    topRuns: [],
     ownedSkins: ["bud"],
     ownedTrails: ["none"],
     ownedPowerUps: [],
