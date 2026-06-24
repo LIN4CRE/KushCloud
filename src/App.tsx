@@ -7,7 +7,7 @@ import Leaderboard from "./screens/Leaderboard";
 import Settings from "./screens/Settings";
 import { ToastContainer, showToast } from "./ui";
 import { applyCompletedRun, type RunResult, type RunSummary } from "./game/runProcessing";
-import { submitLocalScore } from "./game/leaderboard";
+import { submitScore } from "./game/leaderboard";
 import { SKINS, TRAILS, POWERUPS } from "./game/data";
 import { createDefaultSave } from "./game/storage";
 import { claimDailyReward } from "./game/rewards";
@@ -25,13 +25,31 @@ export default function App() {
   }, [save.musicVol, save.sfxVol]);
 
   const processRun = async (r: RunResult): Promise<RunSummary> => {
-    return update((s) => {
+    let leaderboardPayload: Parameters<typeof submitScore>[0] | null = null;
+    const summary = update((s) => {
       const result = applyCompletedRun(s, r);
       if (result.status === "recorded" && s.stats.bestScore > 0) {
-        submitLocalScore(s.playerName, s.stats.bestScore);
+        leaderboardPayload = {
+          uid: s.playerId,
+          name: s.playerName,
+          score: s.stats.bestScore,
+          totalGames: s.stats.totalGames,
+          bestCombo: s.stats.bestCombo,
+          redEye: r.redEye ?? 0,
+        };
       }
       return result;
     });
+
+    if (leaderboardPayload) {
+      void submitScore(leaderboardPayload).then((result) => {
+        if (result.online && result.cloudRank && result.cloudRank <= 10) {
+          showToast(`Cloud rank #${result.cloudRank}!`, "success");
+        }
+      });
+    }
+
+    return summary;
   };
 
   const reviveRun = (cost: number): boolean => {

@@ -1,0 +1,9 @@
+# Copy to wrangler.toml and fill in database_id after creating D1.
+name = "kushcloud-leaderboard"
+main = "cloudflare/leaderboard-worker.js"
+compatibility_date = "2026-06-24"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kushcloud-leaderboard"
+database_id = "YOUR_D1_DATABASE_ID"

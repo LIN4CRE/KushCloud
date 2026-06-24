@@ -14,11 +14,15 @@ vi.mock("../ui", () => ({
   Panel: ({ children, className }: { children: React.ReactNode; className?: string }) => (
     <div className={className}>{children}</div>
   ),
+  Button: ({ children, onClick, disabled }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean }) => (
+    <button onClick={onClick} disabled={disabled}>{children}</button>
+  ),
 }));
 
 describe("Leaderboard Screen", () => {
   const mockSave: SaveData = {
-    version: 5,
+    version: 7,
+    playerId: "player-test-id",
     playerName: "TestPlayer",
     coins: 100,
     stats: {

@@ -53,6 +53,7 @@ jobs:
       - name: Build with deployment metadata
         env:
           VITE_BUILD_TIME: ${{ github.run_id }}-${{ github.run_attempt }}
+          VITE_LEADERBOARD_API_URL: ${{ vars.VITE_LEADERBOARD_API_URL }}
         run: |
           export VITE_BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           npm run build

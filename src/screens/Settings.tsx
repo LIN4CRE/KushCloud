@@ -142,6 +142,7 @@ export default function Settings({ save, onBack, onChange, onReset }: Props) {
             <DebugRow label="Branch" value={BUILD_INFO.branch} />
             <DebugRow label="Mode" value={BUILD_INFO.mode} />
             <DebugRow label="Base" value={BUILD_INFO.baseUrl} />
+            <DebugRow label="Cloud LB" value={BUILD_INFO.leaderboardCloud ? "configured" : "local fallback"} />
             <DebugRow label="Built" value={BUILD_INFO.builtAt === "unknown" ? "unknown" : new Date(BUILD_INFO.builtAt).toLocaleString()} />
           </div>
           <div className="mt-3 flex gap-2">

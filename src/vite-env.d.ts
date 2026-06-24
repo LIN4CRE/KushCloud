@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_GIT_SHA: string;
   readonly VITE_GIT_BRANCH: string;
   readonly VITE_BUILD_TIME: string;
+  readonly VITE_LEADERBOARD_API_URL: string;
   readonly VITE_FIREBASE_API_KEY: string;
   readonly VITE_FIREBASE_AUTH_DOMAIN: string;
   readonly VITE_FIREBASE_DATABASE_URL: string;

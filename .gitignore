@@ -12,6 +12,7 @@ builds/
 .env.local
 .env.*.local
 *.local
+wrangler.toml
 
 # --- Test coverage ---
 coverage/

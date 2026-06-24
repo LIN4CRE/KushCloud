@@ -5,6 +5,7 @@ export interface BuildInfo {
   builtAt: string;
   mode: string;
   baseUrl: string;
+  leaderboardCloud: boolean;
   production: boolean;
 }
 
@@ -15,6 +16,7 @@ export const BUILD_INFO: BuildInfo = {
   builtAt: import.meta.env.VITE_BUILD_TIME || "unknown",
   mode: import.meta.env.MODE,
   baseUrl: import.meta.env.BASE_URL,
+  leaderboardCloud: !!import.meta.env.VITE_LEADERBOARD_API_URL,
   production: import.meta.env.PROD,
 };
 

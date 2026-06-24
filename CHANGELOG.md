@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.5.0] - 2026-06-24
+### Added
+- Added a Firebase-free online leaderboard path using Cloudflare Workers + D1.
+- Added Worker source, D1 schema, Wrangler example config, and setup docs.
+- Added stable anonymous `playerId` saves so cloud rankings update one row per player.
+- Added cloud/local leaderboard status, refresh, and manual best-score sync controls.
+
+### Changed
+- Leaderboard submissions now sync locally first, then cloud when `VITE_LEADERBOARD_API_URL` is configured.
+- GitHub Pages builds can now inject `VITE_LEADERBOARD_API_URL` from repository variables.
+- The app automatically falls back to localStorage if the cloud leaderboard is down or not configured.
+
+### Removed
+- Removed Firebase from the leaderboard path entirely; no Firebase SDK or Firebase config is required for ranks.
+
 ## [4.4.0] - 2026-06-24
 ### Added
 - Added banner-style glass bong obstacles with round chambers, green liquid, bubbles, angled stems, bowls, cork/detail rings, glowing highlights, and smoke wisps.

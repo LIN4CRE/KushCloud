@@ -1,10 +1,11 @@
 import { type PlayerStats } from "./data";
 
 const KEY = "kushcloud_save_v1";
-const VERSION = 6;
+const VERSION = 7;
 
 export interface SaveData {
   version: number;
+  playerId: string;
   playerName: string;
   coins: number;
   stats: PlayerStats;
@@ -49,9 +50,18 @@ export function randomName(): string {
   return `${a}${n}${num}`;
 }
 
+export function createPlayerId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `kc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+  }
+}
+
 function defaultSave(): SaveData {
   return {
     version: VERSION,
+    playerId: createPlayerId(),
     playerName: randomName(),
     coins: 0,
     stats: { ...DEFAULT_STATS },
