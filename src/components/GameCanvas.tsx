@@ -22,6 +22,7 @@ export interface GameHudUpdate {
   frenzyRemainingMs?: number;
   lastPowerUp?: string;
   clutch?: number;
+  redEye?: number;
 }
 
 interface Props {
@@ -69,6 +70,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, Props>(function GameCanva
       frenzyRemainingMs: 0,
       lastPowerUp: undefined,
       clutch: 0,
+      redEye: 0,
     });
   };
 
@@ -123,6 +125,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, Props>(function GameCanva
         frenzyRemainingMs: remainingMs,
       }),
       onClutch: (clutch: number) => onHudRef.current?.({ clutch }),
+      onRedEye: (redEye: number) => onHudRef.current?.({ redEye }),
     };
 
     const eng = new GameEngine(skin, trail, worldForScore(0), cb);

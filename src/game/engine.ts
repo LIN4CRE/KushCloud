@@ -29,6 +29,8 @@ export interface RunResult {
   flaps: number;
   /** Number of extremely-tight "clutch" escapes during the run. */
   clutch?: number;
+  /** Number of smoke clouds collected for Red Eye bonuses. */
+  redEye?: number;
 }
 
 export type GameState = "ready" | "playing" | "dead";
@@ -43,6 +45,7 @@ interface Pipe {
   passed: boolean;
   nearChecked: boolean;
   coin?: { y: number; taken: boolean; bob: number };
+  smoke?: { offset: number; taken: boolean; bob: number };
   scored: boolean;
   pattern: PipePattern;
   baseGapY: number;
@@ -86,6 +89,8 @@ export interface EngineCallbacks {
   onFrenzy?: (active: boolean, remainingMs: number) => void;
   /** Fired on a clutch (very-near-death) escape, with the bonus awarded. */
   onClutch?: (count: number) => void;
+  /** Fired when smoke is collected for a Red Eye bonus. */
+  onRedEye?: (count: number) => void;
 }
 
 export class GameEngine {
@@ -164,6 +169,8 @@ export class GameEngine {
   private timeRemaining = 0;
   private timeWarningThreshold = 15; // seconds before showing warning
   clutch = 0; // count of clutch escapes this run
+  redEye = 0; // count of Red Eye smoke bonuses this run
+  private redEyeTimer = 0;
   // grace period — prevents instant death on first flap
   private graceTimer = 0;
   private readonly GRACE_PERIOD = 0.4;
@@ -319,6 +326,8 @@ export class GameEngine {
     this.perfectStreak = 0;
     this.frenzyTimer = 0;
     this.clutch = 0;
+    this.redEye = 0;
+    this.redEyeTimer = 0;
     this.graceTimer = 0;
     this.timeRemaining = this.practiceMode ? 999999 : this.TIME_LIMIT;
     this.starterPowerUpsApplied = false;
@@ -464,6 +473,13 @@ export class GameEngine {
     if (Math.random() < coinChance) {
       pipe.coin = { y: gapY + (Math.random() - 0.5) * gap * 0.4, taken: false, bob: Math.random() * Math.PI * 2 };
     }
+    // Every bong exhales a collectible smoke cloud near the gap. Flying through
+    // the haze grants Red Eye Bonus without changing the collision shape.
+    pipe.smoke = {
+      offset: (Math.random() - 0.5) * gap * 0.24,
+      taken: false,
+      bob: Math.random() * Math.PI * 2,
+    };
     this.pipes.push(pipe);
   }
 
@@ -496,6 +512,29 @@ export class GameEngine {
     this.addFloat(pu.x, py - 26 * this.sc, `${pu.icon} ${def?.name ?? "Power-Up"}!`, pu.color, 17);
     navigator.vibrate?.([12, 20, 12]);
     this.cb.onPowerUp?.(pu.id, def?.name ?? "Power-Up");
+  }
+
+  private collectRedEye(x: number, y: number) {
+    const mods = this.powerUpManager.getModifiers();
+    const frenzyMult = this.frenzyTimer > 0 ? 2 : 1;
+    const gain = Math.max(1, Math.round(this.multiplier * 2 * frenzyMult * mods.scoreMult));
+    this.redEye++;
+    this.combo += 2;
+    this.score += gain;
+    this.runCoins += Math.max(1, Math.round(mods.coinMult));
+    this.updateMultiplier();
+    this.addRushTime(0.9, "+0.9s");
+    this.redEyeTimer = Math.min(6, Math.max(this.redEyeTimer, 3.4) + 0.35);
+    this.shake = Math.max(this.shake, 4);
+    this.flashAlpha = Math.max(this.flashAlpha, 0.18);
+    this.burst(x, y, "rgba(255,120,140,0.95)", 16, 180, "puff");
+    this.burst(x, y, "#a7f3d0", 12, 150, "spark");
+    this.addFloat(x, y - 22 * this.sc, `👁 RED EYE +${gain}`, "#fda4af", 18);
+    audio.nearMiss();
+    navigator.vibrate?.([8, 18, 8]);
+    this.cb.onScore?.(this.score);
+    this.cb.onCoin?.(this.runCoins);
+    this.cb.onRedEye?.(this.redEye);
   }
 
   private triggerFrenzy() {
@@ -635,6 +674,7 @@ export class GameEngine {
     const worldDt = dt * mods.timeScale;
     const birdDt = dt * Math.max(0.86, mods.timeScale);
     if (this.shieldInvuln > 0) this.shieldInvuln = Math.max(0, this.shieldInvuln - dt);
+    if (this.redEyeTimer > 0) this.redEyeTimer = Math.max(0, this.redEyeTimer - dt);
     if (this.graceTimer > 0) this.graceTimer = Math.max(0, this.graceTimer - dt);
 
     // Rush clock: visible pressure, but perfect/clutch play earns time back.
@@ -776,6 +816,18 @@ export class GameEngine {
           this.cb.onCoin?.(this.runCoins);
         }
       }
+      // smoke cloud — Red Eye Bonus target in the gap
+      if (p.smoke && !p.smoke.taken) {
+        p.smoke.bob += worldDt * 2.8;
+        const sx = p.x + p.w / 2 + Math.sin(p.smoke.bob * 0.7) * 5 * this.sc;
+        const sy = p.gapY + p.smoke.offset + Math.sin(p.smoke.bob) * 7 * this.sc;
+        const sr = 23 * this.sc;
+        if (Math.hypot(sx - this.bx, sy - this.by) < this.radius + sr) {
+          p.smoke.taken = true;
+          this.collectRedEye(sx, sy);
+        }
+      }
+
       // scoring on pass
       if (!p.scored && p.x + p.w < this.bx) {
         p.scored = true;
@@ -983,6 +1035,7 @@ export class GameEngine {
       durationMs: performance.now() - this.startTime,
       flaps: this.flaps,
       clutch: this.clutch,
+      redEye: this.redEye,
     };
     this.cb.onStateChange?.(this.state);
     this.cb.onDeath?.(result);
@@ -1078,6 +1131,9 @@ export class GameEngine {
       ctx.fillRect(-20, -20, w + 40, h + 40);
     }
 
+    // Red Eye glaze — pale red stoned effect after flying through bong smoke.
+    if (this.redEyeTimer > 0) this.drawRedEyeGlaze(ctx);
+
     // grace period indicator — green pulsing ring while invulnerable
     if (this.graceTimer > 0 && this.state === "playing") {
       ctx.save();
@@ -1116,6 +1172,36 @@ export class GameEngine {
       ctx.restore();
       this.drawRushTimer(ctx);
     }
+  }
+
+  private drawRedEyeGlaze(ctx: CanvasRenderingContext2D) {
+    const pulse = this.reducedMotion ? 0 : Math.sin(performance.now() / 260) * 0.04;
+    const alpha = Math.min(0.24, 0.10 + this.redEyeTimer * 0.025 + pulse);
+    ctx.save();
+    ctx.fillStyle = `rgba(255,105,125,${alpha})`;
+    ctx.fillRect(-20, -20, this.w + 40, this.h + 40);
+
+    const vg = ctx.createRadialGradient(this.w / 2, this.h * 0.45, this.h * 0.1, this.w / 2, this.h / 2, this.h * 0.82);
+    vg.addColorStop(0, "rgba(255,210,210,0)");
+    vg.addColorStop(0.62, `rgba(255,120,140,${alpha * 0.16})`);
+    vg.addColorStop(1, `rgba(120,0,30,${alpha * 0.92})`);
+    ctx.fillStyle = vg;
+    ctx.fillRect(-20, -20, this.w + 40, this.h + 40);
+
+    ctx.globalAlpha = Math.min(0.22, alpha * 0.9);
+    ctx.strokeStyle = "rgba(255,230,230,0.7)";
+    ctx.lineWidth = 1.2 * this.sc;
+    const drift = this.reducedMotion ? 0 : performance.now() / 420;
+    for (let y = 50 * this.sc; y < this.h; y += 58 * this.sc) {
+      ctx.beginPath();
+      for (let x = -20; x <= this.w + 20; x += 18 * this.sc) {
+        const waveY = y + Math.sin(x / 34 + drift + y / 90) * 3 * this.sc;
+        if (x <= -19) ctx.moveTo(x, waveY);
+        else ctx.lineTo(x, waveY);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   private drawRushTimer(ctx: CanvasRenderingContext2D) {
@@ -1270,61 +1356,248 @@ export class GameEngine {
   private drawPipe(ctx: CanvasRenderingContext2D, p: Pipe) {
     const topEdge = p.gapY - p.gap / 2;
     const botEdge = p.gapY + p.gap / 2;
+    const groundY = this.h - this.groundH;
+
+    this.drawBong(ctx, p, topEdge, Math.max(0, topEdge), -1);
+    this.drawBong(ctx, p, botEdge, Math.max(0, groundY - botEdge), 1);
+    this.drawBongSmoke(ctx, p, topEdge, botEdge);
+    this.drawPipeCoin(ctx, p);
+  }
+
+  private drawBong(ctx: CanvasRenderingContext2D, p: Pipe, mouthY: number, length: number, direction: 1 | -1) {
+    if (length < 18 * this.sc) return;
+
     const main = this.highContrast ? "#00d0a0" : this.world.pipe;
     const dark = this.highContrast ? "#008060" : this.world.pipeDark;
-    const lipH = 18 * this.sc;
-    const lipOver = 6 * this.sc;
+    const outline = this.highContrast ? "#eaffff" : "rgba(219,255,219,0.78)";
+    const glass = this.highContrast ? "rgba(0,208,160,0.36)" : "rgba(183,255,210,0.20)";
+    const glass2 = this.highContrast ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.32)";
+    const liquid = this.highContrast ? "#7cff9b" : main;
+    const glow = this.highContrast ? "#00ffd5" : this.world.accent;
+    const x = p.x;
+    const w = p.w;
+    const cx = x + w / 2;
+    const yAt = (offset: number) => mouthY + direction * offset;
+    const rectY = (offset: number, h: number) => direction === 1 ? mouthY + offset : mouthY - offset - h;
+    const safeLength = Math.max(18 * this.sc, length);
+    const neckW = w * 0.43;
+    const neckX = x + (w - neckW) / 2;
+    const neckH = Math.min(Math.max(54 * this.sc, safeLength * 0.42), Math.max(22 * this.sc, safeLength - 16 * this.sc));
+    const bulbR = Math.min(w * 0.62, Math.max(24 * this.sc, safeLength * 0.18));
+    const bulbOffset = Math.min(Math.max(neckH + bulbR * 0.55, 48 * this.sc), safeLength - bulbR * 0.42);
+    const bulbY = yAt(bulbOffset);
 
-    const drawSeg = (y: number, height: number, lipY: number) => {
-      const g = ctx.createLinearGradient(p.x, 0, p.x + p.w, 0);
-      g.addColorStop(0, dark);
-      g.addColorStop(0.3, main);
-      g.addColorStop(0.65, main);
-      g.addColorStop(1, dark);
-      ctx.fillStyle = g;
-      ctx.fillRect(p.x, y, p.w, height);
-      // jar/bong glass highlight — wider, more visible
-      ctx.fillStyle = "rgba(255,255,255,0.22)";
-      ctx.fillRect(p.x + p.w * 0.18, y, p.w * 0.14, height);
-      // secondary highlight on right
-      ctx.fillStyle = "rgba(255,255,255,0.08)";
-      ctx.fillRect(p.x + p.w * 0.7, y, p.w * 0.08, height);
-      // inner glass reflection stripe
-      ctx.fillStyle = "rgba(255,255,255,0.06)";
-      ctx.fillRect(p.x + p.w * 0.35, y, p.w * 0.3, height);
-      // lip
-      ctx.fillStyle = dark;
-      ctx.fillRect(p.x - lipOver, lipY, p.w + lipOver * 2, lipH);
-      ctx.fillStyle = main;
-      ctx.fillRect(p.x - lipOver + 3 * this.sc, lipY + 3 * this.sc, p.w + lipOver * 2 - 6 * this.sc, lipH - 6 * this.sc);
-      // lip highlight
-      ctx.fillStyle = "rgba(255,255,255,0.15)";
-      ctx.fillRect(p.x - lipOver + 3 * this.sc, lipY + 3 * this.sc, p.w + lipOver * 2 - 6 * this.sc, 2 * this.sc);
-    };
-    // top pipe (lip at bottom)
-    drawSeg(0, topEdge - lipH, topEdge - lipH);
-    // bottom pipe (lip at top)
-    drawSeg(botEdge + lipH, this.h - this.groundH - botEdge - lipH, botEdge);
-
-    // gap edge glow — subtle light along the jar opening edges
+    ctx.save();
     if (!this.highContrast) {
-      ctx.save();
-      const glowGrad = ctx.createLinearGradient(p.x, topEdge - 4 * this.sc, p.x, topEdge + 8 * this.sc);
-      glowGrad.addColorStop(0, "rgba(255,255,255,0)");
-      glowGrad.addColorStop(0.5, "rgba(255,255,255,0.08)");
-      glowGrad.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = glowGrad;
-      ctx.fillRect(p.x - lipOver, topEdge - 4 * this.sc, p.w + lipOver * 2, 12 * this.sc);
-      const glowGrad2 = ctx.createLinearGradient(p.x, botEdge - 8 * this.sc, p.x, botEdge + 4 * this.sc);
-      glowGrad2.addColorStop(0, "rgba(255,255,255,0)");
-      glowGrad2.addColorStop(0.5, "rgba(255,255,255,0.08)");
-      glowGrad2.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = glowGrad2;
-      ctx.fillRect(p.x - lipOver, botEdge - 8 * this.sc, p.w + lipOver * 2, 12 * this.sc);
-      ctx.restore();
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = 10;
     }
 
-    // coin
+    // Soft green silhouette behind the glass so the obstacle reads as a bong,
+    // not a flat Mario pipe.
+    const backGrad = ctx.createLinearGradient(x, 0, x + w, 0);
+    backGrad.addColorStop(0, "rgba(0,0,0,0.24)");
+    backGrad.addColorStop(0.25, glass);
+    backGrad.addColorStop(0.55, "rgba(255,255,255,0.18)");
+    backGrad.addColorStop(1, "rgba(0,0,0,0.26)");
+
+    // Mouthpiece rim at the playable gap edge.
+    const rimH = 12 * this.sc;
+    const rimY = rectY(-rimH * 0.25, rimH);
+    ctx.fillStyle = dark;
+    ctx.beginPath();
+    ctx.roundRect(x - w * 0.14, rimY, w * 1.28, rimH, 7 * this.sc);
+    ctx.fill();
+    ctx.fillStyle = glass2;
+    ctx.beginPath();
+    ctx.roundRect(x - w * 0.08, rimY + 2 * this.sc, w * 1.16, rimH * 0.42, 5 * this.sc);
+    ctx.fill();
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 1.6 * this.sc;
+    ctx.stroke();
+
+    // Tall glass neck with inner liquid and highlights.
+    const neckY = rectY(0, neckH);
+    ctx.fillStyle = backGrad;
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 2.2 * this.sc;
+    ctx.beginPath();
+    ctx.roundRect(neckX, neckY, neckW, neckH, 9 * this.sc);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(neckX + 3 * this.sc, neckY + 3 * this.sc, neckW - 6 * this.sc, neckH - 6 * this.sc, 7 * this.sc);
+    ctx.clip();
+    const liquidY = direction === 1 ? neckY + neckH * 0.56 : neckY + neckH * 0.12;
+    const liquidH = neckH * 0.34;
+    const lg = ctx.createLinearGradient(0, liquidY, 0, liquidY + liquidH);
+    lg.addColorStop(0, "rgba(190,255,120,0.58)");
+    lg.addColorStop(1, liquid);
+    ctx.fillStyle = lg;
+    ctx.fillRect(neckX, liquidY, neckW, liquidH);
+    ctx.fillStyle = "rgba(255,255,255,0.28)";
+    ctx.fillRect(neckX + neckW * 0.18, neckY, neckW * 0.16, neckH);
+    ctx.restore();
+
+    // Round chamber / beaker base like the banner art.
+    ctx.fillStyle = backGrad;
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 2.4 * this.sc;
+    ctx.beginPath();
+    ctx.ellipse(cx, bulbY, bulbR * 0.92, bulbR * 0.78, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Green liquid in the chamber, clipped to the bulb.
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(cx, bulbY, bulbR * 0.86, bulbR * 0.72, 0, 0, Math.PI * 2);
+    ctx.clip();
+    const fillTop = direction === 1 ? bulbY + bulbR * 0.02 : bulbY - bulbR * 0.56;
+    const fillHeight = bulbR * 0.62;
+    const chamberGrad = ctx.createLinearGradient(0, fillTop, 0, fillTop + fillHeight);
+    chamberGrad.addColorStop(0, "rgba(216,255,120,0.74)");
+    chamberGrad.addColorStop(1, liquid);
+    ctx.fillStyle = chamberGrad;
+    ctx.fillRect(cx - bulbR, fillTop, bulbR * 2, fillHeight);
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.lineWidth = 1.2 * this.sc;
+    ctx.beginPath();
+    const waveY = direction === 1 ? fillTop + 2 * this.sc : fillTop + fillHeight - 2 * this.sc;
+    ctx.moveTo(cx - bulbR, waveY);
+    ctx.quadraticCurveTo(cx - bulbR * 0.25, waveY - direction * 5 * this.sc, cx + bulbR * 0.25, waveY);
+    ctx.quadraticCurveTo(cx + bulbR * 0.65, waveY + direction * 5 * this.sc, cx + bulbR, waveY);
+    ctx.stroke();
+    ctx.restore();
+
+    // Bubbles inside chamber.
+    ctx.fillStyle = "rgba(220,255,160,0.72)";
+    for (let i = 0; i < 5; i++) {
+      const bx = cx + Math.sin(p.oscPhase + i * 1.7) * bulbR * 0.46;
+      const by = bulbY + direction * ((i - 2) * bulbR * 0.16 + Math.sin(performance.now() / 500 + i) * 2 * this.sc);
+      ctx.beginPath();
+      ctx.arc(bx, by, (2.2 + (i % 3)) * this.sc, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Side stem and bowl.
+    ctx.shadowBlur = 0;
+    const stemStartX = neckX + neckW * 0.78;
+    const stemStartY = yAt(neckH * 0.58);
+    const stemEndX = x + w * 1.12;
+    const stemEndY = yAt(neckH * 0.84);
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 5 * this.sc;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(stemStartX, stemStartY);
+    ctx.lineTo(stemEndX, stemEndY);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(74,222,128,0.72)";
+    ctx.lineWidth = 2.2 * this.sc;
+    ctx.beginPath();
+    ctx.moveTo(stemStartX, stemStartY);
+    ctx.lineTo(stemEndX, stemEndY);
+    ctx.stroke();
+    ctx.fillStyle = dark;
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 1.5 * this.sc;
+    ctx.beginPath();
+    ctx.ellipse(stemEndX + 4 * this.sc, stemEndY, 8 * this.sc, 6 * this.sc, direction * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Extra white-glass gleams and a cork ring detail.
+    ctx.strokeStyle = "rgba(255,255,255,0.36)";
+    ctx.lineWidth = 1.3 * this.sc;
+    ctx.beginPath();
+    ctx.moveTo(neckX + neckW * 0.23, neckY + neckH * 0.12);
+    ctx.lineTo(neckX + neckW * 0.23, neckY + neckH * 0.86);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(120,70,30,0.65)";
+    ctx.lineWidth = 3 * this.sc;
+    const corkY = rectY(neckH * 0.18, 1 * this.sc);
+    ctx.beginPath();
+    ctx.moveTo(neckX - 2 * this.sc, corkY);
+    ctx.lineTo(neckX + neckW + 2 * this.sc, corkY);
+    ctx.stroke();
+
+    if (p.pattern === "moving") {
+      ctx.fillStyle = "rgba(255,255,255,0.36)";
+      ctx.font = `900 ${11 * this.sc}px system-ui`;
+      ctx.textAlign = "center";
+      ctx.fillText("↕", cx, yAt(Math.min(safeLength - 12 * this.sc, bulbOffset + bulbR * 0.88)));
+    }
+
+    ctx.restore();
+    ctx.textBaseline = "alphabetic";
+  }
+
+  private drawBongSmoke(ctx: CanvasRenderingContext2D, p: Pipe, topEdge: number, botEdge: number) {
+    if (!p.smoke) return;
+    const bob = p.smoke.bob + performance.now() / 900;
+    const targetX = p.x + p.w / 2 + Math.sin(bob * 0.7) * 5 * this.sc;
+    const targetY = p.gapY + p.smoke.offset + Math.sin(bob) * 7 * this.sc;
+
+    const drawWisp = (mouthY: number, direction: 1 | -1) => {
+      const baseAlpha = this.highContrast ? 0.18 : 0.42;
+      for (let i = 0; i < 4; i++) {
+        const drift = Math.sin(bob + i * 1.1) * 8 * this.sc;
+        const sx = p.x + p.w / 2 + drift + (i - 1.5) * 5 * this.sc;
+        const sy = mouthY + direction * (13 + i * 11) * this.sc;
+        const r = (8 + i * 3) * this.sc;
+        ctx.fillStyle = i % 2 === 0
+          ? `rgba(210,255,160,${baseAlpha - i * 0.055})`
+          : `rgba(216,180,254,${baseAlpha - i * 0.06})`;
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+
+    ctx.save();
+    if (!this.highContrast) {
+      ctx.shadowColor = p.smoke.taken ? "#d8b4fe" : "#fb7185";
+      ctx.shadowBlur = p.smoke.taken ? 8 : 16;
+    }
+    drawWisp(topEdge, 1);
+    drawWisp(botEdge, -1);
+
+    // Gameplay smoke target — visible red-eyed cloud in the center of the gap.
+    const targetAlpha = p.smoke.taken ? 0.18 : 0.68;
+    const cloudColors = ["rgba(217,249,157,", "rgba(216,180,254,", "rgba(254,205,211,"];
+    for (let i = 0; i < 7; i++) {
+      const angle = (i / 7) * Math.PI * 2 + bob * 0.18;
+      const sx = targetX + Math.cos(angle) * 13 * this.sc;
+      const sy = targetY + Math.sin(angle) * 8 * this.sc;
+      const r = (11 + (i % 3) * 2) * this.sc;
+      ctx.fillStyle = `${cloudColors[i % cloudColors.length]}${targetAlpha * (p.smoke.taken ? 0.45 : 0.78)})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (!p.smoke.taken) {
+      ctx.fillStyle = "rgba(255,110,130,0.20)";
+      ctx.beginPath();
+      ctx.arc(targetX, targetY, 27 * this.sc, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,210,215,0.78)";
+      ctx.lineWidth = 1.8 * this.sc;
+      ctx.beginPath();
+      ctx.ellipse(targetX, targetY, 15 * this.sc, 8 * this.sc, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(225,29,72,0.82)";
+      ctx.beginPath();
+      ctx.arc(targetX, targetY, 3.2 * this.sc, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  private drawPipeCoin(ctx: CanvasRenderingContext2D, p: Pipe) {
     if (p.coin && !p.coin.taken) {
       const cx = p.x + p.w / 2;
       const cy = p.coin.y + Math.sin(p.coin.bob) * 6 * this.sc;

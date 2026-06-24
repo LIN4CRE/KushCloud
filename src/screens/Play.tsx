@@ -28,6 +28,7 @@ const initialHud = {
   frenzyRemainingMs: 0,
   lastPowerUp: "",
   clutch: 0,
+  redEye: 0,
 };
 
 export default function Play({ save, onExit, processRun, reviveRun }: Props) {
@@ -188,9 +189,9 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
                 <span className="text-slate-300">{hud.worldName}</span>
               </div>
             </div>
-            {(hud.nearMiss > 0 || hud.perfectPasses > 0 || hud.clutch > 0) && (
+            {(hud.nearMiss > 0 || hud.perfectPasses > 0 || hud.clutch > 0 || hud.redEye > 0) && (
               <div className="rounded-2xl border border-white/10 bg-slate-950/35 px-3 py-1.5 text-[11px] font-semibold text-slate-200 backdrop-blur-sm">
-                ✨ {hud.perfectPasses} &nbsp; ⚡ {hud.clutch} &nbsp; 😮 {hud.nearMiss}
+                ✨ {hud.perfectPasses} &nbsp; ⚡ {hud.clutch} &nbsp; 👁 {hud.redEye} &nbsp; 😮 {hud.nearMiss}
               </div>
             )}
           </div>
@@ -231,6 +232,7 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
                 <Stat label="Best Combo" value={run.bestCombo} />
                 <Stat label="Flaps" value={run.flaps} />
                 <Stat label="Perfect" value={run.perfectPasses} />
+                <Stat label="Red Eye" value={run.redEye ?? 0} />
                 <Stat label="Clutch" value={run.clutch ?? 0} />
               </div>
               {(lastSummary?.newBest || projectedNewBest) && (

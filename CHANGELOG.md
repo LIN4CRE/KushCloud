@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.4.0] - 2026-06-24
+### Added
+- Added banner-style glass bong obstacles with round chambers, green liquid, bubbles, angled stems, bowls, cork/detail rings, glowing highlights, and smoke wisps.
+- Added collectible bong smoke clouds that award Red Eye Bonus with score, combo, coin, and rush-time rewards.
+- Added Red Eye run tracking to the HUD and game-over summary.
+- Added a pale red glazed Red Eye screen effect with subtle stoned wave lines after collecting smoke.
+
+### Changed
+- Replaced the plain rectangular pipe look with detailed bong rendering while preserving fair collision geometry.
+- Bong smoke now acts as a skill target in the gap, making centered passes more rewarding and visually closer to the banner art.
+
 ## [4.3.0] - 2026-06-24
 ### Added
 - Added six more power-ups: Focus Flow, Guardian Bubble, Super Magnet, Coin Rush, Dash Hop, and Open Sky.
