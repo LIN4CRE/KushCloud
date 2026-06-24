@@ -131,6 +131,11 @@ class AudioEngine {
     [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, "triangle", 0.3, this.sfxGain!), i * 60));
   }
 
+  newHighScore() {
+    if (!this.sfxGain) return;
+    [523, 659, 784, 1047, 1319, 1568, 2093].forEach((f, i) => setTimeout(() => this.tone(f, 0.2, "triangle", 0.3, this.sfxGain!), i * 70));
+  }
+
   worldChange() {
     if (!this.sfxGain) return;
     [392, 523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.2, "sine", 0.25, this.sfxGain!), i * 80));

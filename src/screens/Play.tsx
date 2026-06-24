@@ -5,6 +5,7 @@ import { type RunSummary } from "../game/runProcessing";
 import { GameCanvas, type GameCanvasHandle, type GameHudUpdate } from "../components/GameCanvas";
 import { Button, Panel, Stat, CoinPill } from "../ui";
 import { SKINS, TRAILS, POWERUPS } from "../game/data";
+import { audio } from "../game/audio";
 
 interface Props {
   save: SaveData;
@@ -141,6 +142,12 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
   const estimatedCoins = run ? Math.round(run.coins * 10) + Math.round(run.score * 2) : 0;
   const coinsLabel = lastSummary?.coinsGained ?? estimatedCoins;
   const canRevive = revivesUsed < MAX_REVIVES && save.coins >= reviveCost;
+
+  useEffect(() => {
+    if (state === "gameover" && projectedNewBest) {
+      audio.newHighScore();
+    }
+  }, [state, projectedNewBest]);
 
   return (
     <div className="flex h-full flex-col">

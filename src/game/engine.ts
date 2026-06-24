@@ -1481,7 +1481,7 @@ export class GameEngine {
     const dark = this.highContrast ? "#008060" : this.world.pipeDark;
     const outline = this.highContrast ? "#eaffff" : "rgba(219,255,219,0.78)";
     const glass = this.highContrast ? "rgba(0,208,160,0.36)" : "rgba(183,255,210,0.20)";
-    const glass2 = this.highContrast ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.32)";
+    const glassHL = "rgba(255,255,255,0.32)";
     const liquid = this.highContrast ? "#7cff9b" : main;
     const glow = this.highContrast ? "#00ffd5" : this.world.accent;
     const x = p.x;
@@ -1503,8 +1503,7 @@ export class GameEngine {
       ctx.shadowBlur = 10;
     }
 
-    // Soft green silhouette behind the glass so the obstacle reads as a bong,
-    // not a flat Mario pipe.
+    // Brighter glass gradient for banner-style look.
     const backGrad = ctx.createLinearGradient(x, 0, x + w, 0);
     backGrad.addColorStop(0, "rgba(0,0,0,0.24)");
     backGrad.addColorStop(0.25, glass);
@@ -1518,7 +1517,7 @@ export class GameEngine {
     ctx.beginPath();
     ctx.roundRect(x - w * 0.14, rimY, w * 1.28, rimH, 7 * this.sc);
     ctx.fill();
-    ctx.fillStyle = glass2;
+    ctx.fillStyle = glassHL;
     ctx.beginPath();
     ctx.roundRect(x - w * 0.08, rimY + 2 * this.sc, w * 1.16, rimH * 0.42, 5 * this.sc);
     ctx.fill();
@@ -1547,9 +1546,20 @@ export class GameEngine {
     lg.addColorStop(1, liquid);
     ctx.fillStyle = lg;
     ctx.fillRect(neckX, liquidY, neckW, liquidH);
-    ctx.fillStyle = "rgba(255,255,255,0.28)";
+    ctx.fillStyle = glassHL;
     ctx.fillRect(neckX + neckW * 0.18, neckY, neckW * 0.16, neckH);
+    ctx.fillStyle = "rgba(255,255,255,0.50)";
+    ctx.fillRect(neckX + neckW * 0.05, neckY + neckH * 0.2, neckW * 0.06, neckH * 0.6);
     ctx.restore();
+
+    // Chamber glow (banner-style pulsing aura).
+    if (!this.highContrast) {
+      const pulse = 0.08 + 0.04 * Math.sin(performance.now() / 600 + p.oscPhase);
+      ctx.fillStyle = `rgba(74,222,128,${pulse})`;
+      ctx.beginPath();
+      ctx.arc(cx, bulbY, bulbR * 1.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // Round chamber / beaker base like the banner art.
     ctx.fillStyle = backGrad;
@@ -1568,27 +1578,39 @@ export class GameEngine {
     const fillTop = direction === 1 ? bulbY + bulbR * 0.02 : bulbY - bulbR * 0.56;
     const fillHeight = bulbR * 0.62;
     const chamberGrad = ctx.createLinearGradient(0, fillTop, 0, fillTop + fillHeight);
-    chamberGrad.addColorStop(0, "rgba(216,255,120,0.74)");
+    chamberGrad.addColorStop(0, "rgba(216,255,120,0.80)");
+    chamberGrad.addColorStop(0.5, "rgba(74,222,128,0.75)");
     chamberGrad.addColorStop(1, liquid);
     ctx.fillStyle = chamberGrad;
     ctx.fillRect(cx - bulbR, fillTop, bulbR * 2, fillHeight);
-    ctx.strokeStyle = "rgba(255,255,255,0.22)";
-    ctx.lineWidth = 1.2 * this.sc;
+    ctx.strokeStyle = "rgba(255,255,255,0.28)";
+    ctx.lineWidth = 1.6 * this.sc;
     ctx.beginPath();
     const waveY = direction === 1 ? fillTop + 2 * this.sc : fillTop + fillHeight - 2 * this.sc;
     ctx.moveTo(cx - bulbR, waveY);
-    ctx.quadraticCurveTo(cx - bulbR * 0.25, waveY - direction * 5 * this.sc, cx + bulbR * 0.25, waveY);
-    ctx.quadraticCurveTo(cx + bulbR * 0.65, waveY + direction * 5 * this.sc, cx + bulbR, waveY);
+    ctx.quadraticCurveTo(cx - bulbR * 0.25, waveY - direction * 7 * this.sc, cx + bulbR * 0.25, waveY);
+    ctx.quadraticCurveTo(cx + bulbR * 0.65, waveY + direction * 7 * this.sc, cx + bulbR, waveY);
     ctx.stroke();
     ctx.restore();
 
-    // Bubbles inside chamber.
-    ctx.fillStyle = "rgba(220,255,160,0.72)";
-    for (let i = 0; i < 5; i++) {
-      const bx = cx + Math.sin(p.oscPhase + i * 1.7) * bulbR * 0.46;
-      const by = bulbY + direction * ((i - 2) * bulbR * 0.16 + Math.sin(performance.now() / 500 + i) * 2 * this.sc);
+    // Bulge specular highlight on the chamber glass.
+    ctx.fillStyle = "rgba(255,255,255,0.14)";
+    ctx.beginPath();
+    ctx.ellipse(cx - bulbR * 0.3, bulbY - bulbR * 0.25, bulbR * 0.22, bulbR * 0.18, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bubbles inside chamber - more and flashier.
+    for (let i = 0; i < 7; i++) {
+      const bx = cx + Math.sin(p.oscPhase + i * 1.7 + performance.now() / 800) * bulbR * 0.48;
+      const by = bulbY + direction * ((i - 3) * bulbR * 0.14 + Math.sin(performance.now() / 400 + i * 2) * 3 * this.sc);
+      const br = (2 + (i % 4) * 1.5) * this.sc;
+      ctx.fillStyle = i % 2 === 0 ? "rgba(220,255,160,0.85)" : "rgba(180,255,220,0.70)";
       ctx.beginPath();
-      ctx.arc(bx, by, (2.2 + (i % 3)) * this.sc, 0, Math.PI * 2);
+      ctx.arc(bx, by, br, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.beginPath();
+      ctx.arc(bx - br * 0.25, by - br * 0.25, br * 0.35, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -1620,8 +1642,8 @@ export class GameEngine {
     ctx.stroke();
 
     // Extra white-glass gleams and a cork ring detail.
-    ctx.strokeStyle = "rgba(255,255,255,0.36)";
-    ctx.lineWidth = 1.3 * this.sc;
+    ctx.strokeStyle = "rgba(255,255,255,0.50)";
+    ctx.lineWidth = 1.6 * this.sc;
     ctx.beginPath();
     ctx.moveTo(neckX + neckW * 0.23, neckY + neckH * 0.12);
     ctx.lineTo(neckX + neckW * 0.23, neckY + neckH * 0.86);
