@@ -1,30 +1,30 @@
-# Release Notes — v3.5.0
+# Release Notes — v4.5.0
 
-**Release Date:** 2026-06-17
+**Release Date:** 2026-06-24
 
-## 🚀 Web-First Refactor
+## Cloudflare Leaderboard Migration
 
-This release strips all server-dependent and native-platform features to focus on a clean, self-contained web experience.
+This release adds a Firebase-free online leaderboard using Cloudflare Workers + D1.
 
-### Removed
-- **Firebase** — Auth, RTDB leaderboard, friends list, chat, cloud save sync
-- **Capacitor** — Android/iOS native builds, `android/` directory
-- **PWA** — Service worker, update checker, install prompt
-- **Over-engineered features** — Achievements, missions, friends, badges, titles, effects, loot crates, seasonal events, tutorial, statistics, profile
+### Added
+- Cloudflare Workers + D1 leaderboard backend (`cloudflare/leaderboard-worker.js`, `schema.sql`)
+- Wrangler example config and setup docs
+- Stable anonymous `playerId` for per-player cloud rankings
+- Cloud/local leaderboard status indicators, refresh button, and best-score sync
 
 ### Changed
-- **Leaderboard** — now localStorage-only, no submission network calls
-- **SaveData** — simplified from ~40 fields to ~15
-- **World type** — fixed to match engine expectations
-- **Power-ups** — updated IDs and effect types; PICKUP_POOL now matches POWERUPS
+- **Leaderboard priority**: Cloudflare D1 API is now checked first; Firebase is the fallback
+- Scores sync locally first, then to cloud when `VITE_LEADERBOARD_API_URL` is set
+- GitHub Pages builds can inject `VITE_LEADERBOARD_API_URL` from repo variables
+- Falls back to localStorage if all cloud paths are unavailable
 
 ### Quality
 
 | Gate | Result |
 |------|--------|
 | TypeScript | ✅ 0 errors |
-| Unit tests | ✅ **53/53** passing |
+| Unit tests | ✅ **145/145** passing |
 | Production build | ✅ Success |
 
 ### Versioning
-- `package.json` → 3.5.0
+- `package.json` → 4.5.0

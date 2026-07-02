@@ -44,7 +44,7 @@ function safeApiBase() {
 }
 
 export function isCloudLeaderboardConfigured(): boolean {
-  return isFirebaseConfigured() || safeApiBase().length > 0;
+  return safeApiBase().length > 0 || isFirebaseConfigured();
 }
 
 function cleanName(name: string) {
@@ -200,29 +200,17 @@ async function apiLeaderboard(uid?: string, limit = DEFAULT_LIMIT): Promise<Lead
 }
 
 export async function getLeaderboard(uid?: string, limit = DEFAULT_LIMIT): Promise<LeaderboardResult> {
-  const fb = await firebaseLeaderboard(uid, limit);
-  if (fb) return fb;
-
   const api = await apiLeaderboard(uid, limit);
   if (api) return api;
+
+  const fb = await firebaseLeaderboard(uid, limit);
+  if (fb) return fb;
 
   return localResult(uid, limit);
 }
 
 export async function submitScore(input: SubmitScoreInput): Promise<SubmitScoreResult> {
   const local = submitLocalScore(input.name, input.score, input.uid);
-
-  const firebaseOnline = isFirebaseConfigured();
-  if (firebaseOnline) {
-    try {
-      const result = await submitLeaderboardScore(input.uid, input.name, input.score);
-      if (result) {
-        return { localRank: local.rank, cloudRank: result.rank, online: true };
-      }
-    } catch {
-      /* fall through */
-    }
-  }
 
   if (safeApiBase()) {
     try {
@@ -238,7 +226,7 @@ export async function submitScore(input: SubmitScoreInput): Promise<SubmitScoreR
         }),
       });
       return { localRank: local.rank, cloudRank: data.rank, online: true };
-  } catch {
+    } catch {
       return {
         localRank: local.rank,
         online: false,
@@ -247,5 +235,16 @@ export async function submitScore(input: SubmitScoreInput): Promise<SubmitScoreR
     }
   }
 
-  return { localRank: local.rank, online: firebaseOnline };
+  if (isFirebaseConfigured()) {
+    try {
+      const result = await submitLeaderboardScore(input.uid, input.name, input.score);
+      if (result) {
+        return { localRank: local.rank, cloudRank: result.rank, online: true };
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+
+  return { localRank: local.rank, online: false };
 }
