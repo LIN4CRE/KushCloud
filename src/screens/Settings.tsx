@@ -133,6 +133,15 @@ export default function Settings({ save, onBack, onChange, onReset }: Props) {
               />
               <span className="text-sm text-slate-200">High Contrast Mode</span>
             </label>
+            <label className="flex cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                checked={!save.seenTutorial}
+                onChange={(e) => onChange({ seenTutorial: !e.target.checked })}
+                className="accent-emerald-500"
+              />
+              <span className="text-sm text-slate-200">Show Tutorial on Next Game</span>
+            </label>
           </div>
         </Panel>
 

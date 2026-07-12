@@ -14,6 +14,7 @@ interface Props {
   onExit: () => void;
   processRun: (run: RunResult) => Promise<RunSummary>;
   reviveRun: (cost: number) => boolean;
+  onTutorialSeen?: () => void;
 }
 
 type PlayState = "ready" | "playing" | "paused" | "gameover";
@@ -49,7 +50,7 @@ const initialHud = {
   timeRemaining: 0,
 };
 
-export default function Play({ save, onExit, processRun, reviveRun }: Props) {
+export default function Play({ save, onExit, processRun, reviveRun, onTutorialSeen }: Props) {
   const [state, setState] = useState<PlayState>("ready");
   const canvasRef = useRef<GameCanvasHandle>(null);
   const lastRunRef = useRef<RunResult | null>(null);
@@ -57,7 +58,7 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
   const [lastSummary, setLastSummary] = useState<RunSummary | null>(null);
   const [revivesUsed, setRevivesUsed] = useState(0);
   const [hud, setHud] = useState(initialHud);
-  const [dismissedTutorial, setDismissedTutorial] = useState(save.stats.totalGames >= 3);
+  const [dismissedTutorial, setDismissedTutorial] = useState(save.seenTutorial);
   const [achievementPopup, setAchievementPopup] = useState<{ name: string; desc: string } | null>(null);
 
   const reviveCost = 200 + revivesUsed * 200;
@@ -272,6 +273,7 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
               </div>
               <Button onClick={() => {
                 setDismissedTutorial(true);
+                onTutorialSeen?.();
                 canvasRef.current?.start();
                 setState("playing");
               }} className="w-full">

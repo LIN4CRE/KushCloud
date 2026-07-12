@@ -19,28 +19,42 @@ export function isFirebaseConfigured(): boolean {
 
 let app: FirebaseApp | null = null;
 let dbInstance: Database | null = null;
+let initPromise: Promise<void> | null = null;
+let initError: Error | null = null;
 
-function init() {
-  if (app) return;
-  if (!isFirebaseConfigured()) return;
-  try {
-    const cfg = loadFirebaseConfig();
-    app = initializeApp(cfg);
-    dbInstance = getDatabase(app);
-  } catch (err) {
-    console.warn("[Firebase] init failed:", err);
+async function ensureInit(): Promise<Database | null> {
+  if (dbInstance) return dbInstance;
+  if (initError) return null;
+
+  if (!initPromise) {
+    initPromise = (async () => {
+      if (!isFirebaseConfigured()) {
+        initError = new Error("Firebase not configured");
+        return;
+      }
+      try {
+        const cfg = loadFirebaseConfig();
+        app = initializeApp(cfg);
+        dbInstance = getDatabase(app);
+      } catch (err) {
+        initError = err as Error;
+        console.warn("[Firebase] init failed:", err);
+      }
+    })();
   }
+
+  await initPromise;
+  return dbInstance;
 }
 
-init();
-
-export const db = dbInstance;
+export const db = null;
 
 export async function submitLeaderboardScore(uid: string, name: string, score: number): Promise<{ rank: number } | null> {
-  if (!db || !uid || !Number.isFinite(score) || score < 0) return null;
+  const database = await ensureInit();
+  if (!database || !uid || !Number.isFinite(score) || score < 0) return null;
   const now = Date.now();
   const safeName = name.trim().slice(0, 32) || "Anonymous";
-  const refPath = ref(db, `leaderboards/all/${uid}`);
+  const refPath = ref(database, `leaderboards/all/${uid}`);
 
   try {
     await runTransaction(refPath, (current) => {
@@ -56,7 +70,7 @@ export async function submitLeaderboardScore(uid: string, name: string, score: n
       };
     });
 
-    const better = await get(query(ref(db, "leaderboards/all"), orderByChild("score"), limitToLast(100000)));
+    const better = await get(query(ref(database, "leaderboards/all"), orderByChild("score"), limitToLast(100000)));
     let rank = 1;
     better.forEach((child) => {
       const val = child.val() as { score?: number };
@@ -71,9 +85,10 @@ export async function submitLeaderboardScore(uid: string, name: string, score: n
 }
 
 export async function getLeaderboardEntries(limit = 50): Promise<{ uid: string; name: string; score: number; date: number }[]> {
-  if (!db) return [];
+  const database = await ensureInit();
+  if (!database) return [];
   try {
-    const snapshot = await get(query(ref(db, "leaderboards/all"), orderByChild("score"), limitToLast(limit)));
+    const snapshot = await get(query(ref(database, "leaderboards/all"), orderByChild("score"), limitToLast(limit)));
     const entries: { uid: string; name: string; score: number; date: number }[] = [];
     snapshot.forEach((child) => {
       const val = child.val() as { uid?: string; name?: string; score?: number; timestamp?: number } | null;
@@ -94,9 +109,10 @@ export async function getLeaderboardEntries(limit = 50): Promise<{ uid: string; 
 }
 
 export async function getPlayerRank(uid: string, score: number): Promise<number> {
-  if (!db || !uid) return 0;
+  const database = await ensureInit();
+  if (!database || !uid) return 0;
   try {
-    const better = await get(query(ref(db, "leaderboards/all"), orderByChild("score"), limitToLast(100000)));
+    const better = await get(query(ref(database, "leaderboards/all"), orderByChild("score"), limitToLast(100000)));
     let rank = 1;
     better.forEach((child) => {
       const val = child.val() as { score?: number };

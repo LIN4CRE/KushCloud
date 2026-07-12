@@ -5,6 +5,7 @@ import Play from "./screens/Play";
 import Shop from "./screens/Shop";
 import Leaderboard from "./screens/Leaderboard";
 import Settings from "./screens/Settings";
+import Landing from "./screens/Landing";
 import { ToastContainer, showToast } from "./ui";
 import { applyCompletedRun, type RunResult, type RunSummary } from "./game/runProcessing";
 import { submitScore } from "./game/leaderboard";
@@ -19,7 +20,7 @@ const POWERUP_SLOTS = 2;
 
 export default function App() {
   const { save, update } = useSave();
-  const [screen, setScreen] = useState<Screen>("menu");
+  const [screen, setScreen] = useState<Screen>(() => save.seenTutorial ? "menu" : "landing");
   const { showOfflineBanner } = useOnlineStatus();
 
   useEffect(() => {
@@ -179,6 +180,10 @@ export default function App() {
     });
   };
 
+  const onTutorialSeen = () => {
+    update((s) => { s.seenTutorial = true; });
+  };
+
   return (
     <ErrorBoundary>
       <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-slate-950">
@@ -194,6 +199,7 @@ export default function App() {
       <div className="relative mx-auto h-full w-full max-w-md overflow-hidden bg-gradient-to-b from-slate-900 via-emerald-950/60 to-slate-950 shadow-[0_0_80px_rgba(0,0,0,0.8)] md:max-w-xl lg:max-w-2xl">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
 
+        {screen === "landing" && <Landing onPlay={() => setScreen("play")} onSkip={() => setScreen("menu")} />}
         {screen === "menu" && <Menu save={save} onPlay={() => setScreen("play")} onNav={setScreen} onClaimDaily={claimDaily} onToggleSound={toggleSound} />}
         {screen === "play" && (
           <Play
@@ -201,6 +207,7 @@ export default function App() {
             onExit={() => setScreen("menu")}
             processRun={processRun}
             reviveRun={reviveRun}
+            onTutorialSeen={onTutorialSeen}
           />
         )}
         {screen === "shop" && (

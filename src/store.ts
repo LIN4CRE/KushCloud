@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadSave, writeSave, type SaveData } from "./game/storage";
 
-export type Screen = "menu" | "play" | "shop" | "leaderboard" | "settings";
+export type Screen = "landing" | "menu" | "play" | "shop" | "leaderboard" | "settings";
 
 export function useSave() {
   const [save, setSave] = useState<SaveData>(() => loadSave());
