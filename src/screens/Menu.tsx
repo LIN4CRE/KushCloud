@@ -9,9 +9,10 @@ interface Props {
   onPlay: () => void;
   onNav: (s: "shop" | "leaderboard" | "settings") => void;
   onClaimDaily: () => void;
+  onToggleSound: () => void;
 }
 
-export default function Menu({ save, onPlay, onNav, onClaimDaily }: Props) {
+export default function Menu({ save, onPlay, onNav, onClaimDaily, onToggleSound }: Props) {
   const { stats, coins, playerName } = save;
   const world = worldForScore(stats.bestScore);
   const worldIndex = WORLDS.findIndex((w) => w.id === world.id);
@@ -24,6 +25,7 @@ export default function Menu({ save, onPlay, onNav, onClaimDaily }: Props) {
     : 1;
   const daily = getDailyRewardStatus(save);
   const averageScore = stats.totalGames > 0 ? Math.round(stats.totalScore / stats.totalGames) : 0;
+  const isMuted = save.musicVol === 0 && save.sfxVol === 0;
 
   return (
     <div className="flex h-full flex-col items-center overflow-y-auto px-6 py-8">
@@ -32,6 +34,13 @@ export default function Menu({ save, onPlay, onNav, onClaimDaily }: Props) {
       <div className="mb-5 flex items-center gap-2">
         <span className="max-w-[180px] truncate text-lg font-bold text-white">{playerName}</span>
         <CoinPill amount={coins} />
+        <button
+          onClick={onToggleSound}
+          aria-label={isMuted ? "Unmute sound" : "Mute sound"}
+          className="ml-auto flex size-8 items-center justify-center rounded-lg bg-white/5 text-sm hover:bg-white/10 active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+        >
+          {isMuted ? "🔇" : "🔊"}
+        </button>
       </div>
 
       <div className="mb-5 grid w-full max-w-sm grid-cols-4 gap-2">

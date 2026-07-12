@@ -4,6 +4,8 @@ import { randomName } from "../game/storage";
 import { BUILD_INFO, buildDebugReport, shortCommit } from "../config/buildInfo";
 import { Button, Panel, ScreenShell } from "../ui";
 
+const REPO_URL = "https://github.com/LIN4CRE/KushCloud";
+
 interface Props {
   save: SaveData;
   onBack: () => void;
@@ -157,6 +159,27 @@ export default function Settings({ save, onBack, onChange, onReset }: Props) {
             >
               Artifact
             </a>
+          </div>
+        </Panel>
+
+        <Panel>
+          <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-300">About</h3>
+          <div className="space-y-2 text-sm text-slate-300">
+            <p>
+              KushCloud is open-source and MIT licensed. Built with React, TypeScript, Canvas 2D, and Web Audio API — zero external assets.
+            </p>
+            <a
+              href={`${REPO_URL}#readme`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-slate-600 to-slate-700 px-4 py-3 text-sm font-bold text-white shadow-lg transition hover:from-slate-500 hover:to-slate-600"
+            >
+              ⭐ Star on GitHub
+            </a>
+            <div className="flex gap-4 text-xs text-slate-400">
+              <a href={`${REPO_URL}/blob/main/docs/privacy-policy.md`} target="_blank" rel="noreferrer" className="underline hover:text-slate-200">Privacy Policy</a>
+              <a href={`${REPO_URL}/blob/main/docs/accessibility-statement.md`} target="_blank" rel="noreferrer" className="underline hover:text-slate-200">Accessibility</a>
+            </div>
           </div>
         </Panel>
 

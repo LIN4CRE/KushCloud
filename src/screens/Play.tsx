@@ -7,6 +7,7 @@ import { Button, Panel, Stat, CoinPill } from "../ui";
 import { SKINS, TRAILS, POWERUPS } from "../game/data";
 import { audio } from "../game/audio";
 import { checkNewAchievements, loadUnlocked, saveUnlocked } from "../game/achievements";
+import { shareScore } from "../lib/share";
 
 interface Props {
   save: SaveData;
@@ -18,6 +19,19 @@ interface Props {
 type PlayState = "ready" | "playing" | "paused" | "gameover";
 
 const MAX_REVIVES = 1;
+
+function announceRunResult(score: number, isNewBest: boolean, coins: number) {
+  const message = isNewBest
+    ? `Game over! New personal best: ${score} points! You earned ${coins} coins.`
+    : `Game over! You scored ${score} points and earned ${coins} coins.`;
+  const announcer = document.createElement("div");
+  announcer.setAttribute("role", "status");
+  announcer.setAttribute("aria-live", "polite");
+  announcer.className = "sr-only";
+  announcer.textContent = message;
+  document.body.appendChild(announcer);
+  setTimeout(() => announcer.remove(), 4000);
+}
 
 const initialHud = {
   score: 0,
@@ -78,7 +92,8 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
     pendingRunRef.current = run;
     setLastSummary(null);
     setState("gameover");
-    // Check for new achievements after each run
+    const isNewBest = run.score > save.stats.bestScore;
+    announceRunResult(run.score, isNewBest, Math.round(run.coins * 10) + Math.round(run.score * 2));
     const unlocked = loadUnlocked();
     const newAchievements = checkNewAchievements(unlocked, save.stats, run);
     if (newAchievements.length > 0) {
@@ -307,6 +322,13 @@ export default function Play({ save, onExit, processRun, reviveRun }: Props) {
                   ✨ New Best Score! ✨
                 </div>
               )}
+              <Button
+                onClick={() => { void shareScore(run.score, !!(lastSummary?.newBest || projectedNewBest)); }}
+                variant="secondary"
+                className="mb-2 w-full"
+              >
+                📤 Share Score
+              </Button>
               <div className="flex gap-2">
                 <Button onClick={handleRevive} disabled={!canRevive} className="flex-1">
                   {revivesUsed >= MAX_REVIVES ? "Revive Used" : `Revive (${reviveCost}🪙)`}

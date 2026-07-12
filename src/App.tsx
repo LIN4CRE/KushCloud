@@ -12,12 +12,15 @@ import { SKINS, TRAILS, POWERUPS } from "./game/data";
 import { createDefaultSave, recordRun } from "./game/storage";
 import { claimDailyReward } from "./game/rewards";
 import { audio } from "./game/audio";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { useOnlineStatus } from "./hooks/useOnlineStatus";
 
 const POWERUP_SLOTS = 2;
 
 export default function App() {
   const { save, update } = useSave();
   const [screen, setScreen] = useState<Screen>("menu");
+  const { showOfflineBanner } = useOnlineStatus();
 
   useEffect(() => {
     audio.setMusicVol(save.musicVol);
@@ -162,16 +165,36 @@ export default function App() {
     }
   };
 
+  const toggleSound = () => {
+    update((s) => {
+      if (s.musicVol === 0 && s.sfxVol === 0) {
+        s.musicVol = 0.5;
+        s.sfxVol = 0.5;
+        showToast("Sound on", "info");
+      } else {
+        s.musicVol = 0;
+        s.sfxVol = 0;
+        showToast("Sound off", "info");
+      }
+    });
+  };
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-slate-950">
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="h-[600px] w-[420px] animate-[glow-pulse_6s_ease-in-out_infinite] rounded-full bg-emerald-900/30 blur-[80px]" />
-        <div className="h-[300px] w-[300px] translate-x-[120px] translate-y-[80px] animate-[glow-pulse_8s_ease-in-out_infinite_0.5s] rounded-full bg-violet-900/20 blur-[60px]" />
-      </div>
+    <ErrorBoundary>
+      <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-slate-950">
+        {showOfflineBanner && (
+          <div role="alert" className="absolute top-2 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-amber-500/40 bg-amber-900/90 px-4 py-2 text-xs font-bold text-amber-200 shadow-xl backdrop-blur-sm">
+            You&apos;re offline — leaderboard unavailable
+          </div>
+        )}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="h-[600px] w-[420px] animate-[glow-pulse_6s_ease-in-out_infinite] rounded-full bg-emerald-900/30 blur-[80px]" />
+          <div className="h-[300px] w-[300px] translate-x-[120px] translate-y-[80px] animate-[glow-pulse_8s_ease-in-out_infinite_0.5s] rounded-full bg-violet-900/20 blur-[60px]" />
+        </div>
       <div className="relative mx-auto h-full w-full max-w-md overflow-hidden bg-gradient-to-b from-slate-900 via-emerald-950/60 to-slate-950 shadow-[0_0_80px_rgba(0,0,0,0.8)] md:max-w-xl lg:max-w-2xl">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
 
-        {screen === "menu" && <Menu save={save} onPlay={() => setScreen("play")} onNav={setScreen} onClaimDaily={claimDaily} />}
+        {screen === "menu" && <Menu save={save} onPlay={() => setScreen("play")} onNav={setScreen} onClaimDaily={claimDaily} onToggleSound={toggleSound} />}
         {screen === "play" && (
           <Play
             save={save}
@@ -204,6 +227,7 @@ export default function App() {
         )}
         <ToastContainer />
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
