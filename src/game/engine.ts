@@ -1175,8 +1175,26 @@ export class GameEngine {
 
     updateEffectParticles(this.particles, dt);
     updateOverlays(this.overlays, dt);
+    this.updateFloats(dt);
     if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 40);
     if (this.flashAlpha > 0) this.flashAlpha = Math.max(0, this.flashAlpha - dt * 2.5);
+  }
+
+  // Float-text lifetime. Text pops in fully then fades out fast (~0.5s total) so
+  // it never lingers over the play area. `life` is used directly as alpha at draw.
+  private static readonly FLOAT_LIFETIME = 0.5; // seconds on screen before gone
+  private updateFloats(dt: number) {
+    if (this.floats.length === 0) return;
+    let write = 0;
+    for (let i = 0; i < this.floats.length; i++) {
+      const f = this.floats[i];
+      f.y += f.vy * dt;                 // drift upward
+      f.vy *= 1 - Math.min(1, dt * 3);  // ease the drift
+      // Fade over FLOAT_LIFETIME: hold near-full for the first ~30%, then fade out.
+      f.life -= dt / GameEngine.FLOAT_LIFETIME;
+      if (f.life > 0) this.floats[write++] = f;
+    }
+    this.floats.length = write;
   }
 
   private circleRect(cx: number, cy: number, r: number, rx: number, ry: number, rw: number, rh: number) {
@@ -1274,10 +1292,11 @@ export class GameEngine {
     // bird
     this.drawBird(ctx);
 
-    // floats
+    // floats — hold readable briefly, then fade out fast (life: 1 → 0 over ~0.5s)
     for (const f of this.floats) {
       ctx.save();
-      ctx.globalAlpha = Math.min(1, f.life);
+      // Full opacity while life > 0.6 (~first 0.2s), then smooth fade to 0.
+      ctx.globalAlpha = f.life >= 0.6 ? 1 : Math.max(0, f.life / 0.6);
       ctx.font = `900 ${f.size}px system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.lineWidth = 3;
