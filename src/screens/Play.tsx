@@ -319,17 +319,35 @@ export default function Play({ save, onExit, processRun, reviveRun, onTutorialSe
                 <Stat label="Red Eye" value={run.redEye ?? 0} />
                 <Stat label="Clutch" value={run.clutch ?? 0} />
               </div>
-              {(lastSummary?.newBest || projectedNewBest) && (
+              {(lastSummary?.newBest || projectedNewBest) ? (
                 <div className="mb-3 rounded-lg bg-gradient-to-r from-amber-500/20 to-yellow-500/20 px-3 py-2 text-sm font-bold text-amber-300">
                   ✨ New Best Score! ✨
                 </div>
-              )}
+              ) : (() => {
+                // "So close" retry hook — the classic one-more-go driver.
+                const gap = save.stats.bestScore - run.score;
+                if (save.stats.bestScore > 0 && gap >= 0 && gap <= 5) {
+                  return (
+                    <div className="mb-3 rounded-lg bg-gradient-to-r from-rose-500/20 to-orange-500/20 px-3 py-2 text-sm font-bold text-rose-200">
+                      😤 {gap === 0 ? "Tied your best!" : `Only ${gap} off your best (${save.stats.bestScore})!`} One more go?
+                    </div>
+                  );
+                }
+                if (save.stats.bestScore > 0) {
+                  return (
+                    <div className="mb-3 text-xs text-slate-400">
+                      Your best: <span className="font-bold text-slate-200">{save.stats.bestScore}</span> · {gap} to beat it
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               <Button
                 onClick={() => { void shareScore(run.score, !!(lastSummary?.newBest || projectedNewBest)); }}
                 variant="secondary"
                 className="mb-2 w-full"
               >
-                📤 Share Score
+                {(lastSummary?.newBest || projectedNewBest) ? "😏 Flex on your friends" : "📤 Challenge a friend"}
               </Button>
               <div className="flex gap-2">
                 <Button onClick={handleRevive} disabled={!canRevive} className="flex-1">
