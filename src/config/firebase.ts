@@ -59,7 +59,7 @@ export async function submitLeaderboardScore(uid: string, name: string, score: n
   try {
     await runTransaction(refPath, (current) => {
       if (!current) {
-        return { uid, name: safeName, score, timestamp: now };
+        return { uid, name: safeName, score, timestamp: now, period: "all" };
       }
       const cur = current as { score?: number; name?: string; timestamp?: number };
       return {
@@ -67,6 +67,7 @@ export async function submitLeaderboardScore(uid: string, name: string, score: n
         name: safeName,
         score: Math.max(cur.score || 0, score),
         timestamp: (score >= (cur.score || 0)) ? now : (cur.timestamp || now),
+        period: "all",
       };
     });
 
