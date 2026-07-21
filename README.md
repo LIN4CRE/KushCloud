@@ -1,3 +1,5 @@
+![KushCloud Banner](.github/banner.png)
+
 <p align="center">
   <img src="logo.png" width="120" height="120" alt="KushCloud Logo" />
 </p>
